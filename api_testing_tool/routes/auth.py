@@ -14,6 +14,8 @@ def _user_lookup_callback(_jwt_header, jwt_data):
     user = db.users.find_one({"email":identity})
     if user is None:
         return None
+    user['_id'] = str(user['_id'])
+    del user['password']
     return user
 
 

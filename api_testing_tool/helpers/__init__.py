@@ -1,0 +1,1 @@
+from .slugs import create_slug

@@ -2,7 +2,7 @@ from flask import Flask
 from config import *
 from pymongo import MongoClient
 from flask_jwt_extended import JWTManager
-
+ 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 

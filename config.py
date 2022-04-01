@@ -12,3 +12,4 @@ MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
 
 # Secret Key
 SECRET_KEY = os.getenv("SECRET_KEY")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")

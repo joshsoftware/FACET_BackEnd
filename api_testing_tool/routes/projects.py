@@ -34,8 +34,7 @@ def createProjects():
 @jwt_required()
 def deleteProjects():
     data = request.json
-    project_name = data.get("name")
-    slug = create_slug(project_name)
+    slug = data.get("slug")
     if db.projects.find_one({"slug" : slug}) == None:
         return jsonify({"errors" : "No such project exists in your project directory"})
     else:

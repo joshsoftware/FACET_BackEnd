@@ -32,3 +32,10 @@ def createEndpoints():
         return jsonify({"success": "endpoint added successfully"})
     else:
         return jsonify({"error" : "invalid project details"})
+
+# @endpoints_blueprint.route('api/update-endpoints',method = ["POST"])
+# @jwt_required()
+# def updateEndpoints():
+#     data = request.json
+#     endpoint_id = data.get("endpoint_id")
+    

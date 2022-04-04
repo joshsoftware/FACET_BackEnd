@@ -9,6 +9,9 @@ app.register_blueprint(projects_blueprint)
 from .endpoints import endpoints_blueprint
 app.register_blueprint(endpoints_blueprint)
 
+from .headers import headers_blueprint
+app.register_blueprint(headers_blueprint)
+
 from .payloads import payloads_blueprint
 app.register_blueprint(payloads_blueprint)
 

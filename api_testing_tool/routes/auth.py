@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from api_testing_tool import db, jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
+from api_testing_tool.helpers import create_id
 
 
 auth_blueprint = Blueprint('auth', __name__)
@@ -10,11 +11,10 @@ auth_blueprint = Blueprint('auth', __name__)
 @jwt.user_lookup_loader
 def _user_lookup_callback(_jwt_header, jwt_data):
     identity = jwt_data["sub"]
-    print(identity)
+    
     user = db.users.find_one({"email":identity})
     if user is None:
         return None
-    user['_id'] = str(user['_id'])
     del user['password']
     return user
 
@@ -32,9 +32,10 @@ def signup():
         return jsonify({"errors":{"password":"Password Should be 4 characters Long"}})
     
     user = db.users.find_one({"email":email})
-
+    
     if not user:
         user = db.users.insert_one({
+            "_id": create_id(),
             **data,
             "password": generate_password_hash(password),
             "joinedAt": datetime.now()

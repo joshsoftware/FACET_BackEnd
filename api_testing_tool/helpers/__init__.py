@@ -1,1 +1,1 @@
-from .slugs import create_slug
+from .utils import *

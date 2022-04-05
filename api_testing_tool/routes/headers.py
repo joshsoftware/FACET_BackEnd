@@ -1,8 +1,5 @@
-from email import header
-import json
 from flask import Blueprint,jsonify, request
-from flask_jwt_extended import get_current_user, jwt_required
-import jwt
+from flask_jwt_extended import jwt_required
 from api_testing_tool import db
 from api_testing_tool.helpers.utils import create_id
 

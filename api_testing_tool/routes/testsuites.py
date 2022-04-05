@@ -7,13 +7,26 @@ testsuite_blueprint = Blueprint('testsuites', __name__)
 
 @testsuite_blueprint.route('/api/get-testsuites',methods = ["GET"])
 @jwt_required()
-def getTestsuite():
+def getTestsuites():
     data = request.json 
     project_id = data.get("project_id")
     project_testsuites = db.testsuite.find({"project_id" : project_id})
     return jsonify({"testsuites" : list(project_testsuites)})
 
-@testsuite_blueprint.route('/api/create-testsuites',methods = ["POST"])
+@testsuite_blueprint.route('/api/testsuite/<string:id>', methods=['GET'])
+@jwt_required()
+def getTestsuite(id):
+    testsuite = db.testsuite.find_one({"_id":id})
+    
+    testcases = []
+    for i in testsuite['testcases']:
+        testcases.append(db.testcases.find_one({"_id":i}))
+    
+    testsuite['testcases'] = testcases
+
+    return jsonify(testsuite)
+
+@testsuite_blueprint.route('/api/create-testsuite',methods = ["POST"])
 @jwt_required()
 def createTestsuites():
     data = request.json 

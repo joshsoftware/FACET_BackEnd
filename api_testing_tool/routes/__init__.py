@@ -23,3 +23,6 @@ app.register_blueprint(testsuite_blueprint)
 
 from .testdata import testdata_blueprint
 app.register_blueprint(testdata_blueprint)
+
+from .engine import engine_blueprint
+app.register_blueprint(engine_blueprint)

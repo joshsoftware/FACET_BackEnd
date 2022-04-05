@@ -20,3 +20,6 @@ app.register_blueprint(testcases_blueprint)
 
 from .testsuites import testsuite_blueprint
 app.register_blueprint(testsuite_blueprint)
+
+from .testdata import testdata_blueprint
+app.register_blueprint(testdata_blueprint)

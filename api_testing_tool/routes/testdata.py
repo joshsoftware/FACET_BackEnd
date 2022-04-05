@@ -19,6 +19,7 @@ def createTestdata():
     data = request.json
     testcase_id = data.get("testcase_id")
     payload = data.get("payload")
+    expected_outcome = data.get("expected_outcome")
     if testcase_id == "" or payload == "":
         return jsonify({"error" : "all the fields are to be filled mandatorily"})
     else:
@@ -26,5 +27,6 @@ def createTestdata():
             "_id" : create_id(),
             "testcase_id" : testcase_id,
             "payload" : payload,
+            "expected_outcome": expected_outcome
         })
         return jsonify({"success" : "testdata added successfully"})

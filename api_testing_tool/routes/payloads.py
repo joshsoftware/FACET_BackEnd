@@ -13,7 +13,8 @@ def create_payloads():
 
     project_id = data.get("project_id")
     payload_name = data.get("name")
-    payload = data.get("payload")
+    # payload = data.get("payload")
+    # expected_outcome = data.get("expected_outcome")
 
     if project_id=="" or payload_name=="":
         return jsonify({"errors":"All fields are Required!"})

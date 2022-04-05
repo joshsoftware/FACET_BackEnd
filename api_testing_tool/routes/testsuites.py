@@ -20,7 +20,9 @@ def getTestsuite(id):
     
     testcases = []
     for i in testsuite['testcases']:
-        testcases.append(db.testcases.find_one({"_id":i}))
+        testcase = db.testcases.find_one({"_id":i})
+        testcase['testdata'] = list(db.testdata.find({"testcase_id":i}))
+        testcases.append(testcase)
     
     testsuite['testcases'] = testcases
 

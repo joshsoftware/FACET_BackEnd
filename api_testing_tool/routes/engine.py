@@ -36,7 +36,9 @@ def perform_testcases(testcase):
     res = fetch_from_api(testcase['method'], testcase['endpoint']['endpoint'], testcase['payload']['payload'])
 
     if res.status_code==testcase['payload']['expected_outcome']['status_code']:
+        #db.results({"testcase_id":testcase['_id'], "title":testcase['title'], "status":"passed",**res.json()})
         return {"testcase_id":testcase['_id'], "title":testcase['title'], "status":"passed"}
     else:
+        #db.results({"testcase_id":testcase['_id'], "title":testcase['title'], "status":"failed",**res.json()})
         return {"testcase_id":testcase['_id'], "title":testcase['title'], "status":"failed", **res.json()}
 

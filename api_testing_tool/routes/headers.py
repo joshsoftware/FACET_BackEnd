@@ -21,14 +21,13 @@ def createHeaders():
     project_id = data.get("project_id")
     header = data.get("header")
     name = data.get("name")
-    endpoint_id = data.get("endpoint_id")
-    if db.headers.find_one({'project_id' : project_id,'endpoint_id': endpoint_id}) == None:
+    
+    if db.headers.find_one({'project_id' : project_id}) == None:
         db.headers.insert_one({
             "_id" : create_id(),
             "project_id" : project_id,
             "header" : header,
-            "name" : name,
-            "endpoint_id" : endpoint_id
+            "name" : name
         })
         return jsonify({"success": "header added succesfully"})
     else:

@@ -1,6 +1,7 @@
 from requests import Request, Session
 from flask import Blueprint, request, jsonify
 from api_testing_tool import db
+from api_testing_tool.helpers.utils import create_id
 
 engine_blueprint = Blueprint('engine', __name__)
 
@@ -24,8 +25,8 @@ def tests():
             res.append(perform_testcases(testcase))
     return jsonify(res)
 
-def fetch_from_api(method, endpoint, data):
-    r = Request(method, endpoint, json=data, headers=s.headers)
+def fetch_from_api(method, endpoint, data, header):
+    r = Request(method, endpoint, json=data, headers=header)
 
     prepped = s.prepare_request(r)
     resp = s.send(prepped)
@@ -33,9 +34,21 @@ def fetch_from_api(method, endpoint, data):
     return resp
 
 def perform_testcases(testcase):
-    res = fetch_from_api(testcase['method'], testcase['endpoint']['endpoint'], testcase['payload']['payload'])
+    res = fetch_from_api(testcase['method'], testcase['endpoint']['endpoint'], testcase['payload']['payload'], testcase['endpoint']['header_id']['header'])
 
     if res.status_code==testcase['payload']['expected_outcome']['status_code']:
+
+        if testcase.get("token_field"):
+            tmp = testcase.get("token_field").split(".")
+
+            token = res.json()
+            for i in tmp:
+                token = token.get(i)
+            db.temp.insert_one({
+                "_id": create_id(),
+                "project_id": testcase['project'],
+                "token": token
+            })
         #db.results({"testcase_id":testcase['_id'], "title":testcase['title'], "status":"passed",**res.json()})
         return {"testcase_id":testcase['_id'], "title":testcase['title'], "status":"passed"}
     else:

@@ -22,12 +22,15 @@ def createEndpoints():
     project_name_slug = data.get("project_name_slug")
     user_id = get_current_user()['_id']
     project_id = db.projects.find_one({"slug": project_name_slug, "user":user_id})["_id"]
+    header = db.headers.find_one({"_id":data.get("header")})
+
     if project_id != None:
         db.endpoints.insert_one({
             "_id" : create_id(),
             "endpoint" : endpoint,
             "name" : name,
-            "project_id" : project_id
+            "project_id" : project_id,
+            "header_id": header
         })
         return jsonify({"success": "endpoint added successfully"})
     else:

@@ -1,8 +1,9 @@
 import uuid
+from slugify import slugify
 
 
 def create_slug(data):
-    slug = data.lower().replace(" ","-")
+    slug = slugify(data, lowercase=False, separator='-')
     return slug
 
 def create_id():

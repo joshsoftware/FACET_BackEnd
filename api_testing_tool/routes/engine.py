@@ -23,6 +23,7 @@ def tests():
             testcase['payload']['expected_outcome'] = {**testcase['payload']['expected_outcome'], **testdata['expected_outcome']}
             
             res.append(perform_testcases(testcase))
+    db.temp.find_one_and_delete({"project_id":testcase['project']})
     return jsonify(res)
 
 def fetch_from_api(method, endpoint, data, header):
@@ -34,7 +35,16 @@ def fetch_from_api(method, endpoint, data, header):
     return resp
 
 def perform_testcases(testcase):
-    res = fetch_from_api(testcase['method'], testcase['endpoint']['endpoint'], testcase['payload']['payload'], testcase['endpoint']['header_id']['header'])
+
+    header = testcase.get('endpoint').get("header_id").get("header")
+    token = db.temp.find_one({"project_id":testcase['project']})
+    if token:
+        token = token.get('token')
+        if "$token" in str(header) and token:
+            header = str(header).replace("$token", token)
+            header = eval(header)
+            
+    res = fetch_from_api(testcase['method'], testcase['endpoint']['endpoint'], testcase['payload']['payload'], header)
 
     if res.status_code==testcase['payload']['expected_outcome']['status_code']:
 
@@ -54,4 +64,3 @@ def perform_testcases(testcase):
     else:
         #db.results({"testcase_id":testcase['_id'], "title":testcase['title'], "status":"failed",**res.json()})
         return {"testcase_id":testcase['_id'], "title":testcase['title'], "status":"failed", **res.json()}
-

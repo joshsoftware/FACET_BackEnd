@@ -2,6 +2,9 @@ from flask import Blueprint,jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from api_testing_tool import db
 from api_testing_tool.helpers.utils import create_id
+from jsonschema import ValidationError, validate
+from api_testing_tool.schema import endpoints_schema
+import re
 
 endpoints_blueprint = Blueprint('endpoints', __name__)
 
@@ -19,10 +22,20 @@ def createEndpoints():
     data = request.json
     endpoint = data.get("endpoint")
     name = data.get("name")
-    project_name_slug = data.get("project_name_slug")
+    project_name_slug = data.get("project_name")
     user_id = get_current_user()['_id']
     project_id = db.projects.find_one({"slug": project_name_slug, "user":user_id})["_id"]
     header = db.headers.find_one({"_id":data.get("header")})
+
+    try:
+        validate(data, endpoints_schema)
+    except ValidationError as e:
+        if len(e.relative_path) > 0:
+            error = re.sub("'(.)*'", e.relative_path[0], str(e.message))
+            error = {e.relative_path[0] : str(error)}
+        else:
+            error = str(e.message)
+        return jsonify(error), 400
 
     if project_id != None:
         db.endpoints.insert_one({

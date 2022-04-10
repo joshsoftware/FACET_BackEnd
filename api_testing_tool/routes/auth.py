@@ -4,7 +4,9 @@ from api_testing_tool import db, jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
 from api_testing_tool.helpers import create_id
-
+from jsonschema import ValidationError, validate
+from api_testing_tool.schema import signup_schema, login_schema
+import re
 
 auth_blueprint = Blueprint('auth', __name__)
 
@@ -26,11 +28,16 @@ def signup():
     email = data.get("email")
     password = data.get("password")
 
-    if len(email)<6:
-        return jsonify({"errors":{"email":"Email Should be 6 characters Long"}})
-    if len(password)<4:
-        return jsonify({"errors":{"password":"Password Should be 4 characters Long"}})
-    
+    try:
+        validate(data, signup_schema)
+    except ValidationError as e:
+        if len(e.relative_path) > 0:
+            error = re.sub("'(.)*'", e.relative_path[0], str(e.message))
+            error = {e.relative_path[0] : str(error)}
+        else:
+            error = str(e.message)
+        return jsonify(error), 400
+
     user = db.users.find_one({"email":email})
     
     if not user:
@@ -52,8 +59,15 @@ def login():
     email = data.get("email")
     password = data.get("password")
 
-    if not email or not password:
-        return jsonify({"errors":"Email and Password Required"}), 400
+    try:
+        validate(data, login_schema)
+    except ValidationError as e:
+        if len(e.relative_path) > 0:
+            error = re.sub("'(.)*'", e.relative_path[0], str(e.message))
+            error = {e.relative_path[0] : str(error)}
+        else:
+            error = str(e.message)
+        return jsonify(error), 400
 
     user = db.users.find_one({"email":email})
     

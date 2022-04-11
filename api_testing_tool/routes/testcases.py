@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
 from flask_jwt_extended import get_current_user, jwt_required
-from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.helpers import create_id, validation_error,create_slug
 from api_testing_tool.schema import testcase_schema
 
 testcases_blueprint = Blueprint('testcases', __name__)
@@ -28,7 +28,7 @@ def create_testcase():
 
     project_id = data.get('project_id')
     endpoint_id = data.get('endpoint_id')
-    title = data.get('title')
+    name = create_slug(data.get('name'))
     method = data.get('method')
     payload_id = data.get('payload_id')
 
@@ -42,7 +42,7 @@ def create_testcase():
         "_id":create_id(),
         "project": project_id,
         "endpoint": db.endpoints.find_one({"_id":endpoint_id}),
-        "title": title,
+        "name": name,
         "method": method,
         "payload": db.payloads.find_one({"_id":payload_id})
     })

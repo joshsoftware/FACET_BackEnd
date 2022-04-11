@@ -20,9 +20,9 @@ def getProjects():
 @jwt_required()
 def createProjects():
     data = request.json
-    project_name = data.get("name")
+    name = data.get("name")
     user_id = get_current_user()["_id"]
-    slug = create_slug(project_name)
+    name = create_slug(name)
 
     try:
         validate(data, projects_schema)
@@ -30,13 +30,12 @@ def createProjects():
         error = validation_error(e)
         return jsonify(error), 400
 
-    if db.projects.find_one({"slug": slug, "user":user_id}) == None:
+    if db.projects.find_one({"name": name, "user":user_id}) == None:
 
         db.projects.insert_one({
             "_id":create_id(),
-            "name": project_name, 
-            "user": user_id, 
-            "slug" : slug
+            "name": name, 
+            "user": user_id,
         })
         return jsonify({"success": "project created successfully"})
     else:
@@ -47,13 +46,13 @@ def createProjects():
 @jwt_required()
 def deleteProjects():
     data = request.json
-    slug = data.get("slug")
+    name = data.get("name")
     user_id = get_current_user()['_id']
 
-    if db.projects.find_one({"slug" : slug, "user":user_id}) == None:
+    if db.projects.find_one({"name" : name, "user":user_id}) == None:
         return jsonify({"errors" : "No such project exists in your project directory"})
     else:
-        db.projects.delete_one({"slug" :slug, "user":user_id})
+        db.projects.delete_one({"name" :name, "user":user_id})
         return jsonify({"success" : "project succesfully removed"})
 
 

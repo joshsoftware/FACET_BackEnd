@@ -1,7 +1,7 @@
 from flask import Blueprint,jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from api_testing_tool import db
-from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.helpers import create_id, validation_error, create_slug
 from jsonschema import ValidationError, validate
 from api_testing_tool.schema import endpoints_schema
 import re
@@ -21,10 +21,10 @@ def getEndpoints():
 def createEndpoints():
     data = request.json
     endpoint = data.get("endpoint")
-    name = data.get("name")
-    project_name_slug = data.get("project_name")
+    name = create_slug(data.get("name"))
+    project_name = data.get("project_name")
     user_id = get_current_user()['_id']
-    project_id = db.projects.find_one({"slug": project_name_slug, "user":user_id})["_id"]
+    project_id = db.projects.find_one({"name": project_name, "user":user_id})["_id"]
     header = db.headers.find_one({"_id":data.get("header")})
 
     try:

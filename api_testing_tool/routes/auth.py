@@ -58,11 +58,7 @@ def login():
     try:
         validate(data, login_schema)
     except ValidationError as e:
-        if len(e.relative_path) > 0:
-            error = re.sub("'(.)*'", e.relative_path[0], str(e.message))
-            error = {e.relative_path[0] : str(error)}
-        else:
-            error = str(e.message)
+        error = validation_error(e)
         return jsonify(error), 400
 
     user = db.users.find_one({"email":email})

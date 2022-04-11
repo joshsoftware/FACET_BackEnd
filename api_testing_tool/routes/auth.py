@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 from api_testing_tool import db, jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
-from api_testing_tool.helpers import create_id
+from api_testing_tool.helpers import create_id, validation_error
 from jsonschema import ValidationError, validate
 from api_testing_tool.schema import signup_schema, login_schema
 import re
@@ -31,11 +31,7 @@ def signup():
     try:
         validate(data, signup_schema)
     except ValidationError as e:
-        if len(e.relative_path) > 0:
-            error = re.sub("'(.)*'", e.relative_path[0], str(e.message))
-            error = {e.relative_path[0] : str(error)}
-        else:
-            error = str(e.message)
+        error = validation_error(e)
         return jsonify(error), 400
 
     user = db.users.find_one({"email":email})

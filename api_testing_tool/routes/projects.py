@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from api_testing_tool import db
-from api_testing_tool.helpers import create_slug, create_id
+from api_testing_tool.helpers import create_slug, create_id, validation_error
 from api_testing_tool.schema import projects_schema
 from jsonschema import ValidationError, validate
 import re
@@ -27,11 +27,7 @@ def createProjects():
     try:
         validate(data, projects_schema)
     except ValidationError as e:
-        if len(e.relative_path) > 0:
-            error = re.sub("'(.)*'", e.relative_path[0], str(e.message))
-            error = {e.relative_path[0] : str(error)}
-        else:
-            error = str(e.message)
+        error = validation_error(e)
         return jsonify(error), 400
 
     if db.projects.find_one({"slug": slug, "user":user_id}) == None:

@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
 from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.helpers.utils import create_slug
 from api_testing_tool.schema import testdata_schema
 
 testdata_blueprint = Blueprint('testdata', __name__)
@@ -22,6 +23,7 @@ def createTestdata():
     testcase_id = data.get("testcase_id")
     payload = data.get("payload")
     expected_outcome = data.get("expected_outcome")
+    name = create_slug(data.get("name"))
     
     try:
         validate(data, testdata_schema)
@@ -31,6 +33,7 @@ def createTestdata():
 
     db.testdata.insert_one({
         "_id" : create_id(),
+        "name" : name,
         "testcase_id" : testcase_id,
         "payload" : payload,
         "expected_outcome": expected_outcome

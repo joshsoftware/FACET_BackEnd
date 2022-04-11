@@ -3,7 +3,7 @@ from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
-from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.helpers import create_id, validation_error, create_slug
 from api_testing_tool.schema import header_schema
 
 headers_blueprint = Blueprint('headers', __name__)
@@ -23,7 +23,7 @@ def createHeaders():
     data = request.json
     project_id = data.get("project_id")
     header = data.get("header")
-    name = data.get("name")
+    name = create_slug(data.get("name"))
     
     try:
         validate(data, header_schema)

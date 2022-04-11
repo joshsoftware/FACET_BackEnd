@@ -3,7 +3,7 @@ signup_schema = {
     "properties": {
         "email": {
             "type": "string",
-            "minLength": 6
+            "format": "([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
         },
         "password": {
             "type":"string",
@@ -22,7 +22,7 @@ login_schema = {
     "properties": {
         "email": {
             "type": "string",
-            "minLength": 6
+            "pattern": "([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+"
         },
         "password": {
             "type":"string",

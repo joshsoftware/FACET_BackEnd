@@ -1,7 +1,10 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from api_testing_tool import db
-from api_testing_tool.helpers import create_slug, create_id
+from api_testing_tool.helpers import create_slug, create_id, validation_error
+from api_testing_tool.schema import projects_schema
+from jsonschema import ValidationError, validate
+import re
 
 projects_blueprint = Blueprint('projects', __name__)
 
@@ -21,10 +24,13 @@ def createProjects():
     user_id = get_current_user()["_id"]
     slug = create_slug(project_name)
 
-    if db.projects.find_one({"slug": slug, "user":user_id}) == None:
+    try:
+        validate(data, projects_schema)
+    except ValidationError as e:
+        error = validation_error(e)
+        return jsonify(error), 400
 
-        if len(project_name) < 3:
-            return jsonify({"errors": "Project length should be of minimum 3 letters"})
+    if db.projects.find_one({"slug": slug, "user":user_id}) == None:
 
         db.projects.insert_one({
             "_id":create_id(),

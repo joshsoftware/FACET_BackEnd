@@ -1,8 +1,10 @@
 import json
 from flask import Blueprint, jsonify, request
+from jsonschema import ValidationError, validate
 from api_testing_tool import db
 from flask_jwt_extended import get_current_user, jwt_required
-from api_testing_tool.helpers.utils import create_id
+from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.schema import testcase_schema
 
 testcases_blueprint = Blueprint('testcases', __name__)
 
@@ -30,8 +32,11 @@ def create_testcase():
     method = data.get('method')
     payload_id = data.get('payload_id')
 
-    if project_id=="" or endpoint_id=="" or title=="" or len(method)<3 or payload_id=="":
-        return jsonify({"errors":"All fields are Required!"})
+    try:
+        validate(data, testcase_schema)
+    except ValidationError as e:
+        error = validation_error(e)
+        return jsonify(error), 400
 
     db.testcases.insert_one({
         "_id":create_id(),

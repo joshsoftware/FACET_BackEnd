@@ -1,7 +1,9 @@
 from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
+from jsonschema import ValidationError, validate
 from api_testing_tool import db
-from api_testing_tool.helpers.utils import create_id
+from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.schema import testdata_schema
 
 testdata_blueprint = Blueprint('testdata', __name__)
 
@@ -20,13 +22,17 @@ def createTestdata():
     testcase_id = data.get("testcase_id")
     payload = data.get("payload")
     expected_outcome = data.get("expected_outcome")
-    if testcase_id == "" or payload == "":
-        return jsonify({"error" : "all the fields are to be filled mandatorily"})
-    else:
-        db.testdata.insert_one({
-            "_id" : create_id(),
-            "testcase_id" : testcase_id,
-            "payload" : payload,
-            "expected_outcome": expected_outcome
-        })
-        return jsonify({"success" : "testdata added successfully"})
+    
+    try:
+        validate(data, testdata_schema)
+    except ValidationError as e:
+        error = validation_error(e)
+        return jsonify(error), 400
+
+    db.testdata.insert_one({
+        "_id" : create_id(),
+        "testcase_id" : testcase_id,
+        "payload" : payload,
+        "expected_outcome": expected_outcome
+    })
+    return jsonify({"success" : "testdata added successfully"})

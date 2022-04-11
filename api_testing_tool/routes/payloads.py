@@ -1,7 +1,10 @@
+import re
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_current_user, jwt_required
+from jsonschema import ValidationError, validate
 from api_testing_tool import db
-from api_testing_tool.helpers.utils import create_id
+from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.schema import payload_schema
 
 payloads_blueprint = Blueprint('payloads', __name__)
 
@@ -16,8 +19,11 @@ def create_payloads():
     # payload = data.get("payload")
     # expected_outcome = data.get("expected_outcome")
 
-    if project_id=="" or payload_name=="":
-        return jsonify({"errors":"All fields are Required!"})
+    try:
+        validate(data, payload_schema)
+    except ValidationError as e:
+        error = validation_error(e)
+        return jsonify(error), 400
 
     db.payloads.insert_one({
         "_id": create_id(),

@@ -1,7 +1,10 @@
+import re
 from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
+from jsonschema import ValidationError, validate
 from api_testing_tool import db
-from api_testing_tool.helpers.utils import create_id
+from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.schema import header_schema
 
 headers_blueprint = Blueprint('headers', __name__)
 
@@ -22,6 +25,12 @@ def createHeaders():
     header = data.get("header")
     name = data.get("name")
     
+    try:
+        validate(data, header_schema)
+    except ValidationError as e:
+        error = validation_error(e)
+        return jsonify(error), 400
+
     db.headers.insert_one({
         "_id" : create_id(),
         "project_id" : project_id,

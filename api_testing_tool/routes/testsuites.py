@@ -1,7 +1,9 @@
 from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
+from jsonschema import ValidationError, validate
 from api_testing_tool import db
-from api_testing_tool.helpers.utils import create_id
+from api_testing_tool.helpers import create_id, validation_error
+from api_testing_tool.schema import testsuite_schema
 
 testsuite_blueprint = Blueprint('testsuites', __name__)
 
@@ -36,7 +38,14 @@ def createTestsuites():
     title = data.get("title")
     description = data.get("description")
     array_of_testcases = data.get("testcases")
-    if db.testsuite.find_one({"project_id": project_id,"title" : title}) == None:
+
+    try:
+        validate(data, testsuite_schema)
+    except ValidationError as e:
+        error = validation_error(e)
+        return jsonify(error), 400
+
+    if db.testsuite.find_one({"project_id": project_id, "title" : title}) == None:
         db.testsuite.insert_one({
             "_id" : create_id(),
             "project_id" : project_id,

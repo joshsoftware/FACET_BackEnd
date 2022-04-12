@@ -1,6 +1,5 @@
-import re
 from flask import Blueprint,jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_current_user, jwt_required
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
 from api_testing_tool.helpers import create_id, validation_error, create_slug
@@ -35,6 +34,7 @@ def createHeaders():
         "_id" : create_id(),
         "project_id" : project_id,
         "header" : header,
-        "name" : name
+        "name" : name,
+        "user": get_current_user()["_id"]
     })
     return jsonify({"success": "header added succesfully"})

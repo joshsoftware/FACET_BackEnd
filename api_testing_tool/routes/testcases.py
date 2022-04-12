@@ -1,4 +1,3 @@
-import json
 from flask import Blueprint, jsonify, request
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
@@ -31,6 +30,7 @@ def create_testcase():
     name = create_slug(data.get('name'))
     method = data.get('method')
     payload_id = data.get('payload_id')
+    header_id = data.get('header_id')
 
     try:
         validate(data, testcase_schema)
@@ -41,10 +41,13 @@ def create_testcase():
     db.testcases.insert_one({
         "_id":create_id(),
         "project": project_id,
-        "endpoint": db.endpoints.find_one({"_id":endpoint_id}),
+        "endpoint": endpoint_id,
         "name": name,
         "method": method,
-        "payload": db.payloads.find_one({"_id":payload_id})
+        "payload": payload_id,
+        "header": header_id,
+        "testdata": None,
+        "user": get_current_user()['_id']
     })
 
     return jsonify({"msg": "Testcase created Successfully!!"})

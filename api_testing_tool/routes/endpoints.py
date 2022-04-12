@@ -13,7 +13,7 @@ endpoints_blueprint = Blueprint('endpoints', __name__)
 def getEndpoints():
     data = request.json
     project_id = data.get("project_id")
-    project_endpoints = db.endpoints.find({"project_id" : project_id})
+    project_endpoints = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']})
     return jsonify({"endpoints": list(project_endpoints)})
 
 @endpoints_blueprint.route('/api/create-endpoints',methods=["POST"])
@@ -25,7 +25,6 @@ def createEndpoints():
     project_name = data.get("project_name")
     user_id = get_current_user()['_id']
     project_id = db.projects.find_one({"name": project_name, "user":user_id})["_id"]
-    header = db.headers.find_one({"_id":data.get("header")})
 
     try:
         validate(data, endpoints_schema)
@@ -39,7 +38,7 @@ def createEndpoints():
             "endpoint" : endpoint,
             "name" : name,
             "project_id" : project_id,
-            "header_id": header
+            "user": get_current_user()["_id"]
         })
         return jsonify({"success": "endpoint added successfully"})
     else:

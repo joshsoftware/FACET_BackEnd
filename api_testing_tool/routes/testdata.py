@@ -2,8 +2,7 @@ from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
-from api_testing_tool.helpers import create_id, validation_error
-from api_testing_tool.helpers.utils import create_slug
+from api_testing_tool.helpers import create_id, validation_error, create_slug
 from api_testing_tool.schema import testdata_schema
 
 testdata_blueprint = Blueprint('testdata', __name__)
@@ -31,11 +30,17 @@ def createTestdata():
         error = validation_error(e)
         return jsonify(error), 400
 
-    db.testdata.insert_one({
+    testdata = db.testdata.insert_one({
         "_id" : create_id(),
         "name" : name,
         "testcase_id" : testcase_id,
         "payload" : payload,
         "expected_outcome": expected_outcome
     })
+    
+    if testdata:
+        testcase = db.testcases.find_one({"_id": testcase_id})
+        if testcase and not testcase['testdata']:
+            db.testcases.update_one({"_id": testcase_id}, {"$set": {"testdata": testdata.inserted_id}})
+
     return jsonify({"success" : "testdata added successfully"})

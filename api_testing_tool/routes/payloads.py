@@ -27,6 +27,7 @@ def create_payloads():
 
     db.payloads.insert_one({
         "_id": create_id(),
+        "user": get_current_user()["_id"],
         **data
     })
 

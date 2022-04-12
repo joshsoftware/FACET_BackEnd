@@ -20,6 +20,10 @@ testcase_schema = {
         "payload_id": {
             "type": "string",
             "minLength": 1
+        },
+        "header_id": {
+            "type": "string",
+            "minLength": 1
         }
     },
     "required": ["name", "endpoint_id", "project_id", "method", "payload_id"]

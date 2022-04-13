@@ -1,10 +1,12 @@
 from datetime import timedelta
 from flask import Flask
+from flask_cors import CORS
 from config import *
 from pymongo import MongoClient
 from flask_jwt_extended import JWTManager
  
 app = Flask(__name__)
+CORS(app)
 app.secret_key = SECRET_KEY
 
 jwt = JWTManager(app)

@@ -4,6 +4,9 @@ projects_schema = {
         "name": {
             "type":"string",
             "minLength": 3
+        },
+        "description": {
+            "type":"string"
         }
     },
     "required": ["name"]

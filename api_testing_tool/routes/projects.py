@@ -1,10 +1,10 @@
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from api_testing_tool import db
 from api_testing_tool.helpers import create_slug, create_id, validation_error
 from api_testing_tool.schema import projects_schema
 from jsonschema import ValidationError, validate
-import re
 
 projects_blueprint = Blueprint('projects', __name__)
 
@@ -22,6 +22,7 @@ def createProjects():
     data = request.json
     name = data.get("name")
     user_id = get_current_user()["_id"]
+    description = data.get('description')
     name = create_slug(name)
 
     try:
@@ -34,12 +35,14 @@ def createProjects():
 
         db.projects.insert_one({
             "_id":create_id(),
-            "name": name, 
+            "name": name,
+            "description": description,
             "user": user_id,
+            "created_at": datetime.now()
         })
         return jsonify({"success": "project created successfully"})
     else:
-        return jsonify({"errors": "You already have a project of the same name"})
+        return jsonify({"errors": "You already have a project of the same name"}), 400
 
 
 @projects_blueprint.route('/api/delete-projects',methods=["DELETE"])

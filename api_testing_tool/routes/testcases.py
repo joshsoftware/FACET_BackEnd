@@ -13,7 +13,7 @@ def get_testcases():
     try:
         project_id = get_project_id(request.args.get("project"))
         testcases = db.testcases.find({"project":project_id})
-        return jsonify(list(testcases))
+        return jsonify({"testcases": list(testcases)})
     except Exception as e:
         return jsonify(e), 400
 

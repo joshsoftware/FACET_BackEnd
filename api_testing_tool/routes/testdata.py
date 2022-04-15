@@ -2,18 +2,17 @@ from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
-from api_testing_tool.helpers import create_id, validation_error, create_slug
+from api_testing_tool.helpers import create_id, validation_error, create_slug, get_project_id
 from api_testing_tool.schema import testdata_schema
 
 testdata_blueprint = Blueprint('testdata', __name__)
 
-@testdata_blueprint.route("/api/get_testdata",methods = ["GET"])
+@testdata_blueprint.route("/api/testdata",methods = ["GET"])
 @jwt_required()
 def getTestdata():
-    data = request.json
-    testcase_id = data.get("testcase_id")
-    testcase_testdata = db.testdata.find({"testcase_id" : testcase_id})
-    return jsonify(testcase_testdata)
+    project = get_project_id(request.args.get('project'))
+    testdata = db.testdata.find({"project" : project})
+    return jsonify({"testdata":list(testdata)})
 
 @testdata_blueprint.route("/api/create-testdata",methods = ["POST"])
 @jwt_required()

@@ -10,13 +10,12 @@ testcases_blueprint = Blueprint('testcases', __name__)
 @testcases_blueprint.route('/api/testcases')
 @jwt_required()
 def get_testcases():
-    data = request.json
-
-    project_id = get_project_id(data.get("name"))
-
-    testcases = db.testcases.find({"project":project_id})
-
-    return jsonify(list(testcases))
+    try:
+        project_id = get_project_id(request.args.get("project"))
+        testcases = db.testcases.find({"project":project_id})
+        return jsonify(list(testcases))
+    except Exception as e:
+        return jsonify(e), 400
 
 
 

@@ -10,10 +10,12 @@ headers_blueprint = Blueprint('headers', __name__)
 @headers_blueprint.route('/api/headers',methods = ["GET"])
 @jwt_required()
 def getHeaders():
-    data = request.json
-    project_id = get_project_id(data.get("name"))
-    project_headers = db.headers.find({"project_id" : project_id})
-    return jsonify({"headers" : list(project_headers)})
+    try:
+        project_id = get_project_id(request.args.get("project"))
+        project_headers = db.headers.find({"project_id" : project_id})
+        return jsonify({"headers" : list(project_headers)})
+    except Exception as e :
+        return jsonify(e), 400
 
 
 @headers_blueprint.route('/api/create-headers',methods = ["POST"])

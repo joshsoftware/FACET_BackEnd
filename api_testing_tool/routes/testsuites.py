@@ -7,14 +7,16 @@ from api_testing_tool.schema import testsuite_schema
 
 testsuite_blueprint = Blueprint('testsuites', __name__)
 
-@testsuite_blueprint.route('/api/get-testsuites',methods = ["GET"])
+@testsuite_blueprint.route('/api/testsuites',methods = ["GET"])
 @jwt_required()
 def getTestsuites():
-    data = request.json 
-    project_id = get_project_id(data.get("name"))
-    project_testsuites = db.testsuite.find({"project" : project_id})
-    return jsonify({"testsuites" : list(project_testsuites)})
-
+    try:
+        project_id = get_project_id(request.args.get("project"))
+        project_testsuites = db.testsuite.find({"project" : project_id})
+        return jsonify({"testsuites" : list(project_testsuites)})
+    except Exception as e:
+        return jsonify(e),400
+    
 @testsuite_blueprint.route('/api/testsuite/<string:id>', methods=['GET'])
 @jwt_required()
 def getTestsuite(id):

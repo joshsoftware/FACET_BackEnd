@@ -32,10 +32,12 @@ def create_payloads():
 
     return jsonify({"msg": "Payload created Successfully!!"})
 
-@payloads_blueprint.route('/api/get-payloads', methods=['GET'])
+@payloads_blueprint.route('/api/payloads', methods=['GET'])
 @jwt_required()
 def get_payloads():
-    data = request.json
-    project_id = get_project_id(data.get("name"))
-    project_payloads = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']})
-    return jsonify({"payloads": list(project_payloads)})
+    try:
+        project_id = get_project_id(request.args.get("project"))
+        project_payloads = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']})
+        return jsonify({"payloads": list(project_payloads)})
+    except Exception as e:
+        return jsonify(e), 400

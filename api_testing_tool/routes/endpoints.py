@@ -9,7 +9,7 @@ endpoints_blueprint = Blueprint('endpoints', __name__)
 
 @endpoints_blueprint.route('/api/endpoints',methods = ["GET"])
 @jwt_required()
-def getEndpoints():
+def getEndpoints():  
     try:
         project_id = get_project_id(request.args.get("project"))
         project_endpoints = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']})

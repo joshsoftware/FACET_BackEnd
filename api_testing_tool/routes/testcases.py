@@ -12,7 +12,7 @@ testcases_blueprint = Blueprint('testcases', __name__)
 def get_testcases():
     data = request.json
 
-    project_id = data.get('project_id')
+    project_id = get_project_id(data.get("name"))
 
     testcases = db.testcases.find({"project":project_id})
 

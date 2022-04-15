@@ -3,6 +3,7 @@ from flask_jwt_extended import get_current_user, jwt_required
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
 from api_testing_tool.helpers import create_id, validation_error,create_slug
+from api_testing_tool.helpers.utils import get_project_id
 from api_testing_tool.schema import testsuite_schema
 
 testsuite_blueprint = Blueprint('testsuites', __name__)
@@ -11,7 +12,7 @@ testsuite_blueprint = Blueprint('testsuites', __name__)
 @jwt_required()
 def getTestsuites():
     data = request.json 
-    project_id = data.get("project_id")
+    project_id = get_project_id(data.get("name"))
     project_testsuites = db.testsuite.find({"project" : project_id})
     return jsonify({"testsuites" : list(project_testsuites)})
 

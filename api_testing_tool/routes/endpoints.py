@@ -3,6 +3,7 @@ from flask_jwt_extended import get_current_user, jwt_required
 from api_testing_tool import db
 from api_testing_tool.helpers import create_id, validation_error, create_slug
 from jsonschema import ValidationError, validate
+from api_testing_tool.helpers.utils import get_project_id
 from api_testing_tool.schema import endpoints_schema
 import re
 
@@ -12,7 +13,7 @@ endpoints_blueprint = Blueprint('endpoints', __name__)
 @jwt_required()
 def getEndpoints():
     data = request.json
-    project_id = data.get("project_id")
+    project_id = get_project_id(data.get("name"))
     project_endpoints = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']})
     return jsonify({"endpoints": list(project_endpoints)})
 

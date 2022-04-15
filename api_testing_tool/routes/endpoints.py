@@ -4,7 +4,6 @@ from api_testing_tool import db
 from api_testing_tool.helpers import create_id, validation_error, create_slug, get_project_id
 from jsonschema import ValidationError, validate
 from api_testing_tool.schema import endpoints_schema
-import json
 
 endpoints_blueprint = Blueprint('endpoints', __name__)
 
@@ -12,7 +11,7 @@ endpoints_blueprint = Blueprint('endpoints', __name__)
 @jwt_required()
 def getEndpoints():
     try:
-        project_id = get_project_id(request.args.get("projName"))
+        project_id = get_project_id(request.args.get("project"))
         project_endpoints = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']})
         return jsonify({"endpoints": list(project_endpoints)}), 200, {"content-type": "application/json; charset=UTF-8"}
     except Exception as e :

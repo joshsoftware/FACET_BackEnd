@@ -7,13 +7,24 @@ from api_testing_tool.schema import testsuite_schema
 
 testsuite_blueprint = Blueprint('testsuites', __name__)
 
-@testsuite_blueprint.route('/api/testsuites',methods = ["GET"])
+@testsuite_blueprint.route('/api/testsuites', methods=["GET"])
 @jwt_required()
 def getTestsuites():
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_testsuites = db.testsuite.find({"project" : project_id})
-        return jsonify({"testsuites" : list(project_testsuites)})
+        project_testsuites = list(db.testsuite.find({"project" : project_id}))
+        
+        for key, i in enumerate(project_testsuites):
+            testcases = []
+            for j in i['testcases']:
+                testcase = db.testcases.find_one({"_id": j})
+                testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']})
+                testcase['header'] = db.headers.find_one({"_id": testcase['header']})
+                testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']})
+                testcases.append(testcase)
+                
+            project_testsuites[key]['testcases'] = testcases
+        return jsonify({"testsuites" : project_testsuites})
     except Exception as e:
         return jsonify(e),400
     

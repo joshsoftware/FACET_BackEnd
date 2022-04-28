@@ -20,7 +20,7 @@ def tests():
         endpoint = db.endpoints.find_one({"_id": testcase['endpoint']})
         header = db.headers.find_one({"_id": testcase['header']})
         payload = db.payloads.find_one({"_id":testcase['payload']})
-        testdata = db.testdata.find_one({"_id":testcase['testdata']}) or {"payload":{}, "expected_outcome": {}}
+        testdata = testcase['testdata'][0] if len(testcase['testdata']) else {"payload":{}, "expected_outcome": {}}
 
         testcase['endpoint'] = endpoint['endpoint']
         testcase['header'] = header['header']
@@ -41,7 +41,6 @@ def fetch_from_api(method, endpoint, data, header):
     return resp
 
 def perform_testcases(testcase):
-
     header = testcase.get('header')
     token = db.temp.find_one({"project_id":testcase['project']})
     if token:
@@ -53,20 +52,17 @@ def perform_testcases(testcase):
     res = fetch_from_api(testcase['method'], testcase['endpoint'], testcase['payload'], header)
 
     if res.status_code==testcase['expected_outcome']['status_code']:
-
         if testcase.get("token_field"):
             tmp = testcase.get("token_field").split(".")
-
             token = res.json()
             for i in tmp:
                 token = token.get(i)
+
             db.temp.insert_one({
                 "_id": create_id(),
                 "project_id": testcase['project'],
                 "token": token
             })
-        #db.results({"testcase_id":testcase['_id'], "name":testcase['name'], "status":"passed",**res.json()})
         return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"passed"}
     else:
-        #db.results({"testcase_id":testcase['_id'], "name":testcase['name'], "status":"failed",**res.json()})
         return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"failed", "response":res.json()}

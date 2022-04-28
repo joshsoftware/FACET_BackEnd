@@ -69,4 +69,4 @@ def perform_testcases(testcase):
         return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"passed"}
     else:
         #db.results({"testcase_id":testcase['_id'], "name":testcase['name'], "status":"failed",**res.json()})
-        return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"failed", **res.json()}
+        return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"failed", "response":res.json()}

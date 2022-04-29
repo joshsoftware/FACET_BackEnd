@@ -20,53 +20,52 @@ def tests():
         endpoint = db.endpoints.find_one({"_id": testcase['endpoint']})
         header = db.headers.find_one({"_id": testcase['header']})
         payload = db.payloads.find_one({"_id":testcase['payload']})
-        testdata = db.testdata.find_one({"_id":testcase['testdata']}) or {"payload":{}, "expected_outcome": {}}
+        testdata = testcase['testdata'][0] if len(testcase['testdata']) else {"payload":{}, "expected_outcome": {}}
 
         testcase['endpoint'] = endpoint['endpoint']
         testcase['header'] = header['header']
         testcase['payload'] = {**payload['payload'], **testdata['payload']}
         testcase['expected_outcome'] = {**payload['expected_outcome'], **testdata['expected_outcome']}
 
-        res.append(perform_testcases(testcase))
+        res.append(perform_testcases(testcase, testsuite))
         
-    db.temp.find_one_and_delete({"project_id":testcase['project']})
+    db.temp.delete_many({"testsuite":testsuite['_id']})
     return jsonify(res)
 
-def fetch_from_api(method, endpoint, data, header):
-    r = Request(method, endpoint, json=data, headers=header)
+def fetch_from_api(testcase):
+    r = Request(testcase['method'], testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
 
     prepped = s.prepare_request(r)
     resp = s.send(prepped)
 
     return resp
 
-def perform_testcases(testcase):
+def perform_testcases(testcase, testsuite):
+    
+    if "$var=" in str(testcase):
+        pattern =  "\$var\=(.*?)\'"
+        import re
+        variable = re.search(pattern, str(testcase)).group(1)
+        tmp = variable.split('.')
 
-    header = testcase.get('header')
-    token = db.temp.find_one({"project_id":testcase['project']})
-    if token:
-        token = token.get('token')
-        if "$token" in str(header) and token:
-            header = str(header).replace("$token", token)
-            header = eval(header)
+        var_value = db.temp.find_one({"testsuite": testsuite['_id'], "testcase":tmp[0]})
+        
+        for i in tmp[1:len(tmp)]:
+            var_value = var_value.get(i)
             
-    res = fetch_from_api(testcase['method'], testcase['endpoint'], testcase['payload'], header)
+        testcase = eval(str(testcase).replace(f"$var={variable}", var_value))
+            
+    res = fetch_from_api(testcase)
+
+    # Add response to temp collection
+    db.temp.insert_one({
+        "_id": create_id(),
+        "testsuite": testsuite['_id'],
+        "testcase" : testcase['name'],
+        "resp": res.json()
+    })
 
     if res.status_code==testcase['expected_outcome']['status_code']:
-
-        if testcase.get("token_field"):
-            tmp = testcase.get("token_field").split(".")
-
-            token = res.json()
-            for i in tmp:
-                token = token.get(i)
-            db.temp.insert_one({
-                "_id": create_id(),
-                "project_id": testcase['project'],
-                "token": token
-            })
-        #db.results({"testcase_id":testcase['_id'], "name":testcase['name'], "status":"passed",**res.json()})
         return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"passed"}
     else:
-        #db.results({"testcase_id":testcase['_id'], "name":testcase['name'], "status":"failed",**res.json()})
         return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"failed", "response":res.json()}

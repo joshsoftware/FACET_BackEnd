@@ -12,7 +12,7 @@ headers_blueprint = Blueprint('headers', __name__)
 def getHeaders():
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_headers = db.headers.find({"project_id" : project_id})
+        project_headers = db.headers.find({"project_id" : project_id}, {"project_id": 0, "user": 0})
         return jsonify({"headers" : list(project_headers)})
     except Exception as e :
         return jsonify(e), 400

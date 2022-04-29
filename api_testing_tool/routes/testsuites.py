@@ -18,9 +18,9 @@ def getTestsuites():
             testcases = []
             for j in i['testcases']:
                 testcase = db.testcases.find_one({"_id": j})
-                testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']})
-                testcase['header'] = db.headers.find_one({"_id": testcase['header']})
-                testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']})
+                testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']}, {"user":0, "project_id":0})
+                testcase['header'] = db.headers.find_one({"_id": testcase['header']}, {"user":0, "project_id":0})
+                testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']}, {"user":0, "project_id":0})
                 testcases.append(testcase)
                 
             project_testsuites[key]['testcases'] = testcases

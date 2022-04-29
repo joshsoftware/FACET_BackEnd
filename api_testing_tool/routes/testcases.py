@@ -12,7 +12,12 @@ testcases_blueprint = Blueprint('testcases', __name__)
 def get_testcases():
     try:
         project_id = get_project_id(request.args.get("project"))
-        testcases = db.testcases.find({"project":project_id})
+        testcases = list(db.testcases.find({"project":project_id}, {"project": 0, "user": 0}))
+        
+        for i in testcases:
+            i['header'] = db.headers.find_one({"_id":i['header']}, {"user": 0, "project_id":0})
+            i['endpoint'] = db.endpoints.find_one({"_id":i['endpoint']}, {"user": 0, "project_id":0})
+            i['payload'] = db.payloads.find_one({"_id":i['payload']}, {"user": 0, "project_id":0})
         return jsonify({"testcases": list(testcases)})
     except Exception as e:
         return jsonify(e), 400
@@ -45,7 +50,7 @@ def create_testcase():
         "method": method,
         "payload": payload_id,
         "header": header_id,
-        "testdata": None,
+        "testdata": [],
         "user": get_current_user()['_id']
     })
 

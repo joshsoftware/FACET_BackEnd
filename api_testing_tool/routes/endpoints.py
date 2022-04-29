@@ -12,7 +12,7 @@ endpoints_blueprint = Blueprint('endpoints', __name__)
 def getEndpoints():  
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_endpoints = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']})
+        project_endpoints = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']}, {"project_id": 0, "user": 0})
         return jsonify({"endpoints": list(project_endpoints)}), 200, {"content-type": "application/json; charset=UTF-8"}
     except Exception as e :
         return jsonify(e), 400
@@ -45,9 +45,4 @@ def createEndpoints():
     else:
         return jsonify({"error" : "invalid project details"})
 
-# @endpoints_blueprint.route('api/update-endpoints',method = ["POST"])
-# @jwt_required()
-# def updateEndpoints():
-#     data = request.json
-#     endpoint_id = data.get("endpoint_id")
     

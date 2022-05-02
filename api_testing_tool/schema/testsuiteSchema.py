@@ -8,7 +8,7 @@ testsuite_schema = {
         "description": {
             "type": "string"
         },
-        "project_id": {
+        "project": {
             "type": "string",
             "minlength": 1
         },
@@ -20,5 +20,5 @@ testsuite_schema = {
             }
         }
     },
-    "required": ["name", "project_id", "testcases"]
+    "required": ["name", "project", "testcases"]
 }

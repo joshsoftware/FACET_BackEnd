@@ -16,7 +16,7 @@ def getProjects():
     return jsonify({"projects": list(user_projects)})
 
 
-@projects_blueprint.route('/api/create-projects', methods=["POST"])
+@projects_blueprint.route('/api/projects/new', methods=["POST"])
 @jwt_required()
 def createProjects():
     data = request.json

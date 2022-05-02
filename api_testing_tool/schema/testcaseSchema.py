@@ -9,7 +9,7 @@ testcase_schema = {
             "type": "string",
             "minLength": 1
         },
-        "project_id": {
+        "project": {
             "type": "string",
             "minLength": 1
         },
@@ -26,5 +26,5 @@ testcase_schema = {
             "minLength": 1
         }
     },
-    "required": ["name", "endpoint_id", "project_id", "method", "payload_id"]
+    "required": ["name", "endpoint_id", "project", "method", "payload_id"]
 }

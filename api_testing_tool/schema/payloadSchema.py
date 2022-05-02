@@ -5,7 +5,7 @@ payload_schema = {
             "type":"string",
             "minLength": 3
         },
-        "project_id": {
+        "project": {
             "type": "string",
             "minLength": 1
         },
@@ -23,5 +23,5 @@ payload_schema = {
             "required": ["status_code"]
         }
     },
-    "required": []
+    "required": ["name", "project", "payload", "expected_outcome"]
 }

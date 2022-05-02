@@ -8,12 +8,13 @@ from api_testing_tool.schema import payload_schema
 payloads_blueprint = Blueprint('payloads', __name__)
 
 
-@payloads_blueprint.route('/api/create-payload', methods = ['POST'])
+@payloads_blueprint.route('/api/payload/new', methods = ['POST'])
 @jwt_required()
 def create_payloads():
     data = request.json
 
     name = create_slug(data.get("name"))
+    project_id = get_project_id(data.get('project'))
 
     try:
         validate(data, payload_schema)
@@ -25,7 +26,8 @@ def create_payloads():
         "_id": create_id(),
         "user": get_current_user()["_id"],
         "name": name,
-        **data
+        **data,
+        "project": project_id
     })
 
     return jsonify({"msg": "Payload created Successfully!!"})
@@ -35,7 +37,7 @@ def create_payloads():
 def get_payloads():
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_payloads = db.payloads.find({"project_id" : project_id, "user":get_current_user()['_id']}, {"user": 0, "project_id":0})
+        project_payloads = db.payloads.find({"project" : project_id, "user":get_current_user()['_id']}, {"user": 0, "project":0})
         return jsonify({"payloads": list(project_payloads)})
     except Exception as e:
         return jsonify(e), 400

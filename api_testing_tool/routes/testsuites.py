@@ -18,9 +18,9 @@ def getTestsuites():
             testcases = []
             for j in i['testcases']:
                 testcase = db.testcases.find_one({"_id": j})
-                testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']}, {"user":0, "project_id":0})
-                testcase['header'] = db.headers.find_one({"_id": testcase['header']}, {"user":0, "project_id":0})
-                testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']}, {"user":0, "project_id":0})
+                testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']}, {"user":0, "project":0})
+                testcase['header'] = db.headers.find_one({"_id": testcase['header']}, {"user":0, "project":0})
+                testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']}, {"user":0, "project":0})
                 testcases.append(testcase)
                 
             project_testsuites[key]['testcases'] = testcases
@@ -46,11 +46,11 @@ def getTestsuite(id):
 
     return jsonify(testsuite)
 
-@testsuite_blueprint.route('/api/create-testsuite',methods = ["POST"])
+@testsuite_blueprint.route('/api/testsuite/new',methods = ["POST"])
 @jwt_required()
 def createTestsuites():
     data = request.json 
-    project_id = data.get("project_id")
+    project_id = get_project_id(data.get("project"))
     name = create_slug(data.get("name"))
     description = data.get("description")
     array_of_testcases = data.get("testcases")
@@ -61,7 +61,7 @@ def createTestsuites():
         error = validation_error(e)
         return jsonify(error), 400
 
-    if db.testsuite.find_one({"project_id": project_id, "name" : name}) == None:
+    if db.testsuite.find_one({"project": project_id, "name" : name}) == None:
         db.testsuite.insert_one({
             "_id" : create_id(),
             "project" : project_id,

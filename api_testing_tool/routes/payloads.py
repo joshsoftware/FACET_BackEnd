@@ -13,10 +13,7 @@ payloads_blueprint = Blueprint('payloads', __name__)
 def create_payloads():
     data = request.json
 
-    project_id = data.get("project_id")
     name = create_slug(data.get("name"))
-    # payload = data.get("payload")
-    # expected_outcome = data.get("expected_outcome")
 
     try:
         validate(data, payload_schema)
@@ -27,6 +24,7 @@ def create_payloads():
     db.payloads.insert_one({
         "_id": create_id(),
         "user": get_current_user()["_id"],
+        "name": name,
         **data
     })
 
@@ -37,7 +35,7 @@ def create_payloads():
 def get_payloads():
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_payloads = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']})
+        project_payloads = db.payloads.find({"project_id" : project_id, "user":get_current_user()['_id']}, {"user": 0, "project_id":0})
         return jsonify({"payloads": list(project_payloads)})
     except Exception as e:
         return jsonify(e), 400

@@ -12,7 +12,7 @@ projects_blueprint = Blueprint('projects', __name__)
 @projects_blueprint.route('/api/projects', methods=["GET"])
 @jwt_required()
 def getProjects():
-    user_projects = db.projects.find({"user": get_current_user()['_id']})
+    user_projects = db.projects.find({"user": get_current_user()['_id']}, {"user": 0})
     return jsonify({"projects": list(user_projects)})
 
 

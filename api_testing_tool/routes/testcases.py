@@ -15,21 +15,21 @@ def get_testcases():
         testcases = list(db.testcases.find({"project":project_id}, {"project": 0, "user": 0}))
         
         for i in testcases:
-            i['header'] = db.headers.find_one({"_id":i['header']}, {"user": 0, "project_id":0})
-            i['endpoint'] = db.endpoints.find_one({"_id":i['endpoint']}, {"user": 0, "project_id":0})
-            i['payload'] = db.payloads.find_one({"_id":i['payload']}, {"user": 0, "project_id":0})
+            i['header'] = db.headers.find_one({"_id":i['header']}, {"user": 0, "project":0})
+            i['endpoint'] = db.endpoints.find_one({"_id":i['endpoint']}, {"user": 0, "project":0})
+            i['payload'] = db.payloads.find_one({"_id":i['payload']}, {"user": 0, "project":0})
         return jsonify({"testcases": list(testcases)})
     except Exception as e:
         return jsonify(e), 400
 
 
 
-@testcases_blueprint.route('/api/create-testcase', methods=['POST'])
+@testcases_blueprint.route('/api/testcase/new', methods=['POST'])
 @jwt_required()
 def create_testcase():
     data = request.json
 
-    project_id = data.get('project_id')
+    project_id = get_project_id(data.get('project'))
     endpoint_id = data.get('endpoint_id')
     name = create_slug(data.get('name'))
     method = data.get('method')

@@ -5,7 +5,7 @@ header_schema = {
             "type":"string",
             "minLength": 3
         },
-        "project_id": {
+        "project": {
             "type": "string",
             "minLength": 1
         },
@@ -13,5 +13,5 @@ header_schema = {
             "type": "object"
         }
     },
-    "required": ["name", "project_id", "header"]
+    "required": ["name", "project", "header"]
 }

@@ -12,20 +12,18 @@ endpoints_blueprint = Blueprint('endpoints', __name__)
 def getEndpoints():  
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_endpoints = db.endpoints.find({"project_id" : project_id, "user":get_current_user()['_id']}, {"project_id": 0, "user": 0})
+        project_endpoints = db.endpoints.find({"project" : project_id, "user":get_current_user()['_id']}, {"project": 0, "user": 0})
         return jsonify({"endpoints": list(project_endpoints)}), 200, {"content-type": "application/json; charset=UTF-8"}
     except Exception as e :
         return jsonify(e), 400
 
-@endpoints_blueprint.route('/api/create-endpoints',methods=["POST"])
+@endpoints_blueprint.route('/api/endpoints/new',methods=["POST"])
 @jwt_required()
 def createEndpoints():
     data = request.json
     endpoint = data.get("endpoint")
     name = create_slug(data.get("name"))
-    project_name = data.get("project_name")
-    user_id = get_current_user()['_id']
-    project_id = db.projects.find_one({"name": project_name, "user":user_id})["_id"]
+    project_id = get_project_id(data.get("project"))
 
     try:
         validate(data, endpoints_schema)
@@ -38,7 +36,7 @@ def createEndpoints():
             "_id" : create_id(),
             "endpoint" : endpoint,
             "name" : name,
-            "project_id" : project_id,
+            "project" : project_id,
             "user": get_current_user()["_id"]
         })
         return jsonify({"success": "endpoint added successfully"})

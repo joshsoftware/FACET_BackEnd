@@ -12,17 +12,17 @@ headers_blueprint = Blueprint('headers', __name__)
 def getHeaders():
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_headers = db.headers.find({"project_id" : project_id}, {"project_id": 0, "user": 0})
+        project_headers = db.headers.find({"project" : project_id}, {"project": 0, "user": 0})
         return jsonify({"headers" : list(project_headers)})
     except Exception as e :
         return jsonify(e), 400
 
 
-@headers_blueprint.route('/api/create-headers',methods = ["POST"])
+@headers_blueprint.route('/api/headers/new',methods = ["POST"])
 @jwt_required()
 def createHeaders():
     data = request.json
-    project_id = data.get("project_id")
+    project_id = get_project_id(data.get("project"))
     header = data.get("header")
     name = create_slug(data.get("name"))
     
@@ -34,7 +34,7 @@ def createHeaders():
 
     db.headers.insert_one({
         "_id" : create_id(),
-        "project_id" : project_id,
+        "project" : project_id,
         "header" : header,
         "name" : name,
         "user": get_current_user()["_id"]

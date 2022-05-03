@@ -9,10 +9,10 @@ endpoints_schema = {
             "type": "string",
             "minLength": 10
         },
-        "project_name": {
+        "project": {
             "type": "string",
             "minLength": 3
         }
     },
-    "required": ['name', 'endpoint', 'project_name']
+    "required": ['name', 'endpoint', 'project']
 }

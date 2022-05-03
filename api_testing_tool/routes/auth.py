@@ -6,7 +6,6 @@ from flask_jwt_extended import create_access_token
 from api_testing_tool.helpers import create_id, validation_error
 from jsonschema import ValidationError, validate
 from api_testing_tool.schema import signup_schema, login_schema
-import re
 
 auth_blueprint = Blueprint('auth', __name__)
 
@@ -65,6 +64,6 @@ def login():
     
     if user and check_password_hash(user["password"], password):
         token = create_access_token(identity=user["email"])
-        return jsonify({"token":token}), 200
+        return jsonify({"token":token, "user": user['name']}), 200
 
     return jsonify({"error": "Invalid Credentials!"}), 400

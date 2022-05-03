@@ -24,7 +24,7 @@ def get_testcases():
 
 
 
-@testcases_blueprint.route('/api/testcase/new', methods=['POST'])
+@testcases_blueprint.route('/api/testcases/new', methods=['POST'])
 @jwt_required()
 def create_testcase():
     data = request.json

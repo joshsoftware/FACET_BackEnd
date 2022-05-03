@@ -4,11 +4,9 @@ import os
 load_dotenv()
 
 # DB config Data
-MONGO_USERNAME = os.getenv("MONGO_USERNAME")
-MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
-MONGO_HOST_NAME = os.getenv("MONGO_HOST_NAME")
-MONGO_HOST_PORT = os.getenv("MONGO_HOST_PORT")
+MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
+
 
 # Secret Key
 SECRET_KEY = os.getenv("SECRET_KEY")

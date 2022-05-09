@@ -14,7 +14,7 @@ def getTestdata():
     testdata = db.testdata.find({"project" : project})
     return jsonify({"testdata":list(testdata)})
 
-@testdata_blueprint.route("/api/create-testdata",methods = ["POST"])
+@testdata_blueprint.route("/api/testdata/new",methods = ["POST"])
 @jwt_required()
 def createTestdata():
     data = request.json
@@ -43,5 +43,4 @@ def createTestdata():
             db.testcases.update_one({"_id": testcase_id}, {"$set": {"testdata": testcase['testdata']}})
         else:
             return jsonify({"errors": f"testdata {name} already exist"})
-
     return jsonify({"success" : "testdata added successfully"})

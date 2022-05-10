@@ -8,12 +8,16 @@ from api_testing_tool.schema import header_schema
 headers_blueprint = Blueprint('headers', __name__)
 
 @headers_blueprint.route('/api/headers',methods = ["GET"])
+@headers_blueprint.route('/api/headers/<string:id>',methods = ["GET"])
 @jwt_required()
-def getHeaders():
+def getHeaders(id=0):
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_headers = db.headers.find({"project" : project_id}, {"project": 0, "user": 0})
-        return jsonify({"headers" : list(project_headers)})
+        if id==0:
+            project_headers = db.headers.find({"project" : project_id}, {"project": 0, "user": 0})
+            return jsonify({"headers" : list(project_headers)})
+        header = db.headers.find_one({"project" : project_id, "_id":id}, {"project": 0, "user": 0})
+        return jsonify(header), 200
     except Exception as e :
         return jsonify(e), 400
 

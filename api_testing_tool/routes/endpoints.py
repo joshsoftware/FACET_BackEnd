@@ -8,12 +8,17 @@ from api_testing_tool.schema import endpoints_schema
 endpoints_blueprint = Blueprint('endpoints', __name__)
 
 @endpoints_blueprint.route('/api/endpoints',methods = ["GET"])
+@endpoints_blueprint.route('/api/endpoints/<string:id>',methods = ["GET"])
 @jwt_required()
-def getEndpoints():  
+def getEndpoints(id=0):
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_endpoints = db.endpoints.find({"project" : project_id, "user":get_current_user()['_id']}, {"project": 0, "user": 0})
-        return jsonify({"endpoints": list(project_endpoints)}), 200, {"content-type": "application/json; charset=UTF-8"}
+        user = get_current_user()['_id']
+        if id==0:
+            project_endpoints = db.endpoints.find({"project" : project_id, "user":user}, {"project": 0, "user": 0})
+            return jsonify({"endpoints": list(project_endpoints)}), 200, {"content-type": "application/json; charset=UTF-8"}
+        endpoint = db.endpoints.find_one({"project": project_id, "_id":id, "user":user}, {"project": 0, "user": 0})
+        return jsonify(endpoint), 200
     except Exception as e :
         return jsonify(e), 400
 

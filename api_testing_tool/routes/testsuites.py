@@ -28,7 +28,7 @@ def getTestsuites():
     except Exception as e:
         return jsonify(e),400
     
-@testsuite_blueprint.route('/api/testsuite/<string:id>', methods=['GET'])
+@testsuite_blueprint.route('/api/testsuites/<string:id>', methods=['GET'])
 @jwt_required()
 def getTestsuite(id):
     testsuite = db.testsuite.find_one({"_id":id})

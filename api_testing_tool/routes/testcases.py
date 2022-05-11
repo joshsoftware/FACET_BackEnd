@@ -1,3 +1,4 @@
+from re import I
 from flask import Blueprint, jsonify, request
 from jsonschema import ValidationError, validate
 from api_testing_tool import db
@@ -7,22 +8,31 @@ from api_testing_tool.schema import testcase_schema
 
 testcases_blueprint = Blueprint('testcases', __name__)
 
-@testcases_blueprint.route('/api/testcases')
+
+def get_data_and_add_to_testcase(i):
+    i['header'] = db.headers.find_one({"_id":i['header']}, {"user": 0, "project":0})
+    i['endpoint'] = db.endpoints.find_one({"_id":i['endpoint']}, {"user": 0, "project":0})
+    i['payload'] = db.payloads.find_one({"_id":i['payload']}, {"user": 0, "project":0})
+    return i
+
+
+@testcases_blueprint.route('/api/testcases', methods=['GET'])
+@testcases_blueprint.route('/api/testcases/<string:id>', methods=['GET'])
 @jwt_required()
-def get_testcases():
+def get_testcases(id=0):
     try:
         project_id = get_project_id(request.args.get("project"))
-        testcases = list(db.testcases.find({"project":project_id}, {"project": 0, "user": 0}))
+        if id==0:
+            testcases = list(db.testcases.find({"project":project_id}, {"project": 0, "user": 0}))
+            for i in testcases:
+                i = get_data_and_add_to_testcase(i)
+
+            return jsonify({"testcases": list(testcases)})
         
-        for i in testcases:
-            i['header'] = db.headers.find_one({"_id":i['header']}, {"user": 0, "project":0})
-            i['endpoint'] = db.endpoints.find_one({"_id":i['endpoint']}, {"user": 0, "project":0})
-            i['payload'] = db.payloads.find_one({"_id":i['payload']}, {"user": 0, "project":0})
-        return jsonify({"testcases": list(testcases)})
+        testcase = get_data_and_add_to_testcase(db.testcases.find_one({"project":project_id, "_id":id}, {"project": 0, "user": 0}))
+        return jsonify(testcase), 200
     except Exception as e:
         return jsonify(e), 400
-
-
 
 @testcases_blueprint.route('/api/testcases/new', methods=['POST'])
 @jwt_required()

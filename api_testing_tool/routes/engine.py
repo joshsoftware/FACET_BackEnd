@@ -1,16 +1,19 @@
 from requests import Request, Session
 from flask import Blueprint, request, jsonify
 from api_testing_tool import db
-from api_testing_tool.helpers.utils import create_id
+from api_testing_tool.helpers.utils import create_id, get_project_id
+from flask_jwt_extended import get_current_user, jwt_required
 
 engine_blueprint = Blueprint('engine', __name__)
 
 s = Session()
 
 @engine_blueprint.route('/api/tests', methods=['POST'])
+@jwt_required()
 def tests():
     data = request.json
-    testsuite = db.testsuite.find_one({"_id":data.get("testsuite")})
+    project_id = get_project_id(data.get("project"))
+    testsuite = db.testsuite.find_one({"name":data.get("testsuite"),"project" : project_id})
     res = []
 
     for i in testsuite['testcases']:

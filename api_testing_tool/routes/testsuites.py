@@ -31,7 +31,7 @@ def getTestsuites():
 @testsuite_blueprint.route('/api/testsuites/<string:id>', methods=['GET'])
 @jwt_required()
 def getTestsuite(id):
-    testsuite = db.testsuite.find_one({"_id":id})
+    testsuite = db.testsuite.find_one({"_id":id}, {"user": 0, "project": 0})
     
     testcases = []
     for i in testsuite['testcases']:

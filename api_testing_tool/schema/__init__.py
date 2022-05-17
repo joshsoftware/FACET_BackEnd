@@ -6,3 +6,4 @@ from .payloadSchema import payload_schema
 from .testcaseSchema import testcase_schema
 from .testdataSchema import testdata_schema
 from .testsuiteSchema import testsuite_schema
+from .environmentTypesSchema import environments_schema

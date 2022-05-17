@@ -26,3 +26,6 @@ app.register_blueprint(testdata_blueprint)
 
 from .engine import engine_blueprint
 app.register_blueprint(engine_blueprint)
+
+from .environmentTypes import envTypes_blueprint
+app.register_blueprint(envTypes_blueprint)

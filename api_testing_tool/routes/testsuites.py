@@ -32,6 +32,8 @@ def getTestsuites():
 @jwt_required()
 def getTestsuite(id):
     testsuite = db.testsuite.find_one({"_id":id}, {"user": 0, "project": 0})
+
+    testsuite['environment'] = db.envtypes.find_one({"_id": testsuite['environment']}, {"project": 0, "user": 0})
     
     testcases = []
     for i in testsuite['testcases']:
@@ -68,7 +70,8 @@ def createTestsuites():
             "user": get_current_user()['_id'],
             "name" : name,
             "description" : description,
-            "testcases" : array_of_testcases
+            "testcases" : array_of_testcases,
+            "environment": db.envtypes.find_one({"name": data.get('environment'), "project": project_id, "user": get_current_user()['_id']})['_id']
         })
         return jsonify({"success" : "testsuite created with the given testcases"})
     else:

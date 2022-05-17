@@ -14,6 +14,7 @@ def tests():
     data = request.json
     project_id = get_project_id(data.get("project"))
     testsuite = db.testsuite.find_one({"name":data.get("testsuite"),"project" : project_id})
+    testsuite['environment'] = db.envtypes.find_one({"_id": testsuite['environment']}, {"project": 0, "user": 0})
     res = []
 
     for i in testsuite['testcases']:
@@ -23,7 +24,7 @@ def tests():
         payload = db.payloads.find_one({"_id":testcase['payload']})
         testdata = testcase['testdata'] if len(testcase['testdata']) else [{"name": "Payload", "payload":{}, "expected_outcome": {}}]
 
-        testcase['endpoint'] = endpoint['endpoint']
+        testcase['endpoint'] = testsuite['environment']['url'] + endpoint['endpoint']
         testcase['header'] = header['header']
         testcase_resp = []
         for j in testdata:
@@ -40,7 +41,7 @@ def tests():
             "name": testcase['name'],
             "response": testcase_resp
         })
-    db.temp.delete_many({"testsuite":testsuite['_id']})
+    # db.temp.delete_many({"testsuite":testsuite['_id']})
     return jsonify(res)
 
 def fetch_from_api(testcase):

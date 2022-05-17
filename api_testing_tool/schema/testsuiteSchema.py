@@ -18,7 +18,11 @@ testsuite_schema = {
                 "type": "string",
                 "minLength": 1
             }
+        },
+        "environment": {
+            "type": "string",
+            "minLength": 1
         }
     },
-    "required": ["name", "project", "testcases"]
+    "required": ["name", "project", "testcases", "environment"]
 }

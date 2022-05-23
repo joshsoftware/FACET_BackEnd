@@ -1,9 +1,9 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
-from api_testing_tool import db
-from api_testing_tool.helpers import create_slug, create_id, validation_error
-from api_testing_tool.schema import projects_schema
+from app import db
+from app.helpers import create_slug, create_id, validation_error
+from app.schema import projects_schema
 from jsonschema import ValidationError, validate
 
 projects_blueprint = Blueprint('projects', __name__)

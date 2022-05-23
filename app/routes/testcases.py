@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify, request
 from jsonschema import ValidationError, validate
-from api_testing_tool import db
+from app import db
 from flask_jwt_extended import get_current_user, jwt_required
-from api_testing_tool.helpers import create_id, validation_error,create_slug, get_project_id
-from api_testing_tool.schema import testcase_schema
+from app.helpers import create_id, validation_error,create_slug, get_project_id
+from app.schema import testcase_schema
 
 testcases_blueprint = Blueprint('testcases', __name__)
 

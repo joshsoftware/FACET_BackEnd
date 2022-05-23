@@ -1,7 +1,7 @@
 import re
 import uuid
 from slugify import slugify
-from api_testing_tool import db
+from app import db
 from flask_jwt_extended import get_current_user
 
 

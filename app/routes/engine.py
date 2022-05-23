@@ -1,7 +1,7 @@
 from requests import Request, Session
 from flask import Blueprint, request, jsonify
-from api_testing_tool import db
-from api_testing_tool.helpers.utils import create_id
+from app import db
+from app.helpers.utils import create_id
 
 engine_blueprint = Blueprint('engine', __name__)
 

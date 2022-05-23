@@ -1,4 +1,4 @@
-from api_testing_tool import app
+from app import app
 
 from .auth import auth_blueprint
 app.register_blueprint(auth_blueprint)

@@ -1,11 +1,11 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
-from api_testing_tool import db, jwt
+from app import db, jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
-from api_testing_tool.helpers import create_id, validation_error
+from app.helpers import create_id, validation_error
 from jsonschema import ValidationError, validate
-from api_testing_tool.schema import signup_schema, login_schema
+from app.schema import signup_schema, login_schema
 
 auth_blueprint = Blueprint('auth', __name__)
 

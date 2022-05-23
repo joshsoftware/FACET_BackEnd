@@ -49,6 +49,10 @@ class ProjectModel(db.Model):
     def get_one_project(id):
         return ProjectModel.query.get(id)
 
+    @staticmethod
+    def is_project_exist(name, user):
+        return ProjectModel.query.filter_by(name=name, user=user).first()
+
     def __repr__(self):
         return f'<id {self.id}>'
     

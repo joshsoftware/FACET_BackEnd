@@ -1,69 +1,63 @@
-from datetime import datetime
 from flask import Blueprint, jsonify, request
-from app import db, jwt
-from werkzeug.security import generate_password_hash, check_password_hash
+from . import jwt
 from flask_jwt_extended import create_access_token
-from app.helpers import create_id, validation_error
-from jsonschema import ValidationError, validate
-from app.schema import signup_schema, login_schema
+from marshmallow import ValidationError
+from app.models.UserModel import UserModel, UserSchema
 
 auth_blueprint = Blueprint('auth', __name__)
+user_schema = UserSchema()
 
 @jwt.user_lookup_loader
 def _user_lookup_callback(_jwt_header, jwt_data):
     identity = jwt_data["sub"]
     
-    user = db.users.find_one({"email":identity})
+    user = UserModel.get_one_user(identity)
     if user is None:
         return None
-    del user['password']
+    # del user.password
     return user
 
 
 # create account
-@auth_blueprint.route('/api/signup', methods=['POST'])
+@auth_blueprint.route('/signup', methods=['POST'])
 def signup():
-    data = request.json
-    email = data.get("email")
-    password = data.get("password")
+    req_data = request.json
 
     try:
-        validate(data, signup_schema)
-    except ValidationError as e:
-        error = validation_error(e)
-        return jsonify(error), 400
+        data = user_schema.load(req_data)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
 
-    user = db.users.find_one({"email":email})
+    user_exist = UserModel.get_user_by_email(data.get('email'))
+    if user_exist:
+        return jsonify({'error':"User already exist, please supply another email address"}), 400
     
-    if not user:
-        user = db.users.insert_one({
-            "_id": create_id(),
-            **data,
-            "password": generate_password_hash(password),
-            "joinedAt": datetime.now()
-        })
-        return jsonify({"message":"Account Created Successfully!"}), 201
+    user = UserModel(data)
+    user.save()
 
-    return jsonify({"errors":"User With this email already exists!"}), 400
+    return jsonify({"message":"User Created Successfully!"}), 201
 
 
-# Login Account
-@auth_blueprint.route('/api/login', methods=['POST'])
+# # Login Account
+@auth_blueprint.route('/login', methods=['POST'])
 def login():
-    data = request.json
-    email = data.get("email")
-    password = data.get("password")
+    req_data = request.json
 
     try:
-        validate(data, login_schema)
-    except ValidationError as e:
-        error = validation_error(e)
-        return jsonify(error), 400
+        data = user_schema.load(req_data, partial=True)
+    except ValidationError as err:
+        return jsonify(err), 400
 
-    user = db.users.find_one({"email":email})
+    if not req_data.get('email') or not req_data.get('password'):
+        return jsonify({"error": "Email and Password are required fields!"}), 400
+
+    user = UserModel.get_user_by_email(data.get('email'))
+
+    if not user:
+        return jsonify({"error": "Invalid Credentials!"}), 400
     
-    if user and check_password_hash(user["password"], password):
-        token = create_access_token(identity=user["email"])
-        return jsonify({"token":token, "user": user['name']}), 200
+    if user and user.check_hash(data.get('password')):
+        token = create_access_token(identity=user.id)
+        return jsonify({"token":token, "user": user.name}), 200
 
     return jsonify({"error": "Invalid Credentials!"}), 400

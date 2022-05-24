@@ -14,12 +14,10 @@ def getEndpoints(id=0):
     try:
         project_id = get_project_id(request.args.get("project"))
         if id!=0:
-            endpoint = EndpointModel.get_one_endpoint(id)
-            data = endpoint_schema.dump(endpoint)
+            data = EndpointModel.get_one_endpoint(id)
             return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
 
-        endpoints = EndpointModel.get_all_endpoints(project_id)
-        data = endpoint_schema.dump(endpoints, many=True)
+        data = EndpointModel.get_all_endpoints(project_id)
         return jsonify({"endpoints": data}), 200, {"content-type": "application/json; charset=UTF-8"}
     except Exception as e :
         return jsonify(e), 400

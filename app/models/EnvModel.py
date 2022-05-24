@@ -42,11 +42,13 @@ class EnvModel(db.Model):
 
     @staticmethod
     def get_all_envs(project_id):
-        return EnvModel.query.filter_by(project=project_id)
+        data = EnvSchema().dump(EnvModel.query.filter_by(project=project_id), many=True)
+        return data
 
     @staticmethod
     def get_one_env(id):
-        return EnvModel.query.get(id)
+        data = EnvSchema().dump(EnvModel.query.get(id))
+        return data
 
     def __repr__(self):
         return f'<id {self.id}>'

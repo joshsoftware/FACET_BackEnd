@@ -23,5 +23,6 @@ def create_app(env_name):
     app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
     app.register_blueprint(projects_blueprint, url_prefix='/api/projects')
     app.register_blueprint(endpoints_blueprint, url_prefix='/api/endpoints')
+    app.register_blueprint(headers_blueprint, url_prefix='/api/headers')
 
     return app

@@ -11,8 +11,7 @@ project_schema = ProjectSchema()
 @projects_blueprint.route('/', methods=["GET"])
 @jwt_required()
 def getProjects():
-    projects = ProjectModel.get_all_projects(get_current_user().id)
-    data = project_schema.dump(projects, many=True)
+    data = ProjectModel.get_all_projects(get_current_user().id)
     return jsonify({"projects": data})
 
 @projects_blueprint.route('/new', methods=["POST"])

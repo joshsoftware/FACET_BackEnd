@@ -43,11 +43,13 @@ class ProjectModel(db.Model):
 
     @staticmethod
     def get_all_projects(user_id):
-        return ProjectModel.query.filter_by(user=user_id)
+        data = ProjectSchema().dump(ProjectModel.query.filter_by(user=user_id), many=True)
+        return data
 
     @staticmethod
     def get_one_project(id):
-        return ProjectModel.query.get(id)
+        data = ProjectSchema().dump(ProjectModel.query.get(id))
+        return data
 
     @staticmethod
     def is_project_exist(name, user):

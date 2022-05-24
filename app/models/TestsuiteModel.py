@@ -2,7 +2,8 @@ from datetime import datetime
 
 from marshmallow import Schema, fields
 from app.models import db
-from sqlalchemy.dialects.postgresql import ARRAY
+
+from app.models.TestcaseModel import TestcaseSchema
 
 
 testsuite_testcase = db.Table(
@@ -53,11 +54,13 @@ class TestsuiteModel(db.Model):
 
     @staticmethod
     def get_all_testsuites(project_id):
-        return TestsuiteModel.query.filter_by(project=project_id)
+        data = TestsuiteSchema().dump(TestsuiteModel.query.filter_by(project=project_id), many=True)
+        return data
 
     @staticmethod
     def get_one_testsuite(id):
-        return TestsuiteModel.query.get(id)
+        data = TestsuiteSchema().dump(TestsuiteModel.query.get(id))
+        return data
 
     def __repr__(self):
         return f'<id {self.id}>'
@@ -71,5 +74,6 @@ class TestsuiteSchema(Schema):
     name = fields.Str(required=True)
     description = fields.Str()
     project = fields.Int(required=True)
+    testcases = fields.Nested(TestcaseSchema)
     created_at = fields.DateTime(dump_only=True)
     modified_at = fields.DateTime(dump_only=True)

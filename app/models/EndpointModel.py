@@ -42,15 +42,19 @@ class EndpointModel(db.Model):
 
     @staticmethod
     def get_all_endpoints(project_id):
-        return EndpointModel.query.filter_by(project=project_id)
+        data = EndpointModel.query.filter_by(project=project_id)
+        data = EndpointSchema().dump(data, many=True)
+        return data
 
     @staticmethod
     def get_one_endpoint(id):
-        return EndpointModel.query.get(id)
+        data = EndpointModel.query.get(id)
+        data = EndpointSchema().dump(data)
+        return data
 
     @staticmethod
     def is_exist(name, project):
-        return EndpointModel.query.filter_by(name=name, project=project).first()
+        return EndpointModel.query.filter_by(name=name, project=project).first() or None
 
     def __repr__(self):
         return f'<id {self.id}>'

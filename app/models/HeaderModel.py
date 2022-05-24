@@ -43,11 +43,17 @@ class HeaderModel(db.Model):
 
     @staticmethod
     def get_all_headers(project_id):
-        return HeaderModel.query.filter_by(project=project_id)
+        data = HeaderSchema().dump(HeaderModel.query.filter_by(project=project_id), many=True)
+        return data
 
     @staticmethod
     def get_one_header(id):
-        return HeaderModel.query.get(id)
+        data = HeaderSchema().dump(HeaderModel.query.get(id))
+        return data
+
+    @staticmethod
+    def is_exist(name, project):
+        return HeaderModel.query.filter_by(name=name, project=project).first() or None
 
     def __repr__(self):
         return f'<id {self.id}>'

@@ -1,42 +1,46 @@
 from flask import Blueprint,jsonify, request
-from flask_jwt_extended import get_current_user, jwt_required
-from jsonschema import ValidationError, validate
-from app import db
-from app.helpers import create_id, validation_error, create_slug, get_project_id
-from app.schema import header_schema
+from flask_jwt_extended import jwt_required
+from jsonschema import ValidationError
+from app.helpers import create_slug, get_project_id
+from app.models.HeaderModel import HeaderModel, HeaderSchema
 
 headers_blueprint = Blueprint('headers', __name__)
+header_schema = HeaderSchema()
 
-@headers_blueprint.route('/api/headers',methods = ["GET"])
+@headers_blueprint.route('/',methods = ["GET"])
+@headers_blueprint.route('/<string:id>',methods = ["GET"])
 @jwt_required()
-def getHeaders():
+def getHeaders(id=0):
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_headers = db.headers.find({"project" : project_id}, {"project": 0, "user": 0})
-        return jsonify({"headers" : list(project_headers)})
+        if id==0:
+            data = HeaderModel.get_all_headers(project_id)
+            return jsonify({"headers": data}), 200, {"content-type": "application/json; charset=UTF-8"}
+
+        data = HeaderModel.get_one_header(id)
+        return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
     except Exception as e :
         return jsonify(e), 400
 
 
-@headers_blueprint.route('/api/headers/new',methods = ["POST"])
+@headers_blueprint.route('/new', methods=["POST"])
 @jwt_required()
 def createHeaders():
-    data = request.json
-    project_id = get_project_id(data.get("project"))
-    header = data.get("header")
-    name = create_slug(data.get("name"))
-    
-    try:
-        validate(data, header_schema)
-    except ValidationError as e:
-        error = validation_error(e)
-        return jsonify(error), 400
+    req_data = request.json
+    req_data['name'] = create_slug(req_data.get('name'))
+    req_data['project'] = get_project_id(req_data.get('project'))
 
-    db.headers.insert_one({
-        "_id" : create_id(),
-        "project" : project_id,
-        "header" : header,
-        "name" : name,
-        "user": get_current_user()["_id"]
-    })
-    return jsonify({"success": "header added succesfully"})
+    try:
+        data = header_schema.load(req_data)
+    except ValidationError as err:
+        return jsonify(err), 400
+
+    is_exist = HeaderModel.is_exist(data.get('name'), data.get('project'))
+    print(is_exist)
+    if is_exist:
+        return jsonify({"error": "You already have a header of the same name in this project."}), 400
+
+    endpoint = HeaderModel(data)
+    endpoint.save()
+    return jsonify({"success": "Header created successfully!"}), 201
+    

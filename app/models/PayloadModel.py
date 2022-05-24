@@ -45,11 +45,13 @@ class PayloadModel(db.Model):
 
     @staticmethod
     def get_all_payloads(project_id):
-        return PayloadModel.query.filter_by(project=project_id)
+        data = PayloadSchema().dump(PayloadModel.query.filter_by(project=project_id), many=True)
+        return data
 
     @staticmethod
     def get_one_payload(id):
-        return PayloadModel.query.get(id)
+        data = PayloadSchema().dump(PayloadModel.query.get(id))
+        return data
 
     def __repr__(self):
         return f'<id {self.id}>'

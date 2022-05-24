@@ -48,11 +48,13 @@ class TestcaseModel(db.Model):
 
     @staticmethod
     def get_all_testcases(project_id):
-        return TestcaseModel.query.filter_by(project=project_id)
+        data = TestcaseSchema().dump(TestcaseModel.query.filter_by(project=project_id), many=True)
+        return data
 
     @staticmethod
     def get_one_testcase(id):
-        return TestcaseModel.query.get(id)
+        data = TestcaseSchema().dump(TestcaseModel.query.get(id))
+        return data
 
     def __repr__(self):
         return f'<id {self.id}>'

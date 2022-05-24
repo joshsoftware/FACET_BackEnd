@@ -45,11 +45,13 @@ class TestdataModel(db.Model):
 
     @staticmethod
     def get_all_testdatas(testcase_id):
-        return TestdataModel.query.filter_by(testcase=testcase_id)
+        data = TestdataSchema().dump(TestdataModel.query.filter_by(testcase=testcase_id), many=True)
+        return data
 
     @staticmethod
     def get_one_testdata(id):
-        return TestdataModel.query.get(id)
+        data = TestdataSchema().dump(TestdataModel.query.get(id))
+        return data
 
     def __repr__(self):
         return f'<id {self.id}>'

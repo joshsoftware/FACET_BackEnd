@@ -4,6 +4,8 @@ from slugify import slugify
 from app import db
 from flask_jwt_extended import get_current_user
 
+from app.models.ProjectModel import ProjectModel
+
 
 def create_slug(data):
     slug = slugify(data, lowercase=False, separator='-')
@@ -25,4 +27,4 @@ def validation_error(e, ind=0):
     return error
 
 def get_project_id(slug):
-    return db.projects.find_one({"name": slug,"user" : get_current_user()["_id"]})["_id"]
+    return ProjectModel.query.filter_by(name=slug).first().id

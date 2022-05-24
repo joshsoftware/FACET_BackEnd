@@ -1,46 +1,47 @@
 from flask import Blueprint,jsonify, request
-from flask_jwt_extended import get_current_user, jwt_required
-from app import db
-from app.helpers import create_id, validation_error, create_slug, get_project_id
-from jsonschema import ValidationError, validate
-from app.schema import endpoints_schema
+from flask_jwt_extended import jwt_required
+from app.helpers import create_slug, get_project_id
+from marshmallow import ValidationError
+from app.models.EndpointModel import EndpointModel, EndpointSchema
 
 endpoints_blueprint = Blueprint('endpoints', __name__)
+endpoint_schema = EndpointSchema()
 
-@endpoints_blueprint.route('/api/endpoints',methods = ["GET"])
+@endpoints_blueprint.route('/',methods = ["GET"])
+@endpoints_blueprint.route('/<string:id>',methods = ["GET"])
 @jwt_required()
-def getEndpoints():  
+def getEndpoints(id=0):  
     try:
         project_id = get_project_id(request.args.get("project"))
-        project_endpoints = db.endpoints.find({"project" : project_id, "user":get_current_user()['_id']}, {"project": 0, "user": 0})
-        return jsonify({"endpoints": list(project_endpoints)}), 200, {"content-type": "application/json; charset=UTF-8"}
+        if id!=0:
+            endpoint = EndpointModel.get_one_endpoint(id)
+            data = endpoint_schema.dump(endpoint)
+            return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
+
+        endpoints = EndpointModel.get_all_endpoints(project_id)
+        data = endpoint_schema.dump(endpoints, many=True)
+        return jsonify({"endpoints": data}), 200, {"content-type": "application/json; charset=UTF-8"}
     except Exception as e :
         return jsonify(e), 400
 
-@endpoints_blueprint.route('/api/endpoints/new',methods=["POST"])
+@endpoints_blueprint.route('/new',methods=["POST"])
 @jwt_required()
 def createEndpoints():
-    data = request.json
-    endpoint = data.get("endpoint")
-    name = create_slug(data.get("name"))
-    project_id = get_project_id(data.get("project"))
+    req_data = request.json
+    req_data['name'] = create_slug(req_data.get('name'))
+    req_data['project'] = get_project_id(req_data.get('project'))
 
     try:
-        validate(data, endpoints_schema)
-    except ValidationError as e:
-        error = validation_error(e)
-        return jsonify(error), 400
+        data = endpoint_schema.load(req_data)
+    except ValidationError as err:
+        return jsonify(err), 400
 
-    if project_id != None:
-        db.endpoints.insert_one({
-            "_id" : create_id(),
-            "endpoint" : endpoint,
-            "name" : name,
-            "project" : project_id,
-            "user": get_current_user()["_id"]
-        })
-        return jsonify({"success": "endpoint added successfully"})
-    else:
-        return jsonify({"error" : "invalid project details"})
+    is_exist = EndpointModel.is_exist(data.get('name'), data.get('project'))
 
+    if is_exist:
+        return jsonify({"error": "You already have a endpoint of the same name in this project."}), 400
+
+    endpoint = EndpointModel(data)
+    endpoint.save()
+    return jsonify({"success": "Endpoint created successfully!"}), 201
     

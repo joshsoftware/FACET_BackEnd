@@ -38,7 +38,7 @@ def signup():
     return jsonify({"message":"User Created Successfully!"}), 201
 
 
-# # Login Account
+# Login Account
 @auth_blueprint.route('/login', methods=['POST'])
 def login():
     req_data = request.json

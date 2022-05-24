@@ -11,7 +11,7 @@ class EndpointModel(db.Model):
     __tablename__ = 'endpoints'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
-    endponit = db.Column(db.String(500), nullable=False)
+    endpoint = db.Column(db.String(500), nullable=False)
     project = db.Column(db.Integer, db.ForeignKey('projects.id'))
     created_at = db.Column(db.DateTime)
     modified_at = db.Column(db.DateTime)
@@ -47,6 +47,10 @@ class EndpointModel(db.Model):
     @staticmethod
     def get_one_endpoint(id):
         return EndpointModel.query.get(id)
+
+    @staticmethod
+    def is_exist(name, project):
+        return EndpointModel.query.filter_by(name=name, project=project).first()
 
     def __repr__(self):
         return f'<id {self.id}>'

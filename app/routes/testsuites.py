@@ -1,75 +1,71 @@
 from flask import Blueprint,jsonify, request
-from flask_jwt_extended import get_current_user, jwt_required
-from jsonschema import ValidationError, validate
-from app import db
-from app.helpers import create_id, validation_error,create_slug, get_project_id
-from app.schema import testsuite_schema
+from flask_jwt_extended import jwt_required
+from marshmallow import ValidationError
+from app.helpers import create_slug, get_project_id
+from app.models.TestcaseModel import TestcaseModel
+from app.models.TestsuiteModel import TestsuiteModel, TestsuiteSchema
 
 testsuite_blueprint = Blueprint('testsuites', __name__)
+testsuite_schema = TestsuiteSchema()
 
-@testsuite_blueprint.route('/api/testsuites', methods=["GET"])
+@testsuite_blueprint.route('/', methods=["GET"])
+@testsuite_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
-def getTestsuites():
+def getTestsuites(id=0):
     try:
-        project_id = get_project_id(request.args.get("project"))
-        project_testsuites = list(db.testsuite.find({"project" : project_id}))
+        if id!=0:
+            data = TestsuiteModel.get_one_testsuite(id)
+            return jsonify(data), 200
+        project = get_project_id(request.args.get("project"))
+        data = TestsuiteModel.get_all_testsuites(project)
+        return jsonify({"testsuites": data}), 200
         
-        for key, i in enumerate(project_testsuites):
-            testcases = []
-            for j in i['testcases']:
-                testcase = db.testcases.find_one({"_id": j})
-                testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']}, {"user":0, "project":0})
-                testcase['header'] = db.headers.find_one({"_id": testcase['header']}, {"user":0, "project":0})
-                testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']}, {"user":0, "project":0})
-                testcases.append(testcase)
-                
-            project_testsuites[key]['testcases'] = testcases
-        return jsonify({"testsuites" : project_testsuites})
     except Exception as e:
-        return jsonify(e),400
+        return jsonify(str(e)),400
     
-@testsuite_blueprint.route('/api/testsuite/<string:id>', methods=['GET'])
-@jwt_required()
-def getTestsuite(id):
-    testsuite = db.testsuite.find_one({"_id":id})
+# @testsuite_blueprint.route('/api/testsuite/<string:id>', methods=['GET'])
+# @jwt_required()
+# def getTestsuite(id):
+#     testsuite = db.testsuite.find_one({"_id":id})
     
-    testcases = []
-    for i in testsuite['testcases']:
-        testcase = db.testcases.find_one({"_id":i})
-        testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']})
-        testcase['header'] = db.headers.find_one({"_id": testcase['header']})
-        testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']})
-        testcase['testdata'] = list(db.testdata.find({"testcase_id":i})) or None
-        testcases.append(testcase)
+#     testcases = []
+#     for i in testsuite['testcases']:
+#         testcase = db.testcases.find_one({"_id":i})
+#         testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']})
+#         testcase['header'] = db.headers.find_one({"_id": testcase['header']})
+#         testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']})
+#         testcase['testdata'] = list(db.testdata.find({"testcase_id":i})) or None
+#         testcases.append(testcase)
     
-    testsuite['testcases'] = testcases
+#     testsuite['testcases'] = testcases
 
-    return jsonify(testsuite)
+#     return jsonify(testsuite)
 
-@testsuite_blueprint.route('/api/testsuite/new',methods = ["POST"])
+@testsuite_blueprint.route('/new',methods = ["POST"])
 @jwt_required()
 def createTestsuites():
-    data = request.json 
-    project_id = get_project_id(data.get("project"))
-    name = create_slug(data.get("name"))
-    description = data.get("description")
-    array_of_testcases = data.get("testcases")
+    req_data = request.json 
+    req_data['project'] = get_project_id(req_data.get("project"))
+    req_data['name'] = create_slug(req_data.get("name"))
+    testcases = req_data.get('array_of_testcases')
+    del req_data['array_of_testcases']
 
     try:
-        validate(data, testsuite_schema)
-    except ValidationError as e:
-        error = validation_error(e)
-        return jsonify(error), 400
+        data = testsuite_schema.load(req_data)
+    except ValidationError as err:
+        return jsonify(str(err)), 400
+    # return jsonify(data)
 
-    if db.testsuite.find_one({"project": project_id, "name" : name}) == None:
-        db.testsuite.insert_one({
-            "_id" : create_id(),
-            "project" : project_id,
-            "user": get_current_user()['_id'],
-            "name" : name,
-            "description" : description,
-            "testcases" : array_of_testcases
-        })
-        return jsonify({"success" : "testsuite created with the given testcases"})
-    else:
-        return jsonify({"error" : "Invalid details"})
+
+    is_exist = TestsuiteModel.is_exist(data.get('name'), data.get('project'))
+
+    if is_exist:
+        return jsonify({"error": "You already have a testcases of the same name in this project."}), 400
+
+    testsuite = TestsuiteModel(data)
+    for i in testcases:
+        testsuite.array_of_testcases.append(TestcaseModel.query.get(i))
+    testsuite.save()
+    return jsonify({"success" : "testsuite created with the given testcases"})
+    # else:
+    #     return jsonify({"error" : "Invalid details"})

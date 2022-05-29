@@ -53,6 +53,10 @@ class TestdataModel(db.Model):
         data = TestdataSchema().dump(TestdataModel.query.get(id))
         return data
 
+    @staticmethod
+    def is_exist(name, testcase):
+        return TestdataModel.query.filter_by(name=name, testcase=testcase).first() or None
+
     def __repr__(self):
         return f'<id {self.id}>'
     

@@ -36,7 +36,7 @@ def createHeaders():
         return jsonify(err), 400
 
     is_exist = HeaderModel.is_exist(data.get('name'), data.get('project'))
-    print(is_exist)
+    
     if is_exist:
         return jsonify({"error": "You already have a header of the same name in this project."}), 400
 

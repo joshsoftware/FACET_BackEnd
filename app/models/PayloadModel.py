@@ -53,6 +53,10 @@ class PayloadModel(db.Model):
         data = PayloadSchema().dump(PayloadModel.query.get(id))
         return data
 
+    @staticmethod
+    def is_exist(name, project):
+        return PayloadModel.query.filter_by(name=name, project=project).first() or None
+
     def __repr__(self):
         return f'<id {self.id}>'
     

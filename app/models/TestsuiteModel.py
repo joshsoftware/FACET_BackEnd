@@ -34,7 +34,7 @@ class TestsuiteModel(db.Model):
         self.name = data.get('name')
         self.description = data.get('description')
         self.project = data.get('project')
-        self.testcase = data.get('testcases')
+        # self.testcases = data.get('testcases')
         self.created_at = datetime.utcnow()
         self.modified_at = datetime.utcnow()
     
@@ -54,13 +54,18 @@ class TestsuiteModel(db.Model):
 
     @staticmethod
     def get_all_testsuites(project_id):
-        data = TestsuiteSchema().dump(TestsuiteModel.query.filter_by(project=project_id), many=True)
+        data = TestsuiteModel.query.filter_by(project=project_id)
+        data = TestsuiteSchema().dump(data, many=True)
         return data
 
     @staticmethod
     def get_one_testsuite(id):
         data = TestsuiteSchema().dump(TestsuiteModel.query.get(id))
         return data
+
+    @staticmethod
+    def is_exist(name, project):
+        return TestsuiteModel.query.filter_by(name=name, project=project).first() or None
 
     def __repr__(self):
         return f'<id {self.id}>'
@@ -74,6 +79,6 @@ class TestsuiteSchema(Schema):
     name = fields.Str(required=True)
     description = fields.Str()
     project = fields.Int(required=True)
-    testcases = fields.Nested(TestcaseSchema)
+    testcases = fields.List(fields.Nested(TestcaseSchema))
     created_at = fields.DateTime(dump_only=True)
     modified_at = fields.DateTime(dump_only=True)

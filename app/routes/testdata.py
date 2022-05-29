@@ -3,45 +3,45 @@ from flask_jwt_extended import jwt_required
 from jsonschema import ValidationError, validate
 from app import db
 from app.helpers import validation_error, create_slug, get_project_id
-from app.schema import testdata_schema
+from app.models.TestdataModel import TestdataModel, TestdataSchema
 
 testdata_blueprint = Blueprint('testdata', __name__)
+testdata_schema = TestdataSchema()
 
-@testdata_blueprint.route("/api/testdata",methods = ["GET"])
+
+@testdata_blueprint.route("/",methods = ["GET"])
+@testdata_blueprint.route("/<string:id>",methods = ["GET"])
 @jwt_required()
-def getTestdata():
-    project = get_project_id(request.args.get('project'))
-    testdata = db.testdata.find({"project" : project})
-    return jsonify({"testdata":list(testdata)})
+def getTestdata(id=0):
+    try:
+        testcase_id = request.args.get("testcase")
+        if id!=0:
+            data = TestdataModel.get_one_testdata(id)
+            return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
 
-@testdata_blueprint.route("/api/create-testdata",methods = ["POST"])
+        data = TestdataModel.get_all_testdatas(testcase_id)
+        return jsonify({"testdata": data}), 200, {"content-type": "application/json; charset=UTF-8"}
+    except Exception as e:
+        return jsonify(e), 400
+
+
+@testdata_blueprint.route("/new",methods = ["POST"])
 @jwt_required()
 def createTestdata():
-    data = request.json
-    testcase_id = data.get("testcase_id")
-    payload = data.get("payload")
-    expected_outcome = data.get("expected_outcome")
-    name = create_slug(data.get("name"))
+    req_data = request.json
+    req_data['name'] = create_slug(req_data.get('name'))
     
     try:
-        validate(data, testdata_schema)
-    except ValidationError as e:
-        error = validation_error(e)
-        return jsonify(error), 400
+        data = testdata_schema.load(req_data)
+    except ValidationError as err:
+        return jsonify(str(err)), 400
 
-    testdata = {
-        "name" : name,
-        "payload" : payload,
-        "expected_outcome": expected_outcome
-    }
-    
-    # if testdata:
-    testcase = db.testcases.find_one({"_id": testcase_id})
-    testcase['testdata'].append(testdata)
-    if testcase:
-        if not db.testcases.find_one({"_id": testcase_id, "testdata.name": name}):
-            db.testcases.update_one({"_id": testcase_id}, {"$set": {"testdata": testcase['testdata']}})
-        else:
-            return jsonify({"errors": f"testdata {name} already exist"})
+    is_exist = TestdataModel.is_exist(data.get('name'), data.get('testcase'))
 
-    return jsonify({"success" : "testdata added successfully"})
+    if is_exist:
+        return jsonify({"error": "You already have a Testdata of the same name in this Testcase."}), 400
+
+    testdata = TestdataModel(data)
+    testdata.save()
+    return jsonify({"success": "Testdata created successfully!"}), 201
+   

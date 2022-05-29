@@ -1,57 +1,53 @@
 from flask import Blueprint, jsonify, request
-from jsonschema import ValidationError, validate
-from app import db
-from flask_jwt_extended import get_current_user, jwt_required
-from app.helpers import create_id, validation_error,create_slug, get_project_id
-from app.schema import testcase_schema
+from marshmallow import ValidationError
+from flask_jwt_extended import jwt_required
+from app.helpers import create_slug, get_project_id
+from app.models.TestcaseModel import TestcaseModel, TestcaseSchema
 
 testcases_blueprint = Blueprint('testcases', __name__)
+testcase_schema = TestcaseSchema()
 
-@testcases_blueprint.route('/api/testcases')
+@testcases_blueprint.route('/', methods=['GET'])
+@testcases_blueprint.route('/<string:id>', methods=['GET'])
 @jwt_required()
-def get_testcases():
+def get_testcases(id=0):
     try:
         project_id = get_project_id(request.args.get("project"))
-        testcases = list(db.testcases.find({"project":project_id}, {"project": 0, "user": 0}))
-        
-        for i in testcases:
-            i['header'] = db.headers.find_one({"_id":i['header']}, {"user": 0, "project":0})
-            i['endpoint'] = db.endpoints.find_one({"_id":i['endpoint']}, {"user": 0, "project":0})
-            i['payload'] = db.payloads.find_one({"_id":i['payload']}, {"user": 0, "project":0})
-        return jsonify({"testcases": list(testcases)})
+        if id!=0:
+            data = TestcaseModel.get_one_testcase(id)
+            return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
+
+        data = TestcaseModel.get_all_testcases(project_id)
+        return jsonify({"testcases": data}), 200, {"content-type": "application/json; charset=UTF-8"}
     except Exception as e:
-        return jsonify(e), 400
+        return jsonify(str(e)), 400
 
 
 
-@testcases_blueprint.route('/api/testcases/new', methods=['POST'])
+@testcases_blueprint.route('/new', methods=['POST'])
 @jwt_required()
 def create_testcase():
-    data = request.json
-
-    project_id = get_project_id(data.get('project'))
-    endpoint_id = data.get('endpoint_id')
-    name = create_slug(data.get('name'))
-    method = data.get('method')
-    payload_id = data.get('payload_id')
-    header_id = data.get('header_id')
-
+    """
+    Accepts project, endpoint_id, payload_id, header_id, name, method as inputs
+    """
     try:
-        validate(data, testcase_schema)
-    except ValidationError as e:
-        error = validation_error(e)
-        return jsonify(error), 400
+        req_data = request.json
+        req_data['name'] = create_slug(req_data.get('name'))
+        req_data['project_id'] = get_project_id(req_data.get('project'))
+        del req_data['project']
+        
+        try:
+            data = testcase_schema.load(req_data)
+        except ValidationError as err:
+            return jsonify(str(err)), 400
 
-    db.testcases.insert_one({
-        "_id":create_id(),
-        "project": project_id,
-        "endpoint": endpoint_id,
-        "name": name,
-        "method": method,
-        "payload": payload_id,
-        "header": header_id,
-        "testdata": [],
-        "user": get_current_user()['_id']
-    })
+        is_exist = TestcaseModel.is_exist(data.get('name'), data.get('project_id'))
 
-    return jsonify({"msg": "Testcase created Successfully!!"})
+        if is_exist:
+            return jsonify({"error": "You already have a testcases of the same name in this project."}), 400
+
+        testcase = TestcaseModel(data)
+        testcase.save()
+        return jsonify({"success": "Testcase created successfully!"}), 201
+    except Exception as e:
+        return jsonify(str(e)), 400

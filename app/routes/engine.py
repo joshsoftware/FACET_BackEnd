@@ -1,7 +1,8 @@
 from requests import Request, Session
 from flask import Blueprint, request, jsonify
-from app import db
-from app.helpers.utils import create_id
+from app.models.EnvModel import EnvModel
+from app.models.TempModel import TempModel
+from app.models.TestsuiteModel import TestsuiteModel
 
 engine_blueprint = Blueprint('engine', __name__)
 
@@ -11,26 +12,37 @@ s = Session()
 def tests():
     data = request.json
 
-    testsuite = db.testsuite.find_one({"_id":data.get("testsuite")})
+    testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
+    environment = EnvModel.get_one_env(testsuite['environment'])['url']
+
     res = []
+    for testcase in testsuite['testcases']:
+        testcase['endpoint'] = environment + testcase['endpoint']['endpoint']
+        testcase['header'] = testcase['header']['header']
+        payload = testcase['payload']['payload']
+        expected_outcome = testcase['payload']['expected_outcome']
+        testdata = testcase['testdata'] if len(testcase['testdata']) else [{"name": "Payload", "payload":{}, "expected_outcome": {}}]
 
-    for i in testsuite['testcases']:
-        testcase = db.testcases.find_one({"_id":i})
-
-        endpoint = db.endpoints.find_one({"_id": testcase['endpoint']})
-        header = db.headers.find_one({"_id": testcase['header']})
-        payload = db.payloads.find_one({"_id":testcase['payload']})
-        testdata = testcase['testdata'][0] if len(testcase['testdata']) else {"payload":{}, "expected_outcome": {}}
-
-        testcase['endpoint'] = endpoint['endpoint']
-        testcase['header'] = header['header']
-        testcase['payload'] = {**payload['payload'], **testdata['payload']}
-        testcase['expected_outcome'] = {**payload['expected_outcome'], **testdata['expected_outcome']}
-
-        res.append(perform_testcases(testcase, testsuite))
+        testcase_resp = []
+        for td in testdata:
+            testcase['payload'] = {**payload, **td['payload']}
+            testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
+            resp = perform_testcases(testcase, testsuite)
+            testcase_resp.append({
+                "name": td['name'],
+                **resp
+            })
         
-    db.temp.delete_many({"testsuite":testsuite['_id']})
+        res.append({
+            "testcase_id": testcase['id'],
+            "name": testcase['name'],
+            "response": testcase_resp
+        })
+    
+    TempModel.get_all_and_delete(testsuite['id'])
     return jsonify(res)
+
+
 
 def fetch_from_api(testcase):
     r = Request(testcase['method'], testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
@@ -48,7 +60,7 @@ def perform_testcases(testcase, testsuite):
         variable = re.search(pattern, str(testcase)).group(1)
         tmp = variable.split('.')
 
-        var_value = db.temp.find_one({"testsuite": testsuite['_id'], "testcase":tmp[0]})
+        var_value = TempModel.get_one(testsuite=testsuite['id'], testcase=tmp[0])
         
         for i in tmp[1:len(tmp)]:
             var_value = var_value.get(i)
@@ -57,15 +69,10 @@ def perform_testcases(testcase, testsuite):
             
     res = fetch_from_api(testcase)
 
-    # Add response to temp collection
-    db.temp.insert_one({
-        "_id": create_id(),
-        "testsuite": testsuite['_id'],
-        "testcase" : testcase['name'],
-        "resp": res.json()
-    })
+    temp = TempModel({"testsuite": testsuite['id'], "testcase": testcase['name'], "resp": res.json()})
+    temp.save()
 
     if res.status_code==testcase['expected_outcome']['status_code']:
-        return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"passed"}
+        return {"testcase_id":testcase['id'], "name":testcase['name'], "status":"passed"}
     else:
-        return {"testcase_id":testcase['_id'], "name":testcase['name'], "status":"failed", "response":res.json()}
+        return {"testcase_id":testcase['id'], "name":testcase['name'], "status":"failed", "response":res.json()}

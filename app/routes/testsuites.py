@@ -23,23 +23,6 @@ def getTestsuites(id=0):
     except Exception as e:
         return jsonify(str(e)),400
     
-# @testsuite_blueprint.route('/api/testsuite/<string:id>', methods=['GET'])
-# @jwt_required()
-# def getTestsuite(id):
-#     testsuite = db.testsuite.find_one({"_id":id})
-    
-#     testcases = []
-#     for i in testsuite['testcases']:
-#         testcase = db.testcases.find_one({"_id":i})
-#         testcase['endpoint'] = db.endpoints.find_one({"_id": testcase['endpoint']})
-#         testcase['header'] = db.headers.find_one({"_id": testcase['header']})
-#         testcase['payload'] = db.payloads.find_one({"_id": testcase['payload']})
-#         testcase['testdata'] = list(db.testdata.find({"testcase_id":i})) or None
-#         testcases.append(testcase)
-    
-#     testsuite['testcases'] = testcases
-
-#     return jsonify(testsuite)
 
 @testsuite_blueprint.route('/new',methods = ["POST"])
 @jwt_required()
@@ -54,7 +37,6 @@ def createTestsuites():
         data = testsuite_schema.load(req_data)
     except ValidationError as err:
         return jsonify(str(err)), 400
-    # return jsonify(data)
 
 
     is_exist = TestsuiteModel.is_exist(data.get('name'), data.get('project'))
@@ -67,5 +49,3 @@ def createTestsuites():
         testsuite.array_of_testcases.append(TestcaseModel.query.get(i))
     testsuite.save()
     return jsonify({"success" : "testsuite created with the given testcases"})
-    # else:
-    #     return jsonify({"error" : "Invalid details"})

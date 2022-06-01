@@ -50,6 +50,10 @@ class EnvModel(db.Model):
         data = EnvSchema().dump(EnvModel.query.get(id))
         return data
 
+    @staticmethod
+    def is_exist(name, project):
+        return EnvModel.query.filter_by(name=name, project=project).first() or None
+
     def __repr__(self):
         return f'<id {self.id}>'
     

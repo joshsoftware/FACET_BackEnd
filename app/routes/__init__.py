@@ -12,3 +12,4 @@ from .testcases import testcases_blueprint
 from .testsuites import testsuite_blueprint
 from .testdata import testdata_blueprint
 from .engine import engine_blueprint
+from .environments import env_blueprint

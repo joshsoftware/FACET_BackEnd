@@ -90,6 +90,6 @@ class TestcaseSchema(Schema):
     header = fields.Nested(HeaderSchema)
     payload = fields.Nested(PayloadSchema)
     project = fields.Nested(ProjectSchema)
-    testdata = fields.Nested(TestdataSchema)
+    testdata = fields.List(fields.Nested(TestdataSchema))
     created_at = fields.DateTime(dump_only=True)
     modified_at = fields.DateTime(dump_only=True)

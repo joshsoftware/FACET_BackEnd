@@ -1,7 +1,6 @@
 import re
 import uuid
 from slugify import slugify
-from app import db
 from flask_jwt_extended import get_current_user
 
 from app.models.ProjectModel import ProjectModel

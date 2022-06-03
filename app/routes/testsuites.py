@@ -46,6 +46,6 @@ def createTestsuites():
 
     testsuite = TestsuiteModel(data)
     for i in testcases:
-        testsuite.array_of_testcases.append(TestcaseModel.query.get(i))
+        testsuite.testcases.append(TestcaseModel.query.get(i))
     testsuite.save()
     return jsonify({"success" : "testsuite created with the given testcases"})

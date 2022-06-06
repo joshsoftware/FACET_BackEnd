@@ -30,5 +30,6 @@ def create_app(env_name):
     app.register_blueprint(testsuite_blueprint, url_prefix='/api/testsuites')
     app.register_blueprint(env_blueprint, url_prefix='/api/environments')
     app.register_blueprint(engine_blueprint, url_prefix='')
+    app.register_blueprint(results_blueprint,url_prefix='/api/results')
 
     return app

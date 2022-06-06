@@ -1,5 +1,7 @@
 from requests import Request, Session
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
+from app.helpers.utils import store_results,get_current_user
 from app.models.EnvModel import EnvModel
 from app.models.TempModel import TempModel
 from app.models.TestsuiteModel import TestsuiteModel
@@ -9,9 +11,10 @@ engine_blueprint = Blueprint('engine', __name__)
 s = Session()
 
 @engine_blueprint.route('/api/tests', methods=['POST'])
+@jwt_required()
 def tests():
     data = request.json
-
+    user = get_current_user().id
     testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
     environment = EnvModel.get_one_env(testsuite['environment'])['url']
 
@@ -27,7 +30,7 @@ def tests():
         for td in testdata:
             testcase['payload'] = {**payload, **td['payload']}
             testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
-            resp = perform_testcases(testcase, testsuite)
+            resp = perform_testcases(testcase, testsuite,user)
             testcase_resp.append({
                 "name": td['name'],
                 **resp
@@ -52,7 +55,7 @@ def fetch_from_api(testcase):
 
     return resp
 
-def perform_testcases(testcase, testsuite):
+def perform_testcases(testcase, testsuite,user):
     
     if "$var=" in str(testcase):
         pattern =  "\$var\=(.*?)\'"
@@ -71,7 +74,15 @@ def perform_testcases(testcase, testsuite):
 
     temp = TempModel({"testsuite": testsuite['id'], "testcase": testcase['name'], "resp": res.json()})
     temp.save()
-
+    store_results(
+        {
+            "testsuite_id": testsuite['id'], 
+            "testcase_id": testcase['id'], 
+            "response": res.json(), 
+            "payload_used" : testcase['payload'],
+            "project_id" : testcase['project_id'],
+            "user" : user
+        })
     if res.status_code==testcase['expected_outcome']['status_code']:
         return {"testcase_id":testcase['id'], "name":testcase['name'], "status":"passed"}
     else:

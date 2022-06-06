@@ -16,7 +16,6 @@ def getresults(id=0):
             return jsonify(data), 200
         project = get_project_id(request.args.get("project"))
         data = ResultModel.get_all_results(project)
-        print(jsonify({"results": data}))
         return jsonify({"results": data}), 200
         
     except Exception as e:

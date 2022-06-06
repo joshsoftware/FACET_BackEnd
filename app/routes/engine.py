@@ -74,7 +74,15 @@ def perform_testcases(testcase, testsuite,user):
 
     temp = TempModel({"testsuite": testsuite['id'], "testcase": testcase['name'], "resp": res.json()})
     temp.save()
-    store_results({"testsuite_id": testsuite['id'], "testcase_id": testcase['id'], "response": res.json(), "payload_used" : testcase['payload'],"project_id" : testcase['project_id'],"user" : user})
+    store_results(
+        {
+            "testsuite_id": testsuite['id'], 
+            "testcase_id": testcase['id'], 
+            "response": res.json(), 
+            "payload_used" : testcase['payload'],
+            "project_id" : testcase['project_id'],
+            "user" : user
+        })
     if res.status_code==testcase['expected_outcome']['status_code']:
         return {"testcase_id":testcase['id'], "name":testcase['name'], "status":"passed"}
     else:

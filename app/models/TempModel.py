@@ -21,7 +21,7 @@ class TempModel(db.Model):
         """
         Class constructor
         """
-        print(data.get('testsuite'))
+
         self.testsuite = data.get('testsuite')
         self.testcase = data.get('testcase')
         self.resp = data.get('resp')

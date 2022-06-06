@@ -1,4 +1,5 @@
 from flask import Flask
+from app.routes import organization
 from config import app_config
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -31,5 +32,6 @@ def create_app(env_name):
     app.register_blueprint(env_blueprint, url_prefix='/api/environments')
     app.register_blueprint(engine_blueprint, url_prefix='')
     app.register_blueprint(results_blueprint,url_prefix='/api/results')
+    app.register_blueprint(organization_blueprint,url_prefix='/api/organization')
 
     return app

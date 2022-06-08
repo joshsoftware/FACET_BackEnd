@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from . import jwt
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token,jwt_required
 from marshmallow import ValidationError
 from app.models.UserModel import UserModel, UserSchema
 
@@ -61,3 +61,18 @@ def login():
         return jsonify({"token":token, "user": user.name}), 200
 
     return jsonify({"error": "Invalid Credentials!"}), 400
+
+@auth_blueprint.route('/delete', methods=['POST'])
+@jwt_required()
+def delete_user():
+    req_data = request.json
+    try:
+        user = UserModel.get_one_user(req_data.get('user'))
+    except Exception as e:
+        return jsonify(str(e))
+    if user:
+        user.delete()
+    else:
+        return jsonify({"Error" : "No such user exists"})
+    return jsonify({"success" : "User deleted sucessfully"})
+    

@@ -44,3 +44,16 @@ def create_payloads():
     payload.save()
     return jsonify({"success": "Payload created Successfully!!"}), 201
 
+@payloads_blueprint.route('/delete',methods=["POST"])
+@jwt_required()
+def delete_payload():
+    req_data = request.json
+    try:
+        payload = PayloadModel.query.get(req_data.get('payload'))
+    except Exception as e:
+        return jsonify(str(e))
+    if payload:
+        payload.delete()
+    else:
+        return jsonify({"error" : "No such payload exists"})
+    return jsonify({"Success" : "payload deleted successfully"})

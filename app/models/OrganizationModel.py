@@ -48,7 +48,7 @@ class OrganizationModel(db.Model):
         db.session.add(self)
         db.session.commit()
     
-    def update(self, data):
+    def update(self, data={}):
         for key, item in data.items():
             setattr(self, key, item)
         self.modified_at = datetime.utcnow()
@@ -70,7 +70,7 @@ class OrganizationModel(db.Model):
         return data
 
     @staticmethod
-    def is_organization_exist(name):
+    def does_organization_exist(name):
         return OrganizationModel.query.filter_by(name=name).first()
     
 

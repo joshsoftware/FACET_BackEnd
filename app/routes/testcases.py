@@ -51,3 +51,17 @@ def create_testcase():
         return jsonify({"success": "Testcase created successfully!"}), 201
     except Exception as e:
         return jsonify(str(e)), 400
+
+@testcases_blueprint.route('/delete',methods=["POST"])
+@jwt_required()
+def delete_testcase():
+    req_data = request.json
+    try:
+        testcase = TestcaseModel.query.get(req_data.get('testcase'))
+    except Exception as e:
+        return jsonify(str(e))
+    if testcase:
+        testcase.delete()
+    else:
+        return jsonify({"error" : "No such testcase exists"})
+    return jsonify({"Success" : "testcase deleted successfully"})

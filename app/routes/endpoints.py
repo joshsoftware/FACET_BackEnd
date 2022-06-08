@@ -43,3 +43,16 @@ def createEndpoints():
     endpoint.save()
     return jsonify({"success": "Endpoint created successfully!"}), 201
     
+@endpoints_blueprint.route('/delete',methods=["POST"])
+@jwt_required()
+def delete_endpoint():
+    req_data = request.json
+    try:
+        endpoint = EndpointModel.query.get(req_data.get('endpoint'))
+    except Exception as e:
+        return jsonify(str(e))
+    if endpoint:
+        endpoint.delete()
+    else:
+        return jsonify({"error" : "No such endpoint exists"})
+    return jsonify({"Success" : "Endpoint deleted successfully"})

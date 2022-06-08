@@ -43,4 +43,18 @@ def createHeaders():
     endpoint = HeaderModel(data)
     endpoint.save()
     return jsonify({"success": "Header created successfully!"}), 201
+
+@headers_blueprint.route('/delete',methods=["POST"])
+@jwt_required()
+def delete_header():
+    req_data = request.json
+    try:
+        header = HeaderModel.query.get(req_data.get('header'))
+    except Exception as e:
+        return jsonify(str(e))
+    if header:
+        header.delete()
+    else:
+        return jsonify({"error" : "No such header exists"})
+    return jsonify({"Success" : "Header deleted successfully"})
     

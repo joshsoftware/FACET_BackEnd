@@ -49,3 +49,18 @@ def createTestsuites():
         testsuite.testcases.append(TestcaseModel.query.get(i))
     testsuite.save()
     return jsonify({"success" : "testsuite created with the given testcases"})
+
+@testsuite_blueprint.route('/delete',methods=["POST"])
+@jwt_required()
+def delete_testsuite():
+    req_data = request.json
+    try:
+        testsuite = TestsuiteModel.query.get(req_data.get('testsuite'))
+    except Exception as e:
+        return jsonify(str(e))
+    if testsuite:
+        testsuite.delete()
+    else:
+        return jsonify({"error" : "No such testsuite exists"})
+    return jsonify({"Success" : "testsuite deleted successfully"})
+

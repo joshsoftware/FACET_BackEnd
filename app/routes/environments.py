@@ -43,3 +43,16 @@ def createEnv():
     env.save()
     return jsonify({"success" : "Environment created successfully!"})
 
+@env_blueprint.route('/delete',methods=["POST"])
+@jwt_required()
+def delete_env():
+    req_data = request.json
+    try:
+        environment = EnvModel.query.get(req_data.get('env'))
+    except Exception as e:
+        return jsonify(str(e))
+    if environment:
+        environment.delete()
+    else:
+        return jsonify({"error" : "No such environment exists"})
+    return jsonify({"Success" : "Environment deleted successfully"})

@@ -36,18 +36,19 @@ def createProjects():
     return jsonify({"success": "project created successfully"})
     
 
-# @projects_blueprint.route('/api/delete-projects',methods=["DELETE"])
-# @jwt_required()
-# def deleteProjects():
-#     data = request.json
-#     name = data.get("name")
-#     user_id = get_current_user()['_id']
-
-#     if db.projects.find_one({"name" : name, "user":user_id}) == None:
-#         return jsonify({"errors" : "No such project exists in your project directory"})
-#     else:
-#         db.projects.delete_one({"name" :name, "user":user_id})
-#         return jsonify({"success" : "project succesfully removed"})
+@projects_blueprint.route('/delete',methods=["POST"])
+@jwt_required()
+def delete_project():
+    req_data = request.json
+    try:
+        project = ProjectModel.query.get(req_data.get('project'))
+    except Exception as e:
+        return jsonify(str(e))
+    if project:
+        project.delete()
+    else:
+        return jsonify({"error" : "No such project exists"})
+    return jsonify({"Success" : "project deleted successfully"})
 
 
 

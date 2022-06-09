@@ -64,3 +64,33 @@ def delete_testsuite():
         return jsonify({"error" : "No such testsuite exists"})
     return jsonify({"Success" : "testsuite deleted successfully"})
 
+@testsuite_blueprint.route('/update',methods=["POST"])
+@jwt_required()
+def update_testsuite():
+    req_data = request.json
+    try:
+        testsuite = req_data.get('id')
+        testsuite = TestsuiteModel.query.get(testsuite)
+        if testsuite:
+            if req_data.get('name'):
+                name = req_data.get('name')
+                testsuite.name = name
+            if req_data.get('description'):
+                description = req_data.get('description')
+                testsuite.description = description
+            if req_data.get('environment'):
+                environment = req_data.get('environment')
+                testsuite.environment = environment
+            if req_data.get('testcases'):
+                testsuite.testcases.clear()
+                testcases = req_data.get('testcases')
+                for i in testcases:
+                    testcase = TestcaseModel.query.get(i)
+                    testsuite.testcases.append(testcase)  
+            testsuite.update()
+        else:
+            return jsonify({"error" : "no such endpoint exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"Success" : "Testsuite Updated Successfully"})
+

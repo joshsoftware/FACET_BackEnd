@@ -43,4 +43,27 @@ def createTestdata():
     testdata = TestdataModel(data)
     testdata.save()
     return jsonify({"success": "Testdata created successfully!"}), 201
-   
+
+@testdata_blueprint.route("/update",methods=["POST"])
+@jwt_required()
+def update_Testdata():
+    req_data = request.json
+    try:
+        testdata = req_data.get('id')
+        testdata = TestdataModel.query.get('testdata')
+        if testdata:
+            if req_data.get('name'):
+                name = req_data.get('name')
+                testdata.name = name
+            if req_data.get('payload'):
+                payload = req_data.get('payload')
+                testdata.payload = payload
+            if req_data.get('expected_outcome'):
+                expected_outcome = req_data.get('expected_outcome')
+                testdata.expected_outcome = expected_outcome
+            testdata.update()
+        else:
+            return jsonify({"Error" : "No such Testdata exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"Success" : "Testdata Updated successfully"})

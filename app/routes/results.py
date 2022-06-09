@@ -1,3 +1,4 @@
+from crypt import methods
 from flask import Blueprint,jsonify,request
 from flask_jwt_extended import jwt_required
 from app.models.ResultModel import ResultModel
@@ -20,3 +21,19 @@ def getresults(id=0):
         
     except Exception as e:
         return jsonify(str(e)),400
+
+@results_blueprint.route('/comment',methods=["POST"])
+@jwt_required()
+def add_comment():
+    req_data = request.json
+    try:
+        result = req_data.get('id')
+        result = ResultModel.query.get(result)
+        if result:
+            result.comment = req_data.get('comment')
+            result.update()
+        else:
+            return jsonify({"Error" : "No such result exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"Success" : "Comment added sucessfully"})

@@ -33,7 +33,7 @@ class TestdataModel(db.Model):
         db.session.add(self)
         db.session.commit()
     
-    def update(self, data):
+    def update(self, data = {}):
         for key, item in data.items():
             setattr(self, key, item)
         self.modified_at = datetime.utcnow()

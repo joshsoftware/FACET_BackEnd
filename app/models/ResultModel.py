@@ -17,6 +17,7 @@ class ResultModel(db.Model):
     testsuite_id = db.Column(db.Integer, db.ForeignKey('testsuites.id'), nullable=False)
     payload_used = db.Column(JSON, nullable = False)
     response = db.Column(JSON,nullable = False)
+    comment = db.Column(db.Text,nullable = True)
     created_at = db.Column(db.DateTime)
 
     def __init__(self,data):
@@ -26,10 +27,17 @@ class ResultModel(db.Model):
         self.testsuite_id = data.get('testsuite_id')
         self.payload_used = data.get('payload_used')
         self.response = data.get('response')
+        self.comment = data.get('comment')
         self.created_at = datetime.utcnow()
     
     def save(self):
         db.session.add(self)
+        db.session.commit()
+    
+    def update(self, data={}):
+        for key, item in data.items():
+            setattr(self, key, item)
+        self.modified_at = datetime.utcnow()
         db.session.commit()
     
     def delete(self):
@@ -43,7 +51,7 @@ class ResultModel(db.Model):
     
     @staticmethod
     def get_one_result(id):
-        data = ResultSchema.dump(ResultModel.query.get(id))
+        data = ResultSchema().dump(ResultModel.query.get(id))
         return data
     
     @staticmethod
@@ -63,4 +71,5 @@ class ResultSchema(Schema):
     testsuite_id = fields.Int(required=True)
     payload_used = fields.Dict(required=True)
     response = fields.Dict(required=True)
+    comment = fields.Str()
     created_at = fields.DateTime(dump_only=True)

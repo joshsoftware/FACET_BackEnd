@@ -57,3 +57,30 @@ def delete_payload():
     else:
         return jsonify({"error" : "No such payload exists"})
     return jsonify({"Success" : "payload deleted successfully"})
+
+@payloads_blueprint.route('/update',methods=["POST"])
+@jwt_required()
+def update_payload():
+    req_data = request.json
+    try:
+        payload = req_data.get('id')
+        payload = PayloadModel.query.get(payload)
+        if payload:
+            if req_data.get('name'):
+                name = req_data.get('name')
+                payload.name = name
+            
+            if req_data.get('payload'):
+                new_payload = req_data.get('payload')
+                payload.payload = new_payload
+            
+            if req_data.get('expected_outcome'):
+                expected_outcome = req_data.get('expected_outcome')
+                payload.expected_outcome = expected_outcome
+            
+            payload.update()
+        else:
+            return jsonify({"Error" : "No such Payload exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"Success" : "Payload updated successfully"})

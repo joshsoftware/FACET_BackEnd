@@ -57,4 +57,25 @@ def delete_header():
     else:
         return jsonify({"error" : "No such header exists"})
     return jsonify({"Success" : "Header deleted successfully"})
+
+@headers_blueprint.route('/update',methods=["POST"])
+@jwt_required()
+def update_header():
+    req_data = request.json
+    try:
+        header = req_data.get('id')
+        header = HeaderModel.query.get(header)
+        if header:
+            if req_data.get('name'):
+                name = req_data.get('name')
+                header.name = name
+            if req_data.get('header'):
+                new_header = req_data.get('header')
+                header.header = new_header
+            header.update()
+        else:
+            return jsonify({"error" : "No such header exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"Success" : "Header updated successfully"})
     

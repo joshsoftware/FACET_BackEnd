@@ -20,7 +20,7 @@ def createOrganization():
     except ValidationError as err:
         return jsonify(str(err)), 400
     
-    organization_exist = OrganizationModel.is_organization_exist(data.get('name'))
+    organization_exist = OrganizationModel.does_organization_exist(data.get('name'))
 
     if organization_exist:
         return jsonify({"error": "There already exists an organization of the same name"}), 400

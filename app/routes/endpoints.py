@@ -49,10 +49,31 @@ def delete_endpoint():
     req_data = request.json
     try:
         endpoint = EndpointModel.query.get(req_data.get('endpoint'))
-    except Exception as e:
-        return jsonify(str(e))
+    except Exception as err:
+        return jsonify(str(err))
     if endpoint:
         endpoint.delete()
     else:
         return jsonify({"error" : "No such endpoint exists"})
     return jsonify({"Success" : "Endpoint deleted successfully"})
+
+@endpoints_blueprint.route('update',methods=["POST"])
+@jwt_required()
+def update_endpoint():
+    req_data = request.json
+    try:
+        endpoint = req_data.get('id')
+        endpoint = EndpointModel.query.get(endpoint)
+        if endpoint:
+            if req_data.get('name'):
+                name = req_data.get('name')
+                endpoint.name = name
+            if req_data.get('endpoint'):
+                new_endpoint = req_data.get('endpoint')
+                endpoint.endpoint = new_endpoint
+            endpoint.update()
+        else:
+            return jsonify({"error" : "no such endpoint exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"Success" : "Endpoint updated successfully"})

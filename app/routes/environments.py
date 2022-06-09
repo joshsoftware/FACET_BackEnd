@@ -1,3 +1,4 @@
+from crypt import methods
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
@@ -49,10 +50,31 @@ def delete_env():
     req_data = request.json
     try:
         environment = EnvModel.query.get(req_data.get('env'))
-    except Exception as e:
-        return jsonify(str(e))
+    except Exception as err:
+        return jsonify(str(err))
     if environment:
         environment.delete()
     else:
         return jsonify({"error" : "No such environment exists"})
     return jsonify({"Success" : "Environment deleted successfully"})
+
+@env_blueprint.route('/update',methods=["POST"])
+@jwt_required()
+def update_env():
+    req_data = request.json
+    try:
+        environment = req_data.get('id')
+        environment = EnvModel.query.get(environment)
+        if environment:
+            if req_data.get('name'):
+                name = req_data.get('name')
+                environment.name = name
+            if req_data.get('url'):
+                url = req_data.get('url')
+                environment.url = url
+            environment.update()
+        else:
+            return jsonify({"error" : "No such environment exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"success" : "Environment updated successfully!"})

@@ -65,3 +65,33 @@ def delete_testcase():
     else:
         return jsonify({"error" : "No such testcase exists"})
     return jsonify({"Success" : "testcase deleted successfully"})
+
+@testcases_blueprint.route('/update',methods=["POST"])
+@jwt_required()
+def update_testcase():
+    req_data = request.json
+    try:
+        testcase = req_data.get('id')
+        testcase = TestcaseModel.query.get(testcase)
+        if testcase:
+            if req_data.get('name'):
+                name = req_data.get('name')
+                testcase.name = name
+            if req_data.get('method'):
+                method = req_data.get('method')
+                testcase.method = method
+            if req_data.get('endpoint'):
+                endpoint = req_data.get('endpoint')
+                testcase.endpoint_id = endpoint
+            if req_data.get('header'):
+                header = req_data.get('header')
+                testcase.header_id = header
+            if req_data.get('payload'):
+                payload = req_data.get('payload')
+                testcase.payload_id = payload
+            testcase.update()
+        else:
+            return jsonify({"Error" : "No such Testcase exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"Success" : "Testcase Updated successfully"})

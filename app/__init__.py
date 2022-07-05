@@ -1,17 +1,20 @@
+import os
 from flask import Flask
 from config import app_config
 from flask_migrate import Migrate
 from flask_cors import CORS
 from .models import db, bcrypt
 from .routes import *
-
+from dotenv import load_dotenv
+load_dotenv()
 
 migrate = Migrate()
 
-def create_app(env_name):
+def create_app():
     """
         Create App
     """
+    env_name = os.getenv('FLASK_ENV')
     app = Flask(__name__)
     app.config.from_object(app_config[env_name])
     CORS(app)

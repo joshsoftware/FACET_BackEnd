@@ -29,7 +29,7 @@ def createOrganization():
     organization.admin.append(admin)
     organization.members.append(admin)
     organization.save()
-    return jsonify({"success": "Organization created successfully \n All the best for your new venture!!!!"})
+    return jsonify({"success": "Organization created successfully. All the best for your new venture!!!!"})
 
 @organization_blueprint.route('/add',methods = ["POST"])
 @jwt_required()

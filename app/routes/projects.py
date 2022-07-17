@@ -34,7 +34,7 @@ def createProjects():
     project = ProjectModel(data)
     project.save()
     return jsonify({"success": "project created successfully"})
-    
+
 
 @projects_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
@@ -49,7 +49,3 @@ def delete_project():
     else:
         return jsonify({"error" : "No such project exists"})
     return jsonify({"Success" : "project deleted successfully"})
-
-
-
-

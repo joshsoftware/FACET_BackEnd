@@ -30,3 +30,6 @@ def store_results(data):
     
     result = ResultModel(results)
     result.save()
+
+def has_access_to_project(project_id,user_id):
+    return ProjectModel.is_a_member_of_project(project_id,user_id)

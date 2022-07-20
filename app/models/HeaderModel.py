@@ -15,6 +15,8 @@ class HeaderModel(db.Model):
     header = db.Column(JSON, nullable=False)
     project = db.Column(db.Integer, db.ForeignKey('projects.id'))
     created_at = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):
@@ -25,6 +27,8 @@ class HeaderModel(db.Model):
         self.header = data.get('header')
         self.project = data.get('project')
         self.created_at = datetime.utcnow()
+        self.created_by = data.get('created_by')
+        self.modified_by = data.get('modified_by')
         self.modified_at = datetime.utcnow()
     
     def save(self):
@@ -68,4 +72,6 @@ class HeaderSchema(Schema):
     header = fields.Dict(required=True)
     project = fields.Int(required=True)
     created_at = fields.DateTime(dump_only=True)
+    created_by = fields.Int()
+    modified_by = fields.Int()
     modified_at = fields.DateTime(dump_only=True)

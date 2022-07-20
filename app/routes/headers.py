@@ -1,7 +1,8 @@
 from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
 from jsonschema import ValidationError
-from app.helpers import create_slug, get_project_id
+from app.helpers import create_slug, get_project_id,get_current_user
+from app.helpers.utils import has_access_to_project
 from app.models.HeaderModel import HeaderModel, HeaderSchema
 
 headers_blueprint = Blueprint('headers', __name__)
@@ -29,6 +30,9 @@ def createHeaders():
     req_data = request.json
     req_data['name'] = create_slug(req_data.get('name'))
     req_data['project'] = get_project_id(req_data.get('project'))
+    user = get_current_user()
+    req_data['created_by'] = user.id
+    req_data['modified_by'] = user.id
 
     try:
         data = header_schema.load(req_data)
@@ -62,17 +66,21 @@ def delete_header():
 @jwt_required()
 def update_header():
     req_data = request.json
+    user = get_current_user()
     try:
         header = req_data.get('id')
         header = HeaderModel.query.get(header)
         if header:
-            if req_data.get('name'):
-                name = req_data.get('name')
-                header.name = name
-            if req_data.get('header'):
-                new_header = req_data.get('header')
-                header.header = new_header
-            header.update()
+            if has_access_to_project(header.project,user.id):
+                if req_data.get('name'):
+                    name = req_data.get('name')
+                    header.name = name
+                if req_data.get('header'):
+                    new_header = req_data.get('header')
+                    header.header = new_header
+                header.update({'modified_by' : user.id})
+            else:
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
         else:
             return jsonify({"error" : "No such header exists"})
     except Exception as err:

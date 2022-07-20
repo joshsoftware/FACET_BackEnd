@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 from marshmallow import ValidationError
 from flask_jwt_extended import jwt_required
-from app.helpers import create_slug, get_project_id
+from app.helpers import create_slug, get_project_id,get_current_user
+from app.helpers.utils import has_access_to_project
 from app.models.TestcaseModel import TestcaseModel, TestcaseSchema
 
 testcases_blueprint = Blueprint('testcases', __name__)
@@ -34,6 +35,9 @@ def create_testcase():
         req_data = request.json
         req_data['name'] = create_slug(req_data.get('name'))
         req_data['project_id'] = get_project_id(req_data.get('project'))
+        user = get_current_user()
+        req_data['created_by'] = user.id
+        req_data['modified_by'] = user.id
         del req_data['project']
         
         try:
@@ -70,26 +74,30 @@ def delete_testcase():
 @jwt_required()
 def update_testcase():
     req_data = request.json
+    user = get_current_user()
     try:
         testcase = req_data.get('id')
         testcase = TestcaseModel.query.get(testcase)
         if testcase:
-            if req_data.get('name'):
-                name = req_data.get('name')
-                testcase.name = name
-            if req_data.get('method'):
-                method = req_data.get('method')
-                testcase.method = method
-            if req_data.get('endpoint'):
-                endpoint = req_data.get('endpoint')
-                testcase.endpoint_id = endpoint
-            if req_data.get('header'):
-                header = req_data.get('header')
-                testcase.header_id = header
-            if req_data.get('payload'):
-                payload = req_data.get('payload')
-                testcase.payload_id = payload
-            testcase.update()
+            if has_access_to_project(testcase.project_id,user.id):
+                if req_data.get('name'):
+                    name = req_data.get('name')
+                    testcase.name = name
+                if req_data.get('method'):
+                    method = req_data.get('method')
+                    testcase.method = method
+                if req_data.get('endpoint'):
+                    endpoint = req_data.get('endpoint')
+                    testcase.endpoint_id = endpoint
+                if req_data.get('header'):
+                    header = req_data.get('header')
+                    testcase.header_id = header
+                if req_data.get('payload'):
+                    payload = req_data.get('payload')
+                    testcase.payload_id = payload
+                testcase.update({'modified_by' : user.id})
+            else:
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
         else:
             return jsonify({"Error" : "No such Testcase exists"})
     except Exception as err:

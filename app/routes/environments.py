@@ -2,7 +2,8 @@ from crypt import methods
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
-from app.helpers import get_project_id, create_slug
+from app.helpers import get_project_id, create_slug,get_current_user
+from app.helpers.utils import has_access_to_project
 from app.models.EnvModel import EnvModel, EnvSchema
 
 env_blueprint = Blueprint('environments', __name__)
@@ -29,6 +30,9 @@ def createEnv():
     req_data = request.json
     req_data['project'] = get_project_id(req_data.get("project"))
     req_data['name'] = create_slug(req_data.get("name"))
+    user = get_current_user()
+    req_data['created_by'] = user.id
+    req_data['modified_by'] = user.id
     
     try:
         data = env_schema.load(req_data)
@@ -62,17 +66,21 @@ def delete_env():
 @jwt_required()
 def update_env():
     req_data = request.json
+    user = get_current_user()
     try:
         environment = req_data.get('id')
         environment = EnvModel.query.get(environment)
         if environment:
-            if req_data.get('name'):
-                name = req_data.get('name')
-                environment.name = name
-            if req_data.get('url'):
-                url = req_data.get('url')
-                environment.url = url
-            environment.update()
+            if has_access_to_project(environment.project,user.id):
+                if req_data.get('name'):
+                    name = req_data.get('name')
+                    environment.name = name
+                if req_data.get('url'):
+                    url = req_data.get('url')
+                    environment.url = url
+                environment.update({'modified_by' : user.id})
+            else:
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
         else:
             return jsonify({"error" : "No such environment exists"})
     except Exception as err:

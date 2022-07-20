@@ -28,6 +28,8 @@ class TestcaseModel(db.Model):
     project = db.relationship('ProjectModel', foreign_keys=project_id)
     testdata = db.relationship('TestdataModel', backref='testcases', lazy=True)
     created_at = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):
@@ -41,6 +43,8 @@ class TestcaseModel(db.Model):
         self.payload_id = data.get('payload_id')
         self.project_id = data.get('project_id')
         self.created_at = datetime.utcnow()
+        self.created_by = data.get('created_by')
+        self.modified_by = data.get('modified_by')
         self.modified_at = datetime.utcnow()
     
     def save(self):
@@ -92,4 +96,6 @@ class TestcaseSchema(Schema):
     project = fields.Nested(ProjectSchema)
     testdata = fields.List(fields.Nested(TestdataSchema))
     created_at = fields.DateTime(dump_only=True)
+    created_by = fields.Int()
+    modified_by = fields.Int()
     modified_at = fields.DateTime(dump_only=True)

@@ -1,7 +1,8 @@
 from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
-from app.helpers import create_slug, get_project_id
+from app.helpers import create_slug, get_project_id,get_current_user
 from marshmallow import ValidationError
+from app.helpers.utils import has_access_to_project
 from app.models.EndpointModel import EndpointModel, EndpointSchema
 
 endpoints_blueprint = Blueprint('endpoints', __name__)
@@ -28,7 +29,9 @@ def createEndpoints():
     req_data = request.json
     req_data['name'] = create_slug(req_data.get('name'))
     req_data['project'] = get_project_id(req_data.get('project'))
-
+    user = get_current_user()
+    req_data['created_by'] = user.id
+    req_data['modified_by'] = user.id
     try:
         data = endpoint_schema.load(req_data)
     except ValidationError as err:
@@ -61,17 +64,21 @@ def delete_endpoint():
 @jwt_required()
 def update_endpoint():
     req_data = request.json
+    user = get_current_user()
     try:
         endpoint = req_data.get('id')
         endpoint = EndpointModel.query.get(endpoint)
         if endpoint:
-            if req_data.get('name'):
-                name = req_data.get('name')
-                endpoint.name = name
-            if req_data.get('endpoint'):
-                new_endpoint = req_data.get('endpoint')
-                endpoint.endpoint = new_endpoint
-            endpoint.update()
+            if has_access_to_project(endpoint.project,user.id):
+                if req_data.get('name'):
+                    name = req_data.get('name')
+                    endpoint.name = name
+                if req_data.get('endpoint'):
+                    new_endpoint = req_data.get('endpoint')
+                    endpoint.endpoint = new_endpoint
+                endpoint.update({'modified_by' : user.id})
+            else:
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
         else:
             return jsonify({"error" : "no such endpoint exists"})
     except Exception as err:

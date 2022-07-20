@@ -16,6 +16,8 @@ class TestdataModel(db.Model):
     expected_outcome = db.Column(JSON, nullable=False)
     testcase = db.Column(db.Integer, db.ForeignKey('testcases.id'))
     created_at = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):
@@ -26,7 +28,9 @@ class TestdataModel(db.Model):
         self.payload = data.get('payload')
         self.expected_outcome = data.get('expected_outcome')
         self.testcase = data.get('testcase')
+        self.created_by = data.get('created_by')
         self.created_at = datetime.utcnow()
+        self.modified_by = data.get('modified_by')
         self.modified_at = datetime.utcnow()
     
     def save(self):
@@ -71,4 +75,6 @@ class TestdataSchema(Schema):
     expected_outcome = fields.Dict(required=True)
     testcase = fields.Int(required=True)
     created_at = fields.DateTime(dump_only=True)
+    created_by = fields.Int()
+    modified_by = fields.Int()
     modified_at = fields.DateTime(dump_only=True)

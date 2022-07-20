@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
+from app.models.UserModel import UserModel
 from app.helpers import create_slug
 from marshmallow import ValidationError
 from app.models.ProjectModel import ProjectModel, ProjectSchema
@@ -18,20 +19,23 @@ def getProjects():
 @jwt_required()
 def createProjects():
     req_data = request.json
-    req_data['user'] = get_current_user().id
+    # req_data['user'] = get_current_user().id
+    admin = get_current_user()
+    req_data['project_admin'] = admin.id
     req_data['name'] = create_slug(req_data.get('name'))
-
+    
     try:
         data = project_schema.load(req_data)
     except ValidationError as err:
         return jsonify(err), 400
 
-    project_exist = ProjectModel.is_project_exist(data.get('name'), data.get('user'))
+    project_exist = ProjectModel.is_project_exist(data.get('name'), data.get('project_admin'))
 
     if project_exist:
         return jsonify({"error": "You already have a project of the same name"}), 400
 
     project = ProjectModel(data)
+    project.project_members.append(admin)
     project.save()
     return jsonify({"success": "project created successfully"})
 
@@ -49,3 +53,26 @@ def delete_project():
     else:
         return jsonify({"error" : "No such project exists"})
     return jsonify({"Success" : "project deleted successfully"})
+
+@projects_blueprint.route('/add',methods=["POST"])
+@jwt_required()
+def add_members():
+    req_data = request.json
+    req_data['name'] = create_slug(req_data.get('name'))
+    admin = get_current_user().id
+    project = ProjectModel.is_project_exist(req_data['name'],admin)
+    try:
+        if project:
+            if admin == project.project_admin:
+                members = req_data['members']
+                del req_data['members']
+                for member in members:
+                    id = UserModel.get_one_user(member)
+                    project.project_members.append(id)
+                project.update({'modified_by': admin})
+                return jsonify({"Success" : "New members added successfully"})
+            else:
+                return jsonify({"error" : "You do not have the admin rights to add members"})
+    except Exception as e:
+        return jsonify(str(e))
+    return jsonify({"error" : "No  such project exists!!!!"})

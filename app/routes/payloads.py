@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
-from app.helpers import create_slug, get_project_id
+from app.helpers import create_slug, get_project_id,get_current_user
+from app.helpers.utils import has_access_to_project
 from app.models.PayloadModel import PayloadModel, PayloadSchema
 
 payloads_blueprint = Blueprint('payloads', __name__)
@@ -29,6 +30,9 @@ def create_payloads():
     req_data = request.json
     req_data['name'] = create_slug(req_data.get('name'))
     req_data['project'] = get_project_id(req_data.get('project'))
+    user = get_current_user()
+    req_data['created_by'] = user.id
+    req_data['modified_by'] = user.id
 
     try:
         data = payload_schema.load(req_data)
@@ -62,23 +66,27 @@ def delete_payload():
 @jwt_required()
 def update_payload():
     req_data = request.json
+    user = get_current_user()
     try:
         payload = req_data.get('id')
         payload = PayloadModel.query.get(payload)
         if payload:
-            if req_data.get('name'):
-                name = req_data.get('name')
-                payload.name = name
+            if has_access_to_project(payload.project,user.id): 
+                if req_data.get('name'):
+                    name = req_data.get('name')
+                    payload.name = name
             
-            if req_data.get('payload'):
-                new_payload = req_data.get('payload')
-                payload.payload = new_payload
+                if req_data.get('payload'):
+                    new_payload = req_data.get('payload')
+                    payload.payload = new_payload
             
-            if req_data.get('expected_outcome'):
-                expected_outcome = req_data.get('expected_outcome')
-                payload.expected_outcome = expected_outcome
+                if req_data.get('expected_outcome'):
+                    expected_outcome = req_data.get('expected_outcome')
+                    payload.expected_outcome = expected_outcome
             
-            payload.update()
+                payload.update({'modified_by' : user.id})
+            else:
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
         else:
             return jsonify({"Error" : "No such Payload exists"})
     except Exception as err:

@@ -14,12 +14,16 @@ testsuite_schema = TestsuiteSchema()
 @jwt_required()
 def getTestsuites(id=0):
     try:
-        if id!=0:
-            data = TestsuiteModel.get_one_testsuite(id)
-            return jsonify(data), 200
+        user = get_current_user()
         project = get_project_id(request.args.get("project"))
-        data = TestsuiteModel.get_all_testsuites(project)
-        return jsonify({"testsuites": data}), 200
+        if has_access_to_project(project,user.id):
+            if id!=0:
+                data = TestsuiteModel.get_one_testsuite(id)
+                return jsonify(data), 200
+            data = TestsuiteModel.get_all_testsuites(project)
+            return jsonify({"testsuites": data}), 200
+        else:
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
         
     except Exception as e:
         return jsonify(str(e)),400
@@ -36,34 +40,40 @@ def createTestsuites():
     req_data['modified_by'] = user.id
     testcases = req_data.get('array_of_testcases')
     del req_data['array_of_testcases']
+    if has_access_to_project(req_data['project'],user.id):
+        try:
+            data = testsuite_schema.load(req_data)
+        except ValidationError as err:
+            return jsonify(str(err)), 400
 
-    try:
-        data = testsuite_schema.load(req_data)
-    except ValidationError as err:
-        return jsonify(str(err)), 400
 
+        is_exist = TestsuiteModel.is_exist(data.get('name'), data.get('project'))
 
-    is_exist = TestsuiteModel.is_exist(data.get('name'), data.get('project'))
+        if is_exist:
+            return jsonify({"error": "You already have a testcases of the same name in this project."}), 400
 
-    if is_exist:
-        return jsonify({"error": "You already have a testcases of the same name in this project."}), 400
-
-    testsuite = TestsuiteModel(data)
-    for i in testcases:
-        testsuite.testcases.append(TestcaseModel.query.get(i))
-    testsuite.save()
-    return jsonify({"success" : "testsuite created with the given testcases"})
+        testsuite = TestsuiteModel(data)
+        for i in testcases:
+            testsuite.testcases.append(TestcaseModel.query.get(i))
+        testsuite.save()
+        return jsonify({"success" : "testsuite created with the given testcases"})
+    else:
+        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
 
 @testsuite_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
 def delete_testsuite():
     req_data = request.json
+    user = get_current_user()
     try:
         testsuite = TestsuiteModel.query.get(req_data.get('testsuite'))
     except Exception as e:
         return jsonify(str(e))
     if testsuite:
-        testsuite.delete()
+        if has_access_to_project(testsuite.project,user.id):
+            testsuite.delete()
+        else:
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
     else:
         return jsonify({"error" : "No such testsuite exists"})
     return jsonify({"Success" : "testsuite deleted successfully"})

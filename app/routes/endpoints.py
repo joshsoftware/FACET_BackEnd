@@ -13,13 +13,17 @@ endpoint_schema = EndpointSchema()
 @jwt_required()
 def getEndpoints(id=0):  
     try:
+        user = get_current_user()
         project_id = get_project_id(request.args.get("project"))
-        if id!=0:
-            data = EndpointModel.get_one_endpoint(id)
-            return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
+        if has_access_to_project(project_id,user.id):
+            if id!=0:
+                data = EndpointModel.get_one_endpoint(id)
+                return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
 
-        data = EndpointModel.get_all_endpoints(project_id)
-        return jsonify({"endpoints": data}), 200, {"content-type": "application/json; charset=UTF-8"}
+            data = EndpointModel.get_all_endpoints(project_id)
+            return jsonify({"endpoints": data}), 200, {"content-type": "application/json; charset=UTF-8"}
+        else:
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
     except Exception as e :
         return jsonify(e), 400
 
@@ -32,30 +36,37 @@ def createEndpoints():
     user = get_current_user()
     req_data['created_by'] = user.id
     req_data['modified_by'] = user.id
-    try:
-        data = endpoint_schema.load(req_data)
-    except ValidationError as err:
-        return jsonify(err), 400
+    if has_access_to_project(req_data['project'],user.id):
+        try:
+            data = endpoint_schema.load(req_data)
+        except ValidationError as err:
+            return jsonify(err), 400
 
-    is_exist = EndpointModel.is_exist(data.get('name'), data.get('project'))
+        is_exist = EndpointModel.is_exist(data.get('name'), data.get('project'))
 
-    if is_exist:
-        return jsonify({"error": "You already have a endpoint of the same name in this project."}), 400
+        if is_exist:
+            return jsonify({"error": "You already have a endpoint of the same name in this project."}), 400
 
-    endpoint = EndpointModel(data)
-    endpoint.save()
-    return jsonify({"success": "Endpoint created successfully!"}), 201
-    
+        endpoint = EndpointModel(data)
+        endpoint.save()
+        return jsonify({"success": "Endpoint created successfully!"}), 201
+    else:
+        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+
 @endpoints_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
 def delete_endpoint():
     req_data = request.json
+    user = get_current_user()
     try:
         endpoint = EndpointModel.query.get(req_data.get('endpoint'))
     except Exception as err:
         return jsonify(str(err))
     if endpoint:
-        endpoint.delete()
+        if has_access_to_project(endpoint.project,user.id):
+            endpoint.delete()
+        else:
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
     else:
         return jsonify({"error" : "No such endpoint exists"})
     return jsonify({"Success" : "Endpoint deleted successfully"})

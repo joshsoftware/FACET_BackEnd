@@ -14,12 +14,16 @@ env_schema = EnvSchema()
 @jwt_required()
 def getEnvs(id=0):
     try:
+        user = get_current_user()
         project_id = get_project_id(request.args.get('project'))
-        if id==0:
-            environments = EnvModel.get_all_envs(project_id)
-            return jsonify({"environments": environments}), 200
-        environment = EnvModel.get_one_env(id)
-        return jsonify(environment), 200
+        if has_access_to_project(project_id,user.id):
+            if id==0:
+                environments = EnvModel.get_all_envs(project_id)
+                return jsonify({"environments": environments}), 200
+            environment = EnvModel.get_one_env(id)
+            return jsonify(environment), 200
+        else:
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
     except Exception as e:
         return jsonify(str(e)), 400
 
@@ -33,31 +37,37 @@ def createEnv():
     user = get_current_user()
     req_data['created_by'] = user.id
     req_data['modified_by'] = user.id
-    
-    try:
-        data = env_schema.load(req_data)
-    except ValidationError as err:
-        return jsonify(str(err)), 400
-    
-    is_exist = EnvModel.is_exist(data['name'], data['project'])
+    if has_access_to_project(req_data['project'],user.id):
+        try:
+            data = env_schema.load(req_data)
+        except ValidationError as err:
+            return jsonify(str(err)), 400
+        
+        is_exist = EnvModel.is_exist(data['name'], data['project'])
 
-    if is_exist:
-        return jsonify({"error": "You already have a environments of the same name in this project."}), 400
+        if is_exist:
+            return jsonify({"error": "You already have a environments of the same name in this project."}), 400
 
-    env = EnvModel(data)
-    env.save()
-    return jsonify({"success" : "Environment created successfully!"})
+        env = EnvModel(data)
+        env.save()
+        return jsonify({"success" : "Environment created successfully!"})
+    else:
+        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
 
 @env_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
 def delete_env():
     req_data = request.json
+    user = get_current_user()
     try:
         environment = EnvModel.query.get(req_data.get('env'))
     except Exception as err:
         return jsonify(str(err))
     if environment:
-        environment.delete()
+        if has_access_to_project(environment.project,user.id):
+            environment.delete()
+        else:
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
     else:
         return jsonify({"error" : "No such environment exists"})
     return jsonify({"Success" : "Environment deleted successfully"})

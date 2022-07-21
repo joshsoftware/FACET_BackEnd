@@ -44,12 +44,16 @@ def createProjects():
 @jwt_required()
 def delete_project():
     req_data = request.json
+    user = get_current_user()
     try:
         project = ProjectModel.query.get(req_data.get('project'))
     except Exception as e:
         return jsonify(str(e))
     if project:
-        project.delete()
+        if user.id == project.project_admin:
+            project.delete()
+        else:
+            return jsonify({"error" : "You do not possess the admin rights to delete the project"})
     else:
         return jsonify({"error" : "No such project exists"})
     return jsonify({"Success" : "project deleted successfully"})

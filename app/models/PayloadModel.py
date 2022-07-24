@@ -68,7 +68,7 @@ class PayloadSchema(Schema):
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True)
     payload = fields.Dict(required=True)
-    expected_outcome = fields.Dict(required=True)
+    expected_outcome = fields.List(fields.Dict(), required=True)
     project = fields.Int(required=True)
     created_at = fields.DateTime(dump_only=True)
     modified_at = fields.DateTime(dump_only=True)

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1abf806f95b4
+Revision ID: 71cd3a533b04
 Revises: 
-Create Date: 2022-07-25 10:54:30.027312
+Create Date: 2022-07-25 15:55:37.247680
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1abf806f95b4'
+revision = '71cd3a533b04'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -29,16 +29,6 @@ def upgrade():
     sa.Column('modified_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
-    )
-    op.create_table('organization',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=50), nullable=False),
-    sa.Column('is_private', sa.Boolean(), nullable=False),
-    sa.Column('created_by', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('modified_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('projects',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -99,18 +89,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['project'], ['projects.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
-    )
-    op.create_table('organization_admin',
-    sa.Column('organization_id', sa.Integer(), nullable=True),
-    sa.Column('admin_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['admin_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], )
-    )
-    op.create_table('organization_member',
-    sa.Column('organization_id', sa.Integer(), nullable=True),
-    sa.Column('member_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['member_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], )
     )
     op.create_table('payloads',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -233,12 +211,9 @@ def downgrade():
     op.drop_table('testcases')
     op.drop_table('project_member')
     op.drop_table('payloads')
-    op.drop_table('organization_member')
-    op.drop_table('organization_admin')
     op.drop_table('headers')
     op.drop_table('environments')
     op.drop_table('endpoints')
     op.drop_table('projects')
-    op.drop_table('organization')
     op.drop_table('users')
     # ### end Alembic commands ###

@@ -14,6 +14,8 @@ class EnvModel(db.Model):
     url = db.Column(db.String(500), nullable=False)
     project = db.Column(db.Integer, db.ForeignKey('projects.id'))
     created_at = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):
@@ -23,14 +25,16 @@ class EnvModel(db.Model):
         self.name = data.get('name')
         self.url = data.get('url')
         self.project = data.get('project')
+        self.created_by = data.get('created_by')
         self.created_at = datetime.utcnow()
+        self.modified_by = data.get('modified_by')
         self.modified_at = datetime.utcnow()
     
     def save(self):
         db.session.add(self)
         db.session.commit()
     
-    def update(self, data):
+    def update(self, data = {}):
         for key, item in data.items():
             setattr(self, key, item)
         self.modified_at = datetime.utcnow()
@@ -67,4 +71,6 @@ class EnvSchema(Schema):
     url = fields.Str(required=True)
     project = fields.Int(required=True)
     created_at = fields.DateTime(dump_only=True)
+    created_by = fields.Int()
+    modified_by = fields.Int()
     modified_at = fields.DateTime(dump_only=True)

@@ -1,7 +1,9 @@
 from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
-from app.helpers import create_slug, get_project_id
+from app.helpers import create_slug, get_project_id,get_current_user
+from app.helpers.utils import has_access_to_project
+from app.models.TestcaseModel import TestcaseModel
 from app.models.TestdataModel import TestdataModel, TestdataSchema
 
 testdata_blueprint = Blueprint('testdata', __name__)
@@ -29,7 +31,9 @@ def getTestdata(id=0):
 def createTestdata():
     req_data = request.json
     req_data['name'] = create_slug(req_data.get('name'))
-    
+    user = get_current_user()
+    req_data['created_by'] = user.id
+    req_data['modified_by'] = user.id
     try:
         data = testdata_schema.load(req_data)
     except ValidationError as err:
@@ -43,4 +47,33 @@ def createTestdata():
     testdata = TestdataModel(data)
     testdata.save()
     return jsonify({"success": "Testdata created successfully!"}), 201
-   
+
+@testdata_blueprint.route("/update",methods=["POST"])
+@jwt_required()
+def update_Testdata():
+    req_data = request.json
+    try:
+        testdata = req_data.get('id')
+        testdata = TestdataModel.query.get('testdata')
+        user = get_current_user()
+        if testdata:
+            testcase = TestcaseModel.query.filter_by(id = testdata.testcase).first()
+            project = testcase.project
+            if has_access_to_project(project,user.id):
+                if req_data.get('name'):
+                    name = req_data.get('name')
+                    testdata.name = name
+                if req_data.get('payload'):
+                    payload = req_data.get('payload')
+                    testdata.payload = payload
+                if req_data.get('expected_outcome'):
+                    expected_outcome = req_data.get('expected_outcome')
+                    testdata.expected_outcome = expected_outcome
+                testdata.update({'modified_by' : user.id})
+            else:
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+        else:
+            return jsonify({"Error" : "No such Testdata exists"})
+    except Exception as err:
+        return jsonify(str(err))
+    return jsonify({"Success" : "Testdata Updated successfully"})

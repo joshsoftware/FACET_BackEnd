@@ -7,6 +7,7 @@ from flask_jwt_extended import get_current_user
 
 from app.models.ProjectModel import ProjectModel
 from app.models.ResultModel import ResultModel, ResultSchema
+from app.models.UserModel import UserModel
 
 result_schema = ResultSchema()
 
@@ -30,3 +31,12 @@ def store_results(data):
     
     result = ResultModel(results)
     result.save()
+
+def has_access_to_project(project_id,user_id):
+    return ProjectModel.is_a_member_of_project(project_id,user_id)
+
+def is_super_admin(user):
+    return UserModel.is_super_user(user)
+
+def is_user_admin(user):
+    return UserModel.is_user_admin(user)

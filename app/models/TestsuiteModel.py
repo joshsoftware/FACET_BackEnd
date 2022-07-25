@@ -26,6 +26,8 @@ class TestsuiteModel(db.Model):
     environment = db.Column(db.Integer, db.ForeignKey('environments.id'))
     testcases = db.relationship('TestcaseModel', secondary=testsuite_testcase, backref='testcases')
     created_at = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):
@@ -36,14 +38,16 @@ class TestsuiteModel(db.Model):
         self.description = data.get('description')
         self.project = data.get('project')
         self.environment = data.get('environment')
+        self.created_by = data.get('created_by')
         self.created_at = datetime.utcnow()
+        self.modified_by = data.get('modified_by')
         self.modified_at = datetime.utcnow()
     
     def save(self):
         db.session.add(self)
         db.session.commit()
     
-    def update(self, data):
+    def update(self, data = {}):
         for key, item in data.items():
             setattr(self, key, item)
         self.modified_at = datetime.utcnow()
@@ -83,4 +87,6 @@ class TestsuiteSchema(Schema):
     environment = fields.Int(required=True)
     testcases = fields.List(fields.Nested(TestcaseSchema))
     created_at = fields.DateTime(dump_only=True)
+    created_by = fields.Int()
+    modified_by = fields.Int()
     modified_at = fields.DateTime(dump_only=True)

@@ -7,8 +7,9 @@ from app.models.UserModel import UserSchema
 
 project_member = db.Table(
     'project_member',
-    db.Column('project_id', db.Integer, db.ForeignKey('projects.id')),
-    db.Column('member_id', db.Integer, db.ForeignKey('users.id'))
+    db.Model.metadata,
+    db.Column('project_id', db.Integer, db.ForeignKey('projects.id'),primary_key = True),
+    db.Column('member_id', db.Integer, db.ForeignKey('users.id'), primary_key = True)
 )
 
 class ProjectModel(db.Model):
@@ -22,7 +23,7 @@ class ProjectModel(db.Model):
     name = db.Column(db.String(50), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=True)
     project_admin = db.Column(db.Integer, db.ForeignKey('users.id'))
-    project_members = db.relationship('UserModel',secondary = project_member,backref = 'project_members')
+    project_members = db.relationship('UserModel',secondary = project_member,backref = 'projects')
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer,db.ForeignKey('users.id'))
     modified_by = db.Column(db.Integer,db.ForeignKey('users.id'))
@@ -53,10 +54,10 @@ class ProjectModel(db.Model):
     def delete(self):
         db.session.delete(self)
         db.session.commit()
-
+ 
     @staticmethod
     def get_all_projects(user_id):
-        data = ProjectSchema().dump(ProjectModel.query.filter_by(project_admin=user_id), many=True)
+        data = ProjectSchema().dump(db.session.query(ProjectModel).join(project_member).where(project_member.c.member_id == user_id),many=True)
         return data
 
     @staticmethod
@@ -95,12 +96,3 @@ class ProjectSchema(Schema):
     created_by = fields.Int()
     modified_by = fields.Int()
     modified_at = fields.DateTime(dump_only=True)
-    # id = db.Column(db.Integer, primary_key=True)
-    # name = db.Column(db.String(50), nullable=False, unique=True)
-    # description = db.Column(db.Text, nullable=True)
-    # project_admin = db.Column(db.Integer, db.ForeignKey('users.id'))
-    # members = db.Column(db.Integer, db.ForeignKey('users.id'))
-    # organization_id = db.Column(db.Integer, db.ForeignKey("organization.id"))
-    # organization = db.relationship("organization", back_populates="projects")
-    # created_at = db.Column(db.DateTime)
-    # modified_at = db.Column(db.DateTime)

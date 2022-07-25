@@ -14,4 +14,3 @@ from .TestcaseModel import TestcaseModel
 from .TestdataModel import TestdataModel
 from .TestsuiteModel import TestsuiteModel, testsuite_testcase
 from .ResultModel import ResultModel,ResultSchema
-from .OrganizationModel import OrganizationModel,OrganizationSchema

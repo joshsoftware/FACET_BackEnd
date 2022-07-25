@@ -14,4 +14,3 @@ from .testdata import testdata_blueprint
 from .engine import engine_blueprint
 from .environments import env_blueprint
 from .results import results_blueprint
-from .organization import organization_blueprint

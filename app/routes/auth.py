@@ -72,15 +72,15 @@ def delete_user():
     try:
         user = UserModel.get_one_user(req_data.get('user'))
     except Exception as e:
-        return jsonify(str(e))
+        return jsonify(str(e)),400
     if user:
         if is_super_admin(super_admin):
             user.delete()
         else:
-            return jsonify({"Error" : "Sorry you do not possess the super admin rights to delete a user"})
+            return jsonify({"Error" : "Sorry you do not possess the super admin rights to delete a user"}),401
     else:
-        return jsonify({"Error" : "No such user exists"})
-    return jsonify({"success" : "User deleted sucessfully"})
+        return jsonify({"Error" : "No such user exists"}),404
+    return jsonify({"success" : "User deleted sucessfully"}),200
 
 '''
 The below API provides the functionality of adding both members and admins
@@ -103,8 +103,8 @@ def add():
                     member = UserModel.get_one_user(id)
                     member.is_admin = True
                     member.update()
-                return jsonify({"Success" : "Members successfully updated to admin"})
+                return jsonify({"Success" : "Members successfully updated to admin"}),201
         except Exception as e:
-            return jsonify(str(e))
+            return jsonify(str(e)),400
     else:
-        return jsonify({'Error' : 'You do not possess the super admin rights to add modify a user status'})
+        return jsonify({'Error' : 'You do not possess the super admin rights to add modify a user status'}),401

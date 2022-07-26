@@ -71,9 +71,9 @@ def update_Testdata():
                     testdata.expected_outcome = expected_outcome
                 testdata.update({'modified_by' : user.id})
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
         else:
-            return jsonify({"Error" : "No such Testdata exists"})
+            return jsonify({"Error" : "No such Testdata exists"}),404
     except Exception as err:
-        return jsonify(str(err))
-    return jsonify({"Success" : "Testdata Updated successfully"})
+        return jsonify(str(err)),400
+    return jsonify({"Success" : "Testdata Updated successfully"}),200

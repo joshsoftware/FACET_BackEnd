@@ -23,7 +23,7 @@ def getEndpoints(id=0):
             data = EndpointModel.get_all_endpoints(project_id)
             return jsonify({"endpoints": data}), 200, {"content-type": "application/json; charset=UTF-8"}
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"}),401
     except Exception as e :
         return jsonify(e), 400
 
@@ -51,7 +51,7 @@ def createEndpoints():
         endpoint.save()
         return jsonify({"success": "Endpoint created successfully!"}), 201
     else:
-        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
 
 @endpoints_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
@@ -61,15 +61,15 @@ def delete_endpoint():
     try:
         endpoint = EndpointModel.query.get(req_data.get('endpoint'))
     except Exception as err:
-        return jsonify(str(err))
+        return jsonify(str(err)),400
     if endpoint:
         if has_access_to_project(endpoint.project,user.id):
             endpoint.delete()
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
     else:
-        return jsonify({"error" : "No such endpoint exists"})
-    return jsonify({"Success" : "Endpoint deleted successfully"})
+        return jsonify({"error" : "No such endpoint exists"}),404
+    return jsonify({"Success" : "Endpoint deleted successfully"}),200
 
 @endpoints_blueprint.route('update',methods=["POST"])
 @jwt_required()
@@ -89,9 +89,9 @@ def update_endpoint():
                     endpoint.endpoint = new_endpoint
                 endpoint.update({'modified_by' : user.id})
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
         else:
-            return jsonify({"error" : "no such endpoint exists"})
+            return jsonify({"error" : "no such endpoint exists"}),404
     except Exception as err:
         return jsonify(str(err))
-    return jsonify({"Success" : "Endpoint updated successfully"})
+    return jsonify({"Success" : "Endpoint updated successfully"}),200

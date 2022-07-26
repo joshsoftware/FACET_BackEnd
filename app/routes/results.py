@@ -21,7 +21,7 @@ def getresults(id=0):
             data = ResultModel.get_all_results(project)
             return jsonify({"results": data}), 200
         else:
-            return jsonify({"error" : "You do not have access to project,kindly connect with project admin to get access to project components"})
+            return jsonify({"error" : "You do not have access to project,kindly connect with project admin to get access to project components"}),401
     except Exception as e:
         return jsonify(str(e)),400
 
@@ -38,9 +38,9 @@ def add_comment():
                 result.comment = req_data.get('comment')
                 result.update()
             else:
-                return jsonify({"Error" : "You do not have access to this project,kindly connect with project admin to get make updates in the project component"})
+                return jsonify({"Error" : "You do not have access to this project,kindly connect with project admin to get make updates in the project component"}),401
         else:
-            return jsonify({"Error" : "No such result exists"})
+            return jsonify({"Error" : "No such result exists"}),404
     except Exception as err:
-        return jsonify(str(err))
-    return jsonify({"Success" : "Comment added sucessfully"})
+        return jsonify(str(err)),400
+    return jsonify({"Success" : "Comment added sucessfully"}),200

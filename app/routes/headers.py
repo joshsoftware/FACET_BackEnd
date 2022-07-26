@@ -23,7 +23,7 @@ def getHeaders(id=0):
             data = HeaderModel.get_one_header(id)
             return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"}),401
     except Exception as e :
         return jsonify(e), 400
 
@@ -52,7 +52,7 @@ def createHeaders():
         endpoint.save()
         return jsonify({"success": "Header created successfully!"}), 201
     else:
-        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
 
 @headers_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
@@ -62,15 +62,15 @@ def delete_header():
     try:
         header = HeaderModel.query.get(req_data.get('header'))
     except Exception as e:
-        return jsonify(str(e))
+        return jsonify(str(e)),400
     if header:
         if has_access_to_project(header.project,user.id):
             header.delete()
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
     else:
-        return jsonify({"error" : "No such header exists"})
-    return jsonify({"Success" : "Header deleted successfully"})
+        return jsonify({"error" : "No such header exists"}),404
+    return jsonify({"Success" : "Header deleted successfully"}),200
 
 @headers_blueprint.route('/update',methods=["POST"])
 @jwt_required()
@@ -90,10 +90,10 @@ def update_header():
                     header.header = new_header
                 header.update({'modified_by' : user.id})
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
         else:
-            return jsonify({"error" : "No such header exists"})
+            return jsonify({"error" : "No such header exists"}),404
     except Exception as err:
-        return jsonify(str(err))
-    return jsonify({"Success" : "Header updated successfully"})
+        return jsonify(str(err)),400
+    return jsonify({"Success" : "Header updated successfully"}),200
     

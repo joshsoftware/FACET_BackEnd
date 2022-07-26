@@ -16,7 +16,7 @@ def tests():
     data = request.json
     user = get_current_user().id
     testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
-    environment = EnvModel.get_one_env(testsuite['environment'])['url']
+    environment = EnvModel.get_one_env(data['environment'])['url']
 
     res = []
     for testcase in testsuite['testcases']:
@@ -27,23 +27,30 @@ def tests():
         testdata = testcase['testdata'] if len(testcase['testdata']) else [{"name": "Payload", "payload":{}, "expected_outcome": {}}]
 
         testcase_resp = []
+        is_testcase_passed = True
         for td in testdata:
             testcase['payload'] = {**payload, **td['payload']}
-            testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
-            resp = perform_testcases(testcase, testsuite,user)
+            # TO DO: Expected Outcome to be completed
+            # testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
+            testcase['expected_outcome'] = {"status_code": "200"}
+            resp = perform_testcases(testcase, testsuite, user)
+            if resp['status']=='failed':
+                is_testcase_passed = False
             testcase_resp.append({
                 "name": td['name'],
                 **resp
             })
         
+        status = "passed" if is_testcase_passed else "failed"
         res.append({
             "testcase_id": testcase['id'],
             "name": testcase['name'],
+            "status": status,
             "response": testcase_resp
         })
     
     TempModel.get_all_and_delete(testsuite['id'])
-    return jsonify(res)
+    return jsonify({"result": res}), 200
 
 
 
@@ -84,6 +91,6 @@ def perform_testcases(testcase, testsuite,user):
             "user" : user
         })
     if res.status_code==testcase['expected_outcome']['status_code']:
-        return {"testcase_id":testcase['id'], "name":testcase['name'], "status":"passed"}
+        return {"testcase_id":testcase['id'], "status":"passed"}
     else:
-        return {"testcase_id":testcase['id'], "name":testcase['name'], "status":"failed", "response":res.json()}
+        return {"testcase_id":testcase['id'], "status":"failed", "response":res.json()}

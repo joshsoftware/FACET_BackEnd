@@ -91,7 +91,7 @@ class ProjectSchema(Schema):
     name = fields.Str(required=True)
     description = fields.Str()
     project_admin = fields.Int(required=True)
-    project_members = fields.List(fields.Nested(UserSchema))
+    project_members = fields.List(fields.Nested(UserSchema(exclude=['password'])))
     created_at = fields.DateTime(dump_only=True)
     created_by = fields.Int()
     modified_by = fields.Int()

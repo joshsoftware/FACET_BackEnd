@@ -56,6 +56,10 @@ class UserModel(db.Model):
         return UserModel.query.get(id)
 
     @staticmethod
+    def get_user_profile(user):
+        return UserSchema(exclude=['password']).dump(user)
+
+    @staticmethod
     def get_user_by_email(email):
         return UserModel.query.filter_by(email=email).first()
     

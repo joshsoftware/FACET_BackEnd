@@ -60,7 +60,7 @@ def login():
     
     if user and user.check_hash(data.get('password')):
         token = create_access_token(identity=user.id)
-        return jsonify({"token":token, "user": user.name}), 200
+        return jsonify({"token":token, "user": UserModel.get_user_profile(user)}), 200
 
     return jsonify({"error": "Invalid Credentials!"}), 400
 

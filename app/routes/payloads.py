@@ -24,7 +24,7 @@ def get_payloads(id=0):
             data = PayloadModel.get_all_payloads(project_id)
             return jsonify({"payloads": data}), 200, {"content-type": "application/json; charset=UTF-8"}
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"}),401
     except Exception as e:
         return jsonify(e), 400
 
@@ -52,7 +52,7 @@ def create_payloads():
         payload.save()
         return jsonify({"success": "Payload created Successfully!!"}), 201
     else:
-        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
 
 @payloads_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
@@ -62,15 +62,15 @@ def delete_payload():
     try:
         payload = PayloadModel.query.get(req_data.get('payload'))
     except Exception as e:
-        return jsonify(str(e))
+        return jsonify(str(e)),400
     if payload:
         if has_access_to_project(payload.project,user.id):
             payload.delete()
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
     else:
-        return jsonify({"error" : "No such payload exists"})
-    return jsonify({"Success" : "payload deleted successfully"})
+        return jsonify({"error" : "No such payload exists"}),404
+    return jsonify({"Success" : "payload deleted successfully"}),200
 
 @payloads_blueprint.route('/update',methods=["POST"])
 @jwt_required()
@@ -96,9 +96,9 @@ def update_payload():
             
                 payload.update({'modified_by' : user.id})
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
         else:
-            return jsonify({"Error" : "No such Payload exists"})
+            return jsonify({"Error" : "No such Payload exists"}),404
     except Exception as err:
-        return jsonify(str(err))
-    return jsonify({"Success" : "Payload updated successfully"})
+        return jsonify(str(err)),400
+    return jsonify({"Success" : "Payload updated successfully"}),200

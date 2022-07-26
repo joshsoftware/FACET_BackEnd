@@ -23,7 +23,7 @@ def getEnvs(id=0):
             environment = EnvModel.get_one_env(id)
             return jsonify(environment), 200
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"}),401
     except Exception as e:
         return jsonify(str(e)), 400
 
@@ -50,9 +50,9 @@ def createEnv():
 
         env = EnvModel(data)
         env.save()
-        return jsonify({"success" : "Environment created successfully!"})
+        return jsonify({"success" : "Environment created successfully!"}),201
     else:
-        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
 
 @env_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
@@ -62,15 +62,15 @@ def delete_env():
     try:
         environment = EnvModel.query.get(req_data.get('env'))
     except Exception as err:
-        return jsonify(str(err))
+        return jsonify(str(err)),400
     if environment:
         if has_access_to_project(environment.project,user.id):
             environment.delete()
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
     else:
-        return jsonify({"error" : "No such environment exists"})
-    return jsonify({"Success" : "Environment deleted successfully"})
+        return jsonify({"error" : "No such environment exists"}),404
+    return jsonify({"Success" : "Environment deleted successfully"}),200
 
 @env_blueprint.route('/update',methods=["POST"])
 @jwt_required()
@@ -90,9 +90,9 @@ def update_env():
                     environment.url = url
                 environment.update({'modified_by' : user.id})
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
         else:
-            return jsonify({"error" : "No such environment exists"})
+            return jsonify({"error" : "No such environment exists"}),404
     except Exception as err:
-        return jsonify(str(err))
-    return jsonify({"success" : "Environment updated successfully!"})
+        return jsonify(str(err)),400
+    return jsonify({"success" : "Environment updated successfully!"}),200

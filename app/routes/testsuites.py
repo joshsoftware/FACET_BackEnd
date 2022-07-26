@@ -23,7 +23,7 @@ def getTestsuites(id=0):
             data = TestsuiteModel.get_all_testsuites(project)
             return jsonify({"testsuites": data}), 200
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"}),401
         
     except Exception as e:
         return jsonify(str(e)),400
@@ -56,9 +56,9 @@ def createTestsuites():
         for i in testcases:
             testsuite.testcases.append(TestcaseModel.query.get(i))
         testsuite.save()
-        return jsonify({"success" : "testsuite created with the given testcases"})
+        return jsonify({"success" : "testsuite created with the given testcases"}),200
     else:
-        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+        return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
 
 @testsuite_blueprint.route('/delete',methods=["POST"])
 @jwt_required()
@@ -68,15 +68,15 @@ def delete_testsuite():
     try:
         testsuite = TestsuiteModel.query.get(req_data.get('testsuite'))
     except Exception as e:
-        return jsonify(str(e))
+        return jsonify(str(e)),400
     if testsuite:
         if has_access_to_project(testsuite.project,user.id):
             testsuite.delete()
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
     else:
-        return jsonify({"error" : "No such testsuite exists"})
-    return jsonify({"Success" : "testsuite deleted successfully"})
+        return jsonify({"error" : "No such testsuite exists"}),404
+    return jsonify({"Success" : "testsuite deleted successfully"}),200
 
 @testsuite_blueprint.route('/update',methods=["POST"])
 @jwt_required()
@@ -105,10 +105,10 @@ def update_testsuite():
                         testsuite.testcases.append(testcase)  
                 testsuite.update({'modified_by' : user.id})
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
         else:
-            return jsonify({"error" : "no such endpoint exists"})
+            return jsonify({"error" : "no such endpoint exists"}),404
     except Exception as err:
-        return jsonify(str(err))
-    return jsonify({"Success" : "Testsuite Updated Successfully"})
+        return jsonify(str(err)),400
+    return jsonify({"Success" : "Testsuite Updated Successfully"}),200
 

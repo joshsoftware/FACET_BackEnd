@@ -14,7 +14,7 @@ project_schema = ProjectSchema()
 @jwt_required()
 def getProjects():
     data = ProjectModel.get_all_projects(get_current_user().id)
-    return jsonify({"projects": data})
+    return jsonify({"projects": data}),200
 
 @projects_blueprint.route('/new', methods=["POST"])
 @jwt_required()
@@ -38,9 +38,9 @@ def createProjects():
         project = ProjectModel(data)
         project.project_members.append(user)
         project.save()
-        return jsonify({"success": "project created successfully"})
+        return jsonify({"success": "project created successfully"}),200
     else:
-        return jsonify({"Error" : "You do not possess the admin rights to create a project, kindly contact the super admin for recieving admin privileges"})
+        return jsonify({"Error" : "You do not possess the admin rights to create a project, kindly contact the super admin for recieving admin privileges"}),401
 
 
 @projects_blueprint.route('/delete',methods=["POST"])
@@ -51,15 +51,15 @@ def delete_project():
     try:
         project = ProjectModel.query.get(req_data.get('project'))
     except Exception as e:
-        return jsonify(str(e))
+        return jsonify(str(e)),400
     if project:
         if user.id == project.project_admin:
             project.delete()
         else:
-            return jsonify({"error" : "You do not possess the admin rights to delete the project"})
+            return jsonify({"error" : "You do not possess the admin rights to delete the project"}),401
     else:
-        return jsonify({"error" : "No such project exists"})
-    return jsonify({"Success" : "project deleted successfully"})
+        return jsonify({"error" : "No such project exists"}),404
+    return jsonify({"Success" : "project deleted successfully"}),200
 
 @projects_blueprint.route('/add',methods=["POST"])
 @jwt_required()
@@ -77,12 +77,12 @@ def add_members():
                     id = UserModel.get_one_user(member)
                     project.project_members.append(id)
                 project.update({'modified_by': admin})
-                return jsonify({"Success" : "New members added successfully"})
+                return jsonify({"Success" : "New members added successfully"}),200
             else:
-                return jsonify({"error" : "You do not have the admin rights to add members"})
+                return jsonify({"error" : "You do not have the admin rights to add members"}),401
     except Exception as e:
-        return jsonify(str(e))
-    return jsonify({"error" : "No  such project exists!!!!"})
+        return jsonify(str(e)),400
+    return jsonify({"error" : "No  such project exists!!!!"}),404
 
 @projects_blueprint.route('/remove',methods=["POST"])
 @jwt_required()
@@ -100,9 +100,9 @@ def remove_members():
                     id = UserModel.get_one_user(member)
                     project.project_members.remove(id)
                 project.update({'modified_by':admin})
-                return jsonify({"Success":"Members removed successfully"})
+                return jsonify({"Success":"Members removed successfully"}),200
             else:
-                return jsonify({"Error": "You do not have the admin rights to delete members"})
+                return jsonify({"Error": "You do not have the admin rights to delete members"}),401
     except Exception as e:
-        return jsonify(str(e))
-    return jsonify({"Error" : "No such project exists"})
+        return jsonify(str(e)),400
+    return jsonify({"Error" : "No such project exists"}),404

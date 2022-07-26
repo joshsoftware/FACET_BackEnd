@@ -23,7 +23,7 @@ def get_testcases(id=0):
             data = TestcaseModel.get_all_testcases(project_id)
             return jsonify({"testcases": data}), 200, {"content-type": "application/json; charset=UTF-8"}
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to access the project components"}),401
     except Exception as e:
         return jsonify(str(e)), 400
 
@@ -58,7 +58,7 @@ def create_testcase():
             testcase.save()
             return jsonify({"success": "Testcase created successfully!"}), 201
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
     except Exception as e:
         return jsonify(str(e)), 400
 
@@ -70,15 +70,15 @@ def delete_testcase():
     try:
         testcase = TestcaseModel.query.get(req_data.get('testcase'))
     except Exception as e:
-        return jsonify(str(e))
+        return jsonify(str(e)),400
     if testcase:
         if has_access_to_project(testcase.project_id,user.id):
             testcase.delete()
         else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"})
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
     else:
-        return jsonify({"error" : "No such testcase exists"})
-    return jsonify({"Success" : "testcase deleted successfully"})
+        return jsonify({"error" : "No such testcase exists"}),404
+    return jsonify({"Success" : "testcase deleted successfully"}),200
 
 @testcases_blueprint.route('/update',methods=["POST"])
 @jwt_required()
@@ -107,9 +107,9 @@ def update_testcase():
                     testcase.payload_id = payload
                 testcase.update({'modified_by' : user.id})
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"})
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
         else:
-            return jsonify({"Error" : "No such Testcase exists"})
+            return jsonify({"Error" : "No such Testcase exists"}),404
     except Exception as err:
-        return jsonify(str(err))
-    return jsonify({"Success" : "Testcase Updated successfully"})
+        return jsonify(str(err)),400
+    return jsonify({"Success" : "Testcase Updated successfully"}),200

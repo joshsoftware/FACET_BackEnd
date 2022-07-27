@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from marshmallow import Schema, fields
+from app.helpers.utils import get_user_name
 from app.models import db
 
 class EnvModel(db.Model):
@@ -10,7 +11,7 @@ class EnvModel(db.Model):
 
     __tablename__ = 'environments'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     url = db.Column(db.String(500), nullable=False)
     project = db.Column(db.Integer, db.ForeignKey('projects.id'))
     created_at = db.Column(db.DateTime)
@@ -47,6 +48,9 @@ class EnvModel(db.Model):
     @staticmethod
     def get_all_envs(project_id):
         data = EnvSchema().dump(EnvModel.query.filter_by(project=project_id), many=True)
+        for env in data:
+            env['created_by'] = get_user_name(env['created_by'])
+            env['modified_by'] = get_user_name(env['modified_by'])
         return data
 
     @staticmethod

@@ -40,3 +40,6 @@ def is_super_admin(user):
 
 def is_user_admin(user):
     return UserModel.is_user_admin(user)
+
+def get_user_name(id):
+    return UserModel.get_user_name(id)

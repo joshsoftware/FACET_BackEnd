@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from marshmallow import Schema, fields
+from app.helpers.utils import get_user_name
 from app.models import db
 from sqlalchemy.dialects.postgresql import JSON
 
@@ -11,7 +12,7 @@ class HeaderModel(db.Model):
 
     __tablename__ = 'headers'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     header = db.Column(JSON, nullable=False)
     project = db.Column(db.Integer, db.ForeignKey('projects.id'))
     created_at = db.Column(db.DateTime)
@@ -48,6 +49,9 @@ class HeaderModel(db.Model):
     @staticmethod
     def get_all_headers(project_id):
         data = HeaderSchema().dump(HeaderModel.query.filter_by(project=project_id), many=True)
+        for header in data:
+            header['created_by'] = get_user_name(header['created_by'])
+            header['modified_by'] = get_user_name(header['modified_by'])
         return data
 
     @staticmethod

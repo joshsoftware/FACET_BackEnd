@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from marshmallow import Schema, fields
+from app.helpers.utils import get_user_name
 from app.models import db
 from app.models.TestdataModel import TestdataSchema
 from app.models.EndpointModel import EndpointSchema
@@ -16,7 +17,7 @@ class TestcaseModel(db.Model):
 
     __tablename__ = 'testcases'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     endpoint_id = db.Column(db.Integer, db.ForeignKey('endpoints.id'), nullable=False)
     method = db.Column(db.String, nullable=False)
     header_id = db.Column(db.Integer, db.ForeignKey('headers.id'), nullable=False)
@@ -64,6 +65,9 @@ class TestcaseModel(db.Model):
     @staticmethod
     def get_all_testcases(project_id):
         data = TestcaseSchema().dump(TestcaseModel.query.filter_by(project_id=project_id), many=True)
+        for testcase in data:
+            testcase['created_by'] = get_user_name(testcase['created_by'])
+            testcase['modified_by'] = get_user_name(testcase['modified_by'])
         return data
 
     @staticmethod

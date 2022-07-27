@@ -89,12 +89,12 @@ Input :
     JWT token for authorisation
     admin -> input list, optional in nature, required to be interger in nature
 '''
-@auth_blueprint.route('/add',methods=['POST'])
+@auth_blueprint.route('/add_admins',methods=['POST'])
 @jwt_required()
 def add():
     req_data = request.json
     user = get_current_user()
-    if UserModel.is_super_user(user.id):
+    if is_super_admin(user.id):
         try:
             admins = req_data['admin']
             del req_data['admin']
@@ -108,3 +108,16 @@ def add():
             return jsonify(str(e)),400
     else:
         return jsonify({'Error' : 'You do not possess the super admin rights to add modify a user status'}),401
+
+@auth_blueprint.route('/get_all_users',methods=['GET'])
+@jwt_required()
+def get_all_members():
+    user = get_current_user()
+    if is_super_admin(user.id):
+        try:
+            users = UserModel.get_all_members()
+            return jsonify({'users' : users})
+        except Exception as e:
+            return jsonify(str(e)),400
+    else:
+        return jsonify({'Error' : 'You do not possess the super admin rights to access all the users of the organization'}),401

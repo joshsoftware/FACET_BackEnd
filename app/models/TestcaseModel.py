@@ -17,7 +17,7 @@ class TestcaseModel(db.Model):
 
     __tablename__ = 'testcases'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     endpoint_id = db.Column(db.Integer, db.ForeignKey('endpoints.id'), nullable=False)
     method = db.Column(db.String, nullable=False)
     header_id = db.Column(db.Integer, db.ForeignKey('headers.id'), nullable=False)

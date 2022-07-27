@@ -21,7 +21,7 @@ class ProjectModel(db.Model):
     __tablename__ = 'projects'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False, unique=True)
+    name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=True)
     project_admin = db.Column(db.Integer, db.ForeignKey('users.id'))
     project_members = db.relationship('UserModel',secondary = project_member,backref = 'projects')

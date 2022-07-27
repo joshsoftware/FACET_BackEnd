@@ -12,7 +12,7 @@ class TestdataModel(db.Model):
 
     __tablename__ = 'testdata'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     payload = db.Column(JSON, nullable=False)
     expected_outcome = db.Column(JSON, nullable=False)
     testcase = db.Column(db.Integer, db.ForeignKey('testcases.id'))

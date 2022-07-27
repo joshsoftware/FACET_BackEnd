@@ -12,7 +12,7 @@ class HeaderModel(db.Model):
 
     __tablename__ = 'headers'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     header = db.Column(JSON, nullable=False)
     project = db.Column(db.Integer, db.ForeignKey('projects.id'))
     created_at = db.Column(db.DateTime)

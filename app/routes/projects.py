@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
-from app.helpers.utils import is_user_admin
+from app.helpers.utils import get_project_id, is_user_admin
 from app.models.UserModel import UserModel
 from app.helpers import create_slug
 from marshmallow import ValidationError
@@ -15,6 +15,15 @@ project_schema = ProjectSchema()
 def getProjects():
     data = ProjectModel.get_all_projects(get_current_user().id)
     return jsonify({"projects": data}),200
+
+@projects_blueprint.route('/members', methods=["GET"])
+@jwt_required()
+def getMembers():
+    project = request.args.get('project')
+    data = ProjectModel.get_one_project(get_project_id(project))
+    project_admin_id = data['project_admin']
+    data = data['project_members']
+    return jsonify({"project": project, "members": data, }),200
 
 @projects_blueprint.route('/new', methods=["POST"])
 @jwt_required()

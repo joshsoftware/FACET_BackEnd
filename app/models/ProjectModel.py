@@ -66,6 +66,12 @@ class ProjectModel(db.Model):
         return data
 
     @staticmethod
+    def get_project_members(id):
+        data = ProjectModel.get_one_project(id)
+        data = data['project_members']
+        return data
+
+    @staticmethod
     def is_project_exist(name, user):
         return ProjectModel.query.filter_by(name=name, project_admin=user).first()
     

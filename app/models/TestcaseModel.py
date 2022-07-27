@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from marshmallow import Schema, fields
+from app.helpers.utils import get_user_name
 from app.models import db
 from app.models.TestdataModel import TestdataSchema
 from app.models.EndpointModel import EndpointSchema
@@ -64,6 +65,9 @@ class TestcaseModel(db.Model):
     @staticmethod
     def get_all_testcases(project_id):
         data = TestcaseSchema().dump(TestcaseModel.query.filter_by(project_id=project_id), many=True)
+        for testcase in data:
+            testcase['created_by'] = get_user_name(testcase['created_by'])
+            testcase['modified_by'] = get_user_name(testcase['modified_by'])
         return data
 
     @staticmethod

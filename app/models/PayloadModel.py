@@ -2,6 +2,7 @@ from datetime import datetime
 
 from marshmallow import Schema, fields
 from sqlalchemy.dialects.postgresql import JSON
+from app.helpers.utils import get_user_name
 from app.models import db
 
 class PayloadModel(db.Model):
@@ -50,6 +51,9 @@ class PayloadModel(db.Model):
     @staticmethod
     def get_all_payloads(project_id):
         data = PayloadSchema().dump(PayloadModel.query.filter_by(project=project_id), many=True)
+        for payload in data:
+            payload['created_by'] = get_user_name(payload['created_by'])
+            payload['modified_by'] = get_user_name(payload['modified_by'])
         return data
 
     @staticmethod

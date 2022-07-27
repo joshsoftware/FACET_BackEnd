@@ -2,6 +2,7 @@ from datetime import datetime
 
 from marshmallow import Schema, fields
 from sqlalchemy.dialects.postgresql import JSON
+from app.helpers.utils import get_user_name
 from app.models import db
 
 class TestdataModel(db.Model):
@@ -50,6 +51,9 @@ class TestdataModel(db.Model):
     @staticmethod
     def get_all_testdatas(testcase_id):
         data = TestdataSchema().dump(TestdataModel.query.filter_by(testcase=testcase_id), many=True)
+        for testdata in data:
+            testdata['created_by'] = get_user_name(testdata['created_by'])
+            testdata['modified_by'] = get_user_name(testdata['modified_by'])
         return data
 
     @staticmethod

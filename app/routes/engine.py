@@ -32,7 +32,7 @@ def tests():
             testcase['payload'] = {**payload, **td['payload']}
             # TO DO: Expected Outcome to be completed
             # testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
-            testcase['expected_outcome'] = {"status_code": "200"}
+            testcase['expected_outcome'] = td['expected_outcome']
             resp = perform_testcases(testcase, testsuite, user)
             if resp['status']=='failed':
                 is_testcase_passed = False
@@ -90,7 +90,20 @@ def perform_testcases(testcase, testsuite,user):
             "project_id" : testcase['project_id'],
             "user" : user
         })
-    if res.status_code==testcase['expected_outcome']['status_code']:
+    # if res.status_code==testcase['expected_outcome']['status_code']:
+    #     return {"testcase_id":testcase['id'], "status":"passed"}
+    # else:
+    #     return {"testcase_id":testcase['id'], "status":"failed", "response":res.json()}
+    if validate_expected_outcome(testcase,res):
         return {"testcase_id":testcase['id'], "status":"passed"}
     else:
         return {"testcase_id":testcase['id'], "status":"failed", "response":res.json()}
+
+def validate_expected_outcome(testcase,response):
+    for field in testcase['expected_outcome']:
+        if field['name'] == 'status_code':
+            status_code = field['value']
+            break
+    if status_code == response.status_code:
+        return True
+    return False

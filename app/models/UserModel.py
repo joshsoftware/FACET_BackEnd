@@ -72,6 +72,10 @@ class UserModel(db.Model):
     def is_user_admin(id):
         user = UserModel.query.get(id)
         return user.is_admin
+    
+    @staticmethod
+    def get_user_name(id):
+        return UserModel.query.get(id).name
 
     def __generate_hash(self, password):
         return bcrypt.generate_password_hash(password, rounds=10).decode("utf-8")

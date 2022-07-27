@@ -89,7 +89,7 @@ Input :
     JWT token for authorisation
     admin -> input list, optional in nature, required to be interger in nature
 '''
-@auth_blueprint.route('/add',methods=['POST'])
+@auth_blueprint.route('/add_admins',methods=['POST'])
 @jwt_required()
 def add():
     req_data = request.json

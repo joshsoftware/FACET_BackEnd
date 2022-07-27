@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from marshmallow import Schema, fields
+from app.helpers.utils import get_user_name
 from app.models import db
 
 class EndpointModel(db.Model):
@@ -10,7 +11,7 @@ class EndpointModel(db.Model):
 
     __tablename__ = 'endpoints'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     endpoint = db.Column(db.String(500), nullable=False)
     project = db.Column(db.Integer, db.ForeignKey('projects.id'))
     created_at = db.Column(db.DateTime)
@@ -48,6 +49,9 @@ class EndpointModel(db.Model):
     def get_all_endpoints(project_id):
         data = EndpointModel.query.filter_by(project=project_id)
         data = EndpointSchema().dump(data, many=True)
+        for endpoint in data:
+            endpoint['created_by'] = get_user_name(endpoint['created_by'])
+            endpoint['modified_by'] = get_user_name(endpoint['modified_by'])
         return data
 
     @staticmethod

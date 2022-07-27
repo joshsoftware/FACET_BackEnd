@@ -1,9 +1,10 @@
 from datetime import datetime
 
 from marshmallow import fields, Schema
-from app.models import db
 
-from app.models.UserModel import UserSchema
+from app.models.UserModel import UserModel, UserSchema
+
+from app.models import db
 
 project_member = db.Table(
     'project_member',
@@ -20,7 +21,7 @@ class ProjectModel(db.Model):
     __tablename__ = 'projects'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False, unique=True)
+    name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=True)
     project_admin = db.Column(db.Integer, db.ForeignKey('users.id'))
     project_members = db.relationship('UserModel',secondary = project_member,backref = 'projects')
@@ -58,6 +59,9 @@ class ProjectModel(db.Model):
     @staticmethod
     def get_all_projects(user_id):
         data = ProjectSchema().dump(db.session.query(ProjectModel).join(project_member).where(project_member.c.member_id == user_id),many=True)
+        for project in data:
+            project['modified_by'] = UserModel.get_user_name(project['modified_by'])
+            project['created_by'] = UserModel.get_user_name(project['created_by'])
         return data
 
     @staticmethod

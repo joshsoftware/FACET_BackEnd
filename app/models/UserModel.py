@@ -85,6 +85,7 @@ class UserModel(db.Model):
             if user['is_super_admin'] == True or user['is_admin'] == True:
                 continue
             else:
+                user.pop('password')
                 members.append(user)
         return members
 

@@ -29,7 +29,7 @@ def tests():
         testcase_resp = []
         is_testcase_passed = True
         for td in testdata:
-            testcase['payload'] = {**payload, **td['payload']}
+            testcase['payload'] = td['payload']
             # TO DO: Expected Outcome to be completed
             # testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
             testcase['expected_outcome'] = td['expected_outcome']
@@ -71,7 +71,7 @@ def perform_testcases(testcase, testsuite,user):
         tmp = variable.split('.')
 
         var_value = TempModel.get_one(testsuite=testsuite['id'], testcase=tmp[0])
-        
+
         for i in tmp[1:len(tmp)]:
             var_value = var_value.get(i)
             

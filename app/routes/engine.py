@@ -1,6 +1,7 @@
 from requests import Request, Session
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
+import requests
 from app.helpers.utils import store_results,get_current_user
 from app.models.EnvModel import EnvModel
 from app.models.TempModel import TempModel
@@ -55,12 +56,22 @@ def tests():
 
 
 def fetch_from_api(testcase):
-    r = Request(testcase['method'], testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+    # r = Request(testcase['method'], testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
 
-    prepped = s.prepare_request(r)
-    resp = s.send(prepped)
-
-    return resp
+    # prepped = s.prepare_request(r)
+    # resp = s.send(prepped)
+    # return resp
+    if testcase['method'].lower()=='get':
+        r = requests.get(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+    elif testcase['method'].lower()=='post':
+        r = requests.post(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+    elif testcase['method'].lower()=='put':
+        r = requests.put(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+    elif testcase['method'].lower()=='patch':
+        r = requests.patch(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+    elif testcase['method'].lower()=='delete':
+        r = requests.delete(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+    return r
 
 def perform_testcases(testcase, testsuite,user):
     
@@ -85,25 +96,61 @@ def perform_testcases(testcase, testsuite,user):
         {
             "testsuite_id": testsuite['id'], 
             "testcase_id": testcase['id'], 
-            "response": res.json(), 
+            "response": res.text, 
             "payload_used" : testcase['payload'],
             "project_id" : testcase['project_id'],
             "user" : user
         })
-    # if res.status_code==testcase['expected_outcome']['status_code']:
-    #     return {"testcase_id":testcase['id'], "status":"passed"}
-    # else:
-    #     return {"testcase_id":testcase['id'], "status":"failed", "response":res.json()}
-    if validate_expected_outcome(testcase,res):
+    
+    status, errors = validate_expected_outcome(testcase, res)
+
+    if status:
         return {"testcase_id":testcase['id'], "status":"passed"}
     else:
-        return {"testcase_id":testcase['id'], "status":"failed", "response":res.json()}
+        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors}
 
 def validate_expected_outcome(testcase,response):
+    status = 1
+    err = []
+    res = response.json()
     for field in testcase['expected_outcome']:
-        if field['name'] == 'status_code':
+        field_name = field.get('name')
+        field_type = field.get('type')
+        errors = {}
+
+        if field_name == 'status_code':
             status_code = field['value']
-            break
-    if status_code == response.status_code:
-        return True
-    return False
+        else:
+            res_value = res.get(field_name)
+
+            if field['isExact']:
+                if field.get('value')==res_value:
+                    status
+                else:
+                    status = 0
+                    errors["value"] = f"Outcome value is not matched with Expected value. Expected value is {field.get('value')} but got {res_value}"
+            elif field.get('validations'):
+                validations = field.get('validations')
+                
+                max_length = validations.get('maxLength')
+                min_length = validations.get('minLength')
+                max_value = validations.get('maxValue')
+                min_value = validations.get('minValue')
+                regex_pattern = validations.get('regex')
+
+                if max_length and len(res_value)>max_length:
+                    errors['maxLength'] =  f"Outcome value has more length than expected length. Expected length is {max_length} but got {len(res_value)}"
+                if min_length and len(res_value)<min_length:
+                    errors['minLength'] =  f"Outcome value has less length than expected length. Expected length is {min_length} but got {len(res_value)}"
+                if min_value and res_value<min_value:
+                    errors['minValue'] =  f"Outcome value is less than expected length. Expected value is {min_value} but got {res_value}"
+                if max_value and res_value>max_value:
+                    errors['maxValue'] =  f"Outcome value is more than expected length. Expected value is {max_value} but got {res_value}"
+                if regex_pattern:
+                    pass
+        if(len(errors)):
+            err.append({"name": field_name, "errors": errors})
+            
+    if status_code == response.status_code and status==1:
+        return True, err
+    return False, err

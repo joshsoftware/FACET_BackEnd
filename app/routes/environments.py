@@ -72,7 +72,7 @@ def delete_env():
         return jsonify({"error" : "No such environment exists"}),404
     return jsonify({"Success" : "Environment deleted successfully"}),200
 
-@env_blueprint.route('/update',methods=["POST"])
+@env_blueprint.route('/update',methods=["PUT"])
 @jwt_required()
 def update_env():
     req_data = request.json

@@ -72,7 +72,7 @@ def delete_header():
         return jsonify({"error" : "No such header exists"}),404
     return jsonify({"Success" : "Header deleted successfully"}),200
 
-@headers_blueprint.route('/update',methods=["POST"])
+@headers_blueprint.route('/update',methods=["PUT"])
 @jwt_required()
 def update_header():
     req_data = request.json

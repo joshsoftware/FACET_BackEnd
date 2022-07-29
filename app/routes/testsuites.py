@@ -53,8 +53,11 @@ def createTestsuites():
             return jsonify({"error": "You already have a testcases of the same name in this project."}), 400
 
         testsuite = TestsuiteModel(data)
+        testsuite.execution_sequence = ""
         for i in testcases:
             testsuite.testcases.append(TestcaseModel.query.get(i))
+            testsuite.execution_sequence = testsuite.execution_sequence + str(i) + ","
+        print(testsuite.execution_sequence)
         testsuite.save()
         return jsonify({"success" : "testsuite created with the given testcases"}),200
     else:

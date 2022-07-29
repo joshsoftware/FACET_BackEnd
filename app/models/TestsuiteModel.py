@@ -25,6 +25,7 @@ class TestsuiteModel(db.Model):
     description = db.Column(db.Text(), nullable=True)
     project = db.Column(db.Integer, db.ForeignKey('projects.id'))
     testcases = db.relationship('TestcaseModel', secondary=testsuite_testcase, backref='testcases')
+    execution_sequence = db.Column(db.String(400))
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -67,7 +68,16 @@ class TestsuiteModel(db.Model):
 
     @staticmethod
     def get_one_testsuite(id):
-        data = TestsuiteSchema().dump(TestsuiteModel.query.get(id))
+        testsuite = TestsuiteModel.query.get(id)
+        data = TestsuiteSchema().dump(testsuite)
+        order = testsuite.execution_sequence[:-1]
+        testcases = data['testcases']
+        data['testcases'] = []
+        order = order.split(",")
+        for testcase in order:
+            for test in testcases:
+                if int(testcase) == test['id']:
+                    data['testcases'].append(test)
         return data
 
     @staticmethod
@@ -87,6 +97,7 @@ class TestsuiteSchema(Schema):
     description = fields.Str()
     project = fields.Int(required=True)
     testcases = fields.List(fields.Nested(TestcaseSchema))
+    execution_sequence = fields.Str() 
     created_at = fields.DateTime(dump_only=True)
     created_by = fields.Int()
     modified_by = fields.Int()

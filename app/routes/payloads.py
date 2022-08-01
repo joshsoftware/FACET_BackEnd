@@ -72,7 +72,7 @@ def delete_payload():
         return jsonify({"error" : "No such payload exists"}),404
     return jsonify({"Success" : "payload deleted successfully"}),200
 
-@payloads_blueprint.route('/update',methods=["POST"])
+@payloads_blueprint.route('/update',methods=["PUT"])
 @jwt_required()
 def update_payload():
     req_data = request.json

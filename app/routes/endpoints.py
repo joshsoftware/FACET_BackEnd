@@ -71,7 +71,7 @@ def delete_endpoint():
         return jsonify({"error" : "No such endpoint exists"}),404
     return jsonify({"Success" : "Endpoint deleted successfully"}),200
 
-@endpoints_blueprint.route('update',methods=["POST"])
+@endpoints_blueprint.route('/update',methods=["PUT"])
 @jwt_required()
 def update_endpoint():
     req_data = request.json

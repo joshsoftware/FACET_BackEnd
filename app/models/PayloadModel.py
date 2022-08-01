@@ -15,7 +15,7 @@ class PayloadModel(db.Model):
     name = db.Column(db.String(100), nullable=False)
     payload = db.Column(JSON, nullable=False)
     expected_outcome = db.Column(JSON, nullable=False)
-    project = db.Column(db.Integer, db.ForeignKey('projects.id'))
+    project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))

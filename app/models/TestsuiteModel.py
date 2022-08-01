@@ -23,7 +23,7 @@ class TestsuiteModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text(), nullable=True)
-    project = db.Column(db.Integer, db.ForeignKey('projects.id'))
+    project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     testcases = db.relationship('TestcaseModel', secondary=testsuite_testcase, backref='testcases')
     execution_sequence = db.Column(db.String(400))
     created_at = db.Column(db.DateTime)

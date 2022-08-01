@@ -12,7 +12,7 @@ class ResultModel(db.Model):
     __tablename__ = 'results'
     id = db.Column(db.Integer, primary_key = True)
     user = db.Column(db.Integer, db.ForeignKey('users.id'))
-    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     testcase_id = db.Column(db.Integer, db.ForeignKey('testcases.id'), nullable=False)
     testsuite_id = db.Column(db.Integer, db.ForeignKey('testsuites.id'), nullable=False)
     payload_used = db.Column(JSON, nullable = False)

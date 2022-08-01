@@ -13,7 +13,7 @@ class EnvModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     url = db.Column(db.String(500), nullable=False)
-    project = db.Column(db.Integer, db.ForeignKey('projects.id'))
+    project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))

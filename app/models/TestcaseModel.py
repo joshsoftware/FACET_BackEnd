@@ -22,7 +22,7 @@ class TestcaseModel(db.Model):
     method = db.Column(db.String, nullable=False)
     header_id = db.Column(db.Integer, db.ForeignKey('headers.id'), nullable=False)
     payload_id = db.Column(db.Integer, db.ForeignKey('payloads.id'), nullable=False)
-    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     endpoint = db.relationship('EndpointModel', foreign_keys=endpoint_id)
     header = db.relationship('HeaderModel', foreign_keys=header_id)
     payload = db.relationship('PayloadModel', foreign_keys=payload_id)

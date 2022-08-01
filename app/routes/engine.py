@@ -29,14 +29,20 @@ def tests():
 
         testcase_resp = []
         is_testcase_passed = True
+        no_of_passed_testcases = 0
+        no_of_failed_testcases = 0
         for td in testdata:
             testcase['payload'] = td['payload']
             # TO DO: Expected Outcome to be completed
             # testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
             testcase['expected_outcome'] = td['expected_outcome']
+            testcase['parameters'] = td['parameters']
             resp = perform_testcases(testcase, testsuite, user)
             if resp['status']=='failed':
                 is_testcase_passed = False
+                no_of_failed_testcases += 1
+            else:
+                no_of_passed_testcases += 1
             testcase_resp.append({
                 "name": td['name'],
                 **resp
@@ -47,7 +53,9 @@ def tests():
             "testcase_id": testcase['id'],
             "name": testcase['name'],
             "status": status,
-            "response": testcase_resp
+            "response": testcase_resp,
+            "no_of_passed_testcases": no_of_passed_testcases,
+            "no_of_failed_testcases": no_of_failed_testcases
         })
     
     TempModel.get_all_and_delete(testsuite['id'])
@@ -62,15 +70,15 @@ def fetch_from_api(testcase):
     # resp = s.send(prepped)
     # return resp
     if testcase['method'].lower()=='get':
-        r = requests.get(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+        r = requests.get(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'], params=testcase['parameters'])
     elif testcase['method'].lower()=='post':
-        r = requests.post(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+        r = requests.post(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'], params=testcase['parameters'])
     elif testcase['method'].lower()=='put':
-        r = requests.put(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+        r = requests.put(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'], params=testcase['parameters'])
     elif testcase['method'].lower()=='patch':
-        r = requests.patch(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+        r = requests.patch(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'], params=testcase['parameters'])
     elif testcase['method'].lower()=='delete':
-        r = requests.delete(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
+        r = requests.delete(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'], params=testcase['parameters'])
     return r
 
 def perform_testcases(testcase, testsuite,user):

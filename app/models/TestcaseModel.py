@@ -18,10 +18,10 @@ class TestcaseModel(db.Model):
     __tablename__ = 'testcases'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    endpoint_id = db.Column(db.Integer, db.ForeignKey('endpoints.id'), nullable=False)
+    endpoint_id = db.Column(db.Integer, db.ForeignKey('endpoints.id',ondelete ="SET NULL"))
     method = db.Column(db.String, nullable=False)
-    header_id = db.Column(db.Integer, db.ForeignKey('headers.id'), nullable=False)
-    payload_id = db.Column(db.Integer, db.ForeignKey('payloads.id'), nullable=False)
+    header_id = db.Column(db.Integer, db.ForeignKey('headers.id',ondelete ="SET NULL"))
+    payload_id = db.Column(db.Integer, db.ForeignKey('payloads.id',ondelete ="SET NULL"))
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     endpoint = db.relationship('EndpointModel', foreign_keys=endpoint_id)
     header = db.relationship('HeaderModel', foreign_keys=header_id)
@@ -29,8 +29,8 @@ class TestcaseModel(db.Model):
     project = db.relationship('ProjectModel', foreign_keys=project_id)
     testdata = db.relationship('TestdataModel', backref='testcases', lazy=True)
     created_at = db.Column(db.DateTime)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):

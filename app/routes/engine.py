@@ -2,7 +2,7 @@ from requests import Request, Session
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 import requests
-from app.helpers.utils import store_results,get_current_user
+from app.helpers.utils import is_fit_to_run, store_results,get_current_user
 from app.models.EnvModel import EnvModel
 from app.models.TempModel import TempModel
 from app.models.TestsuiteModel import TestsuiteModel
@@ -18,48 +18,50 @@ def tests():
     user = get_current_user().id
     testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
     environment = EnvModel.get_one_env(data['environment'])['url']
+    if is_fit_to_run(testsuite):
+        res = []
+        for testcase in testsuite['testcases']:
+            testcase['endpoint'] = environment + testcase['endpoint']['endpoint']
+            testcase['header'] = testcase['header']['header']
+            payload = testcase['payload']['payload']
+            expected_outcome = testcase['payload']['expected_outcome']
+            testdata = testcase['testdata'] if len(testcase['testdata']) else [{"name": "Payload", "payload":{}, "expected_outcome": {}}]
 
-    res = []
-    for testcase in testsuite['testcases']:
-        testcase['endpoint'] = environment + testcase['endpoint']['endpoint']
-        testcase['header'] = testcase['header']['header']
-        payload = testcase['payload']['payload']
-        expected_outcome = testcase['payload']['expected_outcome']
-        testdata = testcase['testdata'] if len(testcase['testdata']) else [{"name": "Payload", "payload":{}, "expected_outcome": {}}]
-
-        testcase_resp = []
-        is_testcase_passed = True
-        no_of_passed_testcases = 0
-        no_of_failed_testcases = 0
-        for td in testdata:
-            testcase['payload'] = td['payload']
-            # TO DO: Expected Outcome to be completed
-            # testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
-            testcase['expected_outcome'] = td['expected_outcome']
-            testcase['parameters'] = td['parameters']
-            resp = perform_testcases(testcase, testsuite, user)
-            if resp['status']=='failed':
-                is_testcase_passed = False
-                no_of_failed_testcases += 1
-            else:
-                no_of_passed_testcases += 1
-            testcase_resp.append({
-                "name": td['name'],
-                **resp
+            testcase_resp = []
+            is_testcase_passed = True
+            no_of_passed_testcases = 0
+            no_of_failed_testcases = 0
+            for td in testdata:
+                testcase['payload'] = td['payload']
+                # TO DO: Expected Outcome to be completed
+                # testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
+                testcase['expected_outcome'] = td['expected_outcome']
+                testcase['parameters'] = td['parameters']
+                resp = perform_testcases(testcase, testsuite, user)
+                if resp['status']=='failed':
+                    is_testcase_passed = False
+                    no_of_failed_testcases += 1
+                else:
+                    no_of_passed_testcases += 1
+                testcase_resp.append({
+                    "name": td['name'],
+                    **resp
+                })
+            
+            status = "passed" if is_testcase_passed else "failed"
+            res.append({
+                "testcase_id": testcase['id'],
+                "name": testcase['name'],
+                "status": status,
+                "response": testcase_resp,
+                "no_of_passed_testcases": no_of_passed_testcases,
+                "no_of_failed_testcases": no_of_failed_testcases
             })
         
-        status = "passed" if is_testcase_passed else "failed"
-        res.append({
-            "testcase_id": testcase['id'],
-            "name": testcase['name'],
-            "status": status,
-            "response": testcase_resp,
-            "no_of_passed_testcases": no_of_passed_testcases,
-            "no_of_failed_testcases": no_of_failed_testcases
-        })
-    
-    TempModel.get_all_and_delete(testsuite['id'])
-    return jsonify({"result": res}), 200
+        TempModel.get_all_and_delete(testsuite['id'])
+        return jsonify({"result": res}), 200
+    else:
+        return jsonify({"Error" : "Your testcase has missing components"}),400
 
 
 

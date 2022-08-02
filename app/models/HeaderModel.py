@@ -16,8 +16,8 @@ class HeaderModel(db.Model):
     header = db.Column(JSON, nullable=False)
     project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     created_at = db.Column(db.DateTime)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):

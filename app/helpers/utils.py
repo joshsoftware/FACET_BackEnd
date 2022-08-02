@@ -43,3 +43,13 @@ def is_user_admin(user):
 
 def get_user_name(id):
     return UserModel.get_user_name(id)
+
+def is_fit_to_run(testsuite):
+    is_fit = True
+    for testcase in testsuite['testcases']:
+        if testcase['endpoint'] and testcase['header'] and testcase['payload'] and testcase['testdata']:
+            continue
+        else:
+            is_fit = False
+            break
+    return is_fit

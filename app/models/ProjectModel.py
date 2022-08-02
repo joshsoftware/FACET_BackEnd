@@ -9,8 +9,8 @@ from app.models import db
 project_member = db.Table(
     'project_member',
     db.Model.metadata,
-    db.Column('project_id', db.Integer, db.ForeignKey('projects.id'),primary_key = True),
-    db.Column('member_id', db.Integer, db.ForeignKey('users.id'), primary_key = True)
+    db.Column('project_id', db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"),primary_key = True),
+    db.Column('member_id', db.Integer, db.ForeignKey('users.id',ondelete="CASCADE"), primary_key = True)
 )
 
 class ProjectModel(db.Model):
@@ -23,11 +23,11 @@ class ProjectModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    project_admin = db.Column(db.Integer, db.ForeignKey('users.id'))
+    project_admin = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
     project_members = db.relationship('UserModel',secondary = project_member,backref = 'projects')
     created_at = db.Column(db.DateTime)
-    created_by = db.Column(db.Integer,db.ForeignKey('users.id'))
-    modified_by = db.Column(db.Integer,db.ForeignKey('users.id'))
+    created_by = db.Column(db.Integer,db.ForeignKey('users.id',ondelete="SET NULL"))
+    modified_by = db.Column(db.Integer,db.ForeignKey('users.id',ondelete="SET NULL"))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):

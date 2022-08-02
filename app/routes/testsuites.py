@@ -57,7 +57,6 @@ def createTestsuites():
         for i in testcases:
             testsuite.testcases.append(TestcaseModel.query.get(i))
             testsuite.execution_sequence = testsuite.execution_sequence + str(i) + ","
-        print(testsuite.execution_sequence)
         testsuite.save()
         return jsonify({"success" : "testsuite created with the given testcases"}),200
     else:

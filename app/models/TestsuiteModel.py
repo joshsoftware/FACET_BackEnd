@@ -9,8 +9,8 @@ from app.models.TestcaseModel import TestcaseSchema
 
 testsuite_testcase = db.Table(
     'testsuite_testcase', 
-    db.Column('testsuite_id', db.Integer, db.ForeignKey('testsuites.id')),
-    db.Column('testcase_id', db.Integer, db.ForeignKey('testcases.id'))
+    db.Column('testsuite_id', db.Integer, db.ForeignKey('testsuites.id',ondelete="CASCADE")),
+    db.Column('testcase_id', db.Integer, db.ForeignKey('testcases.id',ondelete="CASCADE"))
 )
 
 
@@ -23,12 +23,12 @@ class TestsuiteModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text(), nullable=True)
-    project = db.Column(db.Integer, db.ForeignKey('projects.id'))
+    project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     testcases = db.relationship('TestcaseModel', secondary=testsuite_testcase, backref='testcases')
     execution_sequence = db.Column(db.String(400))
     created_at = db.Column(db.DateTime)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    modified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):

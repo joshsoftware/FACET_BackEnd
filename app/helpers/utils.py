@@ -1,3 +1,4 @@
+from ossaudiodev import control_names
 import re
 import uuid
 from flask import jsonify
@@ -50,3 +51,13 @@ def get_project_members_id(project):
 
     members_id = [i['id'] for i in members]
     return members_id
+
+def is_fit_to_run(testsuite):
+    testcases = testsuite['testcases']
+    is_fit = True
+    for testcase in testcases:
+        if testcase['endpoint'] and testcase['header'] and testcase['payload'] and testcase['testdata']:
+            continue
+        else:
+            is_fit = False
+    return is_fit

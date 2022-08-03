@@ -117,7 +117,7 @@ def perform_testcases(testcase, testsuite,user):
     if status:
         return {"testcase_id":testcase['id'], "status":"passed"}
     else:
-        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors}
+        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors, "response": res.text}
 
 def validate_expected_outcome(testcase,response):
     status = 1
@@ -148,19 +148,19 @@ def validate_expected_outcome(testcase,response):
                 min_value = validations.get('minValue')
                 regex_pattern = validations.get('regex')
 
-                if max_length and len(res_value)>max_length:
+                if max_length and len(res_value)>int(max_length):
                     errors['maxLength'] =  f"Outcome value has more length than expected length. Expected length is {max_length} but got {len(res_value)}"
-                if min_length and len(res_value)<min_length:
+                if min_length and len(res_value)<int(min_length):
                     errors['minLength'] =  f"Outcome value has less length than expected length. Expected length is {min_length} but got {len(res_value)}"
-                if min_value and res_value<min_value:
+                if min_value and int(res_value)<int(min_value):
                     errors['minValue'] =  f"Outcome value is less than expected length. Expected value is {min_value} but got {res_value}"
-                if max_value and res_value>max_value:
+                if max_value and int(res_value)>int(max_value):
                     errors['maxValue'] =  f"Outcome value is more than expected length. Expected value is {max_value} but got {res_value}"
                 if regex_pattern:
                     pass
         if(len(errors)):
-            err.append({"name": field_name, "errors": errors})
+            err.append({"name": field_name, "errors": errors, "res": res.json()})
             
-    if status_code == response.status_code and status==1:
+    if int(status_code) == int(response.status_code) and status==1:
         return True, err
     return False, err

@@ -79,15 +79,8 @@ class UserModel(db.Model):
     
     @staticmethod
     def get_all_members():
-        users = UserSchema().dump(UserModel.query.all(),many=True)
-        members = []
-        for user in users:
-            if user['is_super_admin'] == True or user['is_admin'] == True:
-                continue
-            else:
-                user.pop('password')
-                members.append(user)
-        return members
+        users = UserSchema(exclude=['password']).dump(UserModel.query.all(),many=True)
+        return users
 
     def __generate_hash(self, password):
         return bcrypt.generate_password_hash(password, rounds=10).decode("utf-8")

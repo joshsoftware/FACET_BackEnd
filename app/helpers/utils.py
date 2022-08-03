@@ -43,3 +43,10 @@ def is_user_admin(user):
 
 def get_user_name(id):
     return UserModel.get_user_name(id)
+
+def get_project_members_id(project):
+    project = get_project_id(project)
+    members = ProjectModel.get_project_members(project)
+
+    members_id = [i['id'] for i in members]
+    return members_id

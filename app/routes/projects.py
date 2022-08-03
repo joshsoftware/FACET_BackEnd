@@ -23,7 +23,11 @@ def getMembers():
     data = ProjectModel.get_one_project(get_project_id(project))
     project_admin_id = data['project_admin']
     data = data['project_members']
-    return jsonify({"project": project, "members": data, }),200
+    
+    # add field is_project_admin if user is project admin in the data
+    data = [{**mem, 'is_project_admin':True} if mem['id']==project_admin_id else mem for mem in data]
+    
+    return jsonify({"project": project, "members": data, "project_admin": project_admin_id }),200
 
 @projects_blueprint.route('/new', methods=["POST"])
 @jwt_required()
@@ -70,13 +74,13 @@ def delete_project():
         return jsonify({"error" : "No such project exists"}),404
     return jsonify({"Success" : "project deleted successfully"}),200
 
-@projects_blueprint.route('/add',methods=["POST"])
+@projects_blueprint.route('/members/add',methods=["POST"])
 @jwt_required()
 def add_members():
     req_data = request.json
-    req_data['name'] = create_slug(req_data.get('name'))
+    req_data['project'] = create_slug(req_data.get('project'))
     admin = get_current_user().id
-    project = ProjectModel.is_project_exist(req_data['name'],admin)
+    project = ProjectModel.is_project_exist(req_data['project'], admin)
     try:
         if project:
             if admin == project.project_admin:
@@ -91,15 +95,15 @@ def add_members():
                 return jsonify({"error" : "You do not have the admin rights to add members"}),401
     except Exception as e:
         return jsonify(str(e)),400
-    return jsonify({"error" : "No  such project exists!!!!"}),404
+    return jsonify({"error" : "No such project exists!!!!"}),404
 
-@projects_blueprint.route('/remove',methods=["POST"])
+@projects_blueprint.route('/members/remove',methods=["POST"])
 @jwt_required()
 def remove_members():
     req_data = request.json
-    req_data['name'] = create_slug(req_data['name'])
+    req_data['project'] = create_slug(req_data['project'])
     admin = get_current_user().id
-    project = ProjectModel.is_project_exist(req_data['name'],admin)
+    project = ProjectModel.is_project_exist(req_data['project'],admin)
     try:
         if project:
             if admin == project.project_admin:

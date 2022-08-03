@@ -2,7 +2,7 @@ from crypt import methods
 from flask import Blueprint, jsonify, request
 from . import jwt
 from flask_jwt_extended import create_access_token,jwt_required
-from app.helpers.utils import get_current_user, is_super_admin
+from app.helpers.utils import get_current_user, get_project_members_id, is_super_admin
 from marshmallow import ValidationError
 from app.models.UserModel import UserModel, UserSchema
 
@@ -111,11 +111,19 @@ def add():
 
 @auth_blueprint.route('/get_all_users',methods=['GET'])
 @jwt_required()
-def get_all_members():
+def get_all_users():
+    exclude = request.args.get('exclude')
+    project = request.args.get('project')
+
     user = get_current_user()
     if is_super_admin(user.id):
         try:
             users = UserModel.get_all_members()
+            if exclude=='admins':
+                users = [i for i in users if not i['is_admin']]
+            elif exclude=='projectMembers':
+                project_members = get_project_members_id(project)
+                users = [i for i in users if i['id'] not in project_members]
             return jsonify({'users' : users})
         except Exception as e:
             return jsonify(str(e)),400

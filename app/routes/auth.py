@@ -116,16 +116,17 @@ def get_all_users():
     project = request.args.get('project')
 
     user = get_current_user()
-    if is_super_admin(user.id):
-        try:
-            users = UserModel.get_all_members()
-            if exclude=='admins':
+    
+    try:
+        users = UserModel.get_all_members()
+        if exclude=='admins':
+            if is_super_admin(user.id):
                 users = [i for i in users if not i['is_admin']]
-            elif exclude=='projectMembers':
-                project_members = get_project_members_id(project)
-                users = [i for i in users if i['id'] not in project_members]
-            return jsonify({'users' : users})
-        except Exception as e:
-            return jsonify(str(e)),400
-    else:
-        return jsonify({'Error' : 'You do not possess the super admin rights to access all the users of the organization'}),401
+            else:
+                return jsonify({'Error' : 'You do not possess the super admin rights to access all the users of the organization'}),401
+        elif exclude=='projectMembers':
+            project_members = get_project_members_id(project)
+            users = [i for i in users if i['id'] not in project_members]
+        return jsonify({'users' : users})
+    except Exception as e:
+        return jsonify(str(e)),400

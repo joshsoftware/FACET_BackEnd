@@ -115,7 +115,7 @@ def perform_testcases(testcase, testsuite,user):
     if status:
         return {"testcase_id":testcase['id'], "status":"passed"}
     else:
-        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors, "response": res.json()}
+        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors, "response": res.text}
 
 def validate_expected_outcome(testcase,response):
     status = 1

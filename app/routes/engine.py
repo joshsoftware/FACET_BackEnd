@@ -102,19 +102,22 @@ def perform_testcases(testcase, testsuite,user):
 
     temp = TempModel({"testsuite": testsuite['id'], "testcase": testcase['name'], "resp": res.json()})
     temp.save()
+    
+    
+    status, errors = validate_expected_outcome(testcase, res)
+
     store_results(
         {
             "testsuite_id": testsuite['id'], 
             "testcase_id": testcase['id'], 
-            "response": res.text, 
+            "response": res.json(),
+            "status" : status,
             "payload_used" : testcase['payload'],
             "project_id" : testcase['project_id'],
             "user" : user
         })
-    
-    status, errors = validate_expected_outcome(testcase, res)
 
-    if status:
+    if status == "passed":
         return {"testcase_id":testcase['id'], "status":"passed"}
     else:
         return {"testcase_id":testcase['id'], "status":"failed", "errors":errors, "response": res.text}
@@ -159,8 +162,8 @@ def validate_expected_outcome(testcase,response):
                 if regex_pattern:
                     pass
         if(len(errors)):
-            err.append({"name": field_name, "errors": errors, "res": res.json()})
+            err.append({"name": field_name, "errors": errors, "res": res})
             
     if int(status_code) == int(response.status_code) and status==1:
-        return True, err
-    return False, err
+        return "passed", err
+    return "failed", err

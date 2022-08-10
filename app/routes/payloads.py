@@ -93,7 +93,11 @@ def update_payload():
                 if req_data.get('expected_outcome'):
                     expected_outcome = req_data.get('expected_outcome')
                     payload.expected_outcome = expected_outcome
-            
+                
+                if req_data.get('parameters'):
+                    parameters = req_data.get('parameters')
+                    payload.parameters = parameters
+                    
                 payload.update({'modified_by' : user.id})
             else:
                 return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401

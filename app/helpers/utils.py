@@ -2,12 +2,11 @@ from ossaudiodev import control_names
 import re
 import uuid
 from flask import jsonify
-from marshmallow import ValidationError
 from slugify import slugify
 from flask_jwt_extended import get_current_user
-
+from marshmallow import ValidationError
+from app.models.ResultModel import ResultModel,ResultSchema
 from app.models.ProjectModel import ProjectModel
-from app.models.ResultModel import ResultModel, ResultSchema
 from app.models.UserModel import UserModel
 
 result_schema = ResultSchema()
@@ -22,7 +21,6 @@ def create_id():
 
 def get_project_id(slug):
     return ProjectModel.query.filter_by(name=slug).first().id
-
 
 def store_results(data):
     try:

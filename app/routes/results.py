@@ -1,7 +1,7 @@
 from crypt import methods
 from flask import Blueprint,jsonify,request
 from flask_jwt_extended import jwt_required
-from app.models.ResultModel import ResultModel
+from app.models.ResultModel import ResultModel, ResultSchema
 from app.models.ProjectModel import ProjectModel
 from app.models.TestcaseModel import TestcaseModel
 from app.models.TestsuiteModel import TestsuiteModel
@@ -58,6 +58,4 @@ def add_comment():
 def modify_outcome_ids(data):
     for result in data:
         result['project_id'] = ProjectModel.get_one_project(result['project_id']).get('name')
-        result['testcase_id'] = TestcaseModel.get_one_testcase(result['testcase_id']).get('name')
-        result['testsuite_id'] = TestsuiteModel.get_one_testsuite(result['testsuite_id']).get('name')
     return data

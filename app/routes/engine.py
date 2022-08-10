@@ -2,7 +2,7 @@ from requests import Request, Session
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 import requests
-from app.helpers.utils import is_fit_to_run, store_results,get_current_user
+from app.helpers.utils import is_fit_to_run,get_current_user,store_results
 from app.models.EnvModel import EnvModel
 from app.models.TempModel import TempModel
 from app.models.TestsuiteModel import TestsuiteModel
@@ -17,11 +17,11 @@ def tests():
     data = request.json
     user = get_current_user().id
     testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
-    environment = EnvModel.get_one_env(data['environment'])['url']
+    environment = EnvModel.get_one_env(data['environment'])
     if is_fit_to_run(testsuite):
         res = []
         for testcase in testsuite['testcases']:
-            testcase['endpoint'] = environment + testcase['endpoint']['endpoint']
+            testcase['endpoint'] = environment['url'] + testcase['endpoint']['endpoint']
             testcase['header'] = testcase['header']['header']
             payload = testcase['payload']['payload']
             expected_outcome = testcase['payload']['expected_outcome']
@@ -37,7 +37,7 @@ def tests():
                 # testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
                 testcase['expected_outcome'] = td['expected_outcome']
                 testcase['parameters'] = td['parameters']
-                resp = perform_testcases(testcase, testsuite, user)
+                resp = perform_testcases(testcase, testsuite, user, environment)
                 if resp['status']=='failed':
                     is_testcase_passed = False
                     no_of_failed_testcases += 1
@@ -83,7 +83,7 @@ def fetch_from_api(testcase):
         r = requests.delete(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'], params=testcase['parameters'])
     return r
 
-def perform_testcases(testcase, testsuite,user):
+def perform_testcases(testcase, testsuite, user, environment):
     
     if "$var=" in str(testcase):
         pattern =  "\$var\=(.*?)\'"
@@ -108,14 +108,16 @@ def perform_testcases(testcase, testsuite,user):
 
     store_results(
         {
-            "testsuite_id": testsuite['id'], 
-            "testcase_id": testcase['id'], 
+            "testsuite": testsuite, 
+            "testcase": testcase,
+            "environment" : environment,
             "response": res.json(),
             "status" : status,
             "payload_used" : testcase['payload'],
             "project_id" : testcase['project_id'],
             "user" : user
-        })
+        }
+    )
 
     if status == "passed":
         return {"testcase_id":testcase['id'], "status":"passed"}

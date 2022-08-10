@@ -80,7 +80,7 @@ def delete_testcase():
         return jsonify({"error" : "No such testcase exists"}),404
     return jsonify({"Success" : "testcase deleted successfully"}),200
 
-@testcases_blueprint.route('/update',methods=["POST"])
+@testcases_blueprint.route('/update',methods=["PUT"])
 @jwt_required()
 def update_testcase():
     req_data = request.json

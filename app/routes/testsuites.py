@@ -80,7 +80,7 @@ def delete_testsuite():
         return jsonify({"error" : "No such testsuite exists"}),404
     return jsonify({"Success" : "testsuite deleted successfully"}),200
 
-@testsuite_blueprint.route('/update',methods=["POST"])
+@testsuite_blueprint.route('/update',methods=["PUT"])
 @jwt_required()
 def update_testsuite():
     req_data = request.json

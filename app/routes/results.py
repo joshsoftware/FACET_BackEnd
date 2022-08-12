@@ -17,16 +17,17 @@ def getresults(id=0):
     try:
         user = get_current_user()
         project = get_project_id(request.args.get("project"))
-        if has_access_to_project(project,user.id):
+        if has_access_to_project(project, user.id):
             if id!=0:
                 data = ResultModel.get_one_result(id)
                 return jsonify(data), 200
             data = ResultModel.get_all_results(project)
-            data = modify_outcome_ids(data)
+            # data = modify_outcome_ids(data)
             return jsonify({"results": data}), 200
         else:
             return jsonify({"error" : "You do not have access to project,kindly connect with project admin to get access to project components"}),401
     except Exception as e:
+        print(e)
         return jsonify(str(e)),400
 
 @results_blueprint.route('/update',methods=["PUT"])

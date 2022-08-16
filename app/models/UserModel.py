@@ -76,6 +76,10 @@ class UserModel(db.Model):
     @staticmethod
     def get_user_name(id):
         return UserModel.query.get(id).name
+
+    @staticmethod
+    def get_user_info(id):
+        return UserSchema(exclude=['password']).dump(UserModel.query.get(id))
     
     @staticmethod
     def get_all_members():

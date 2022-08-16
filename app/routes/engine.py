@@ -1,15 +1,16 @@
-from requests import Request, Session
+# from requests import Request, Session
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 import requests
 from app.helpers.utils import is_fit_to_run,get_current_user,store_results
 from app.models.EnvModel import EnvModel
+from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestsuiteModel import TestsuiteModel
 
 engine_blueprint = Blueprint('engine', __name__)
 
-s = Session()
+# s = Session()
 
 @engine_blueprint.route('/api/tests', methods=['POST'])
 @jwt_required()
@@ -18,46 +19,93 @@ def tests():
     user = get_current_user().id
     testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
     environment = EnvModel.get_one_env(data['environment'])
+
     if is_fit_to_run(testsuite):
         res = []
+        testcase_results_to_store = []
+        no_of_passed_testcases = 0
+        no_of_failed_testcases = 0
         for testcase in testsuite['testcases']:
-            testcase['endpoint'] = environment['url'] + testcase['endpoint']['endpoint']
-            testcase['header'] = testcase['header']['header']
-            payload = testcase['payload']['payload']
-            expected_outcome = testcase['payload']['expected_outcome']
-            testdata = testcase['testdata'] if len(testcase['testdata']) else [{"name": "Payload", "payload":{}, "expected_outcome": {}}]
-
             testcase_resp = []
+            testdata_results_to_store = []
             is_testcase_passed = True
-            no_of_passed_testcases = 0
-            no_of_failed_testcases = 0
+            no_of_passed_testdata_combinations = 0
+            no_of_failed_testdata_combinations = 0
+            endpoint = testcase['endpoint']['endpoint']
+
+            testcase['endpoint'] = environment['url'] + endpoint
+            testcase['header'] = testcase['header']['header']
+            testdata = testcase['testdata'] if len(testcase['testdata']) else [{"name": "Payload","parameters": {}, "payload":{}, "expected_outcome": {}}]
+
             for td in testdata:
                 testcase['payload'] = td['payload']
-                # TO DO: Expected Outcome to be completed
-                # testcase['expected_outcome'] = {**expected_outcome, **td['expected_outcome']}
                 testcase['expected_outcome'] = td['expected_outcome']
                 testcase['parameters'] = td['parameters']
                 resp = perform_testcases(testcase, testsuite, user, environment)
                 if resp['status']=='failed':
                     is_testcase_passed = False
-                    no_of_failed_testcases += 1
+                    no_of_failed_testdata_combinations += 1
                 else:
-                    no_of_passed_testcases += 1
+                    no_of_passed_testdata_combinations += 1
+                    
                 testcase_resp.append({
                     "name": td['name'],
                     **resp
                 })
+
+                testdata_results_to_store.append({
+                    "testdata": td,
+                    "status": resp['status'],
+                    "errors": resp.get('errors'),
+                    "response": resp.get('response')
+                })
             
-            status = "passed" if is_testcase_passed else "failed"
+            if is_testcase_passed:
+                status = "passed"
+                no_of_passed_testcases += 1
+            else:
+                status = "failed"
+                no_of_failed_testcases += 1
+                
             res.append({
                 "testcase_id": testcase['id'],
                 "name": testcase['name'],
                 "status": status,
                 "response": testcase_resp,
-                "no_of_passed_testcases": no_of_passed_testcases,
-                "no_of_failed_testcases": no_of_failed_testcases
+                "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
+                "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations
+            })
+
+            testcase_results_to_store.append({
+                "name": testcase.get('name'),
+                "method": testcase.get('method'),
+                "endpoint": endpoint,
+                "header": testcase.get('header'),
+                "payload": testcase.get('payload'),
+                "testdata_combinations": testdata_results_to_store,
+                "status": status,
+                "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
+                "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations,
             })
         
+        # store teststuite result into the result model
+        project = testsuite.get('project')
+        del testsuite['project']
+        del testsuite['testcases']
+        del testsuite['execution_sequence']
+        del environment['project']
+        data_to_store = {
+            "project": project,
+            "testsuite": testsuite,
+            "testcases": testcase_results_to_store,
+            "environment": environment,
+            "status": status,
+            "no_of_passed_testcases": no_of_passed_testcases,
+            "no_of_failed_testcases": no_of_failed_testcases,
+            "executed_by": user
+        }
+        ResultModel(data_to_store).save()
+
         TempModel.get_all_and_delete(testsuite['id'])
         return jsonify({"result": res}), 200
     else:
@@ -122,9 +170,14 @@ def perform_testcases(testcase, testsuite, user, environment):
     if status == "passed":
         return {"testcase_id":testcase['id'], "status":"passed"}
     else:
-        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors, "response": res.text}
+        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors, "response": res.json()}
 
 def validate_expected_outcome(testcase,response):
+    """
+    
+    """
+
+    # variable status shows that : 1=> passed, 0=> failed
     status = 1
     err = []
     res = response.json()
@@ -134,7 +187,9 @@ def validate_expected_outcome(testcase,response):
         errors = {}
 
         if field_name == 'status_code':
-            status_code = field['value']
+            if int(field['value']) != int(response.status_code):
+                status = 0
+                errors['status_code'] = f"Status code of response is not matched with Expected status code. Expected value is {field.get('value')} but got {response.status_code}."
         else:
             res_value = res.get(field_name)
 
@@ -166,6 +221,6 @@ def validate_expected_outcome(testcase,response):
         if(len(errors)):
             err.append({"name": field_name, "errors": errors, "res": res})
             
-    if int(status_code) == int(response.status_code) and status==1:
+    if status==1:
         return "passed", err
     return "failed", err

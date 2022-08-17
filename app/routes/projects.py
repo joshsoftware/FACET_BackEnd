@@ -48,8 +48,10 @@ def createProjects():
         if project_exist:
             return jsonify({"error": "You already have a project of the same name"}), 400
 
+        super_admin = UserModel.query.filter_by(is_super_admin=True).first()
         project = ProjectModel(data)
         project.project_members.append(user)
+        project.project_members.append(super_admin)
         project.save()
         return jsonify({"success": "project created successfully"}),200
     else:

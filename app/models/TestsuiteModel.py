@@ -64,12 +64,15 @@ class TestsuiteModel(db.Model):
         for testsuite in data:
             testsuite['created_by'] = get_user_name(testsuite['created_by'])
             testsuite['modified_by'] = get_user_name(testsuite['modified_by'])
+            arranged_testcases = TestsuiteModel.rearrange_testcases(testsuite['execution_sequence'],testsuite)
+            testsuite['testcases'] = arranged_testcases['testcases']
         return data
 
     @staticmethod
     def get_one_testsuite(id):
         testsuite = TestsuiteModel.query.get(id)
         data = TestsuiteSchema().dump(testsuite)
+        # data['testcases'] = TestsuiteModel.rearrange_testcases(data['execution_sequence'],data)
         order = testsuite.execution_sequence[:-1]
         testcases = data['testcases']
         data['testcases'] = []
@@ -86,6 +89,18 @@ class TestsuiteModel(db.Model):
 
     def __repr__(self):
         return f'<id {self.id}>'
+    
+    def rearrange_testcases(order,testsuite):
+        data = {}
+        order = testsuite.get('execution_sequence')[:-1]
+        order = order.split(",")
+        testcases = testsuite['testcases']
+        data['testcases'] = []
+        for testcase in order:
+            for test in testcases:
+                if int(testcase) == test['id']:
+                    data['testcases'].append(test)
+        return data
     
 
 class TestsuiteSchema(Schema):

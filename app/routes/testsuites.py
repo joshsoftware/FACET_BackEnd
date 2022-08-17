@@ -99,12 +99,15 @@ def update_testsuite():
                 if req_data.get('environment'):
                     environment = req_data.get('environment')
                     testsuite.environment = environment
-                if req_data.get('testcases'):
+                if req_data.get('array_of_testcases'):
+                    execution_sequence = ""
                     testsuite.testcases.clear()
-                    testcases = req_data.get('testcases')
+                    testcases = req_data.get('array_of_testcases')
                     for i in testcases:
                         testcase = TestcaseModel.query.get(i)
-                        testsuite.testcases.append(testcase)  
+                        execution_sequence = execution_sequence + str(i) + ","
+                        testsuite.testcases.append(testcase)
+                        testsuite.execution_sequence = execution_sequence  
                 testsuite.update({'modified_by' : user.id})
             else:
                 return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401

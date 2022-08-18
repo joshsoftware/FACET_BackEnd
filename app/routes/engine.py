@@ -1,8 +1,7 @@
-# from requests import Request, Session
+import requests
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-import requests
-from app.helpers.utils import is_fit_to_run,get_current_user,store_results
+from app.helpers.utils import is_fit_to_run,get_current_user
 from app.models.EnvModel import EnvModel
 from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
@@ -55,9 +54,10 @@ def tests():
 
                 testdata_results_to_store.append({
                     "testdata": td,
-                    "status": resp['status'],
-                    "errors": resp.get('errors'),
-                    "response": resp.get('response')
+                    "name": td['name'],
+                    "parameters": td['parameters'],
+                    "payload": td['payload'],
+                    **resp
                 })
             
             if is_testcase_passed:
@@ -152,75 +152,84 @@ def perform_testcases(testcase, testsuite, user, environment):
     temp.save()
     
     
-    status, errors = validate_expected_outcome(testcase, res)
+    status, outcome = validate_expected_outcome(testcase, res)
 
-    store_results(
-        {
-            "testsuite": testsuite, 
-            "testcase": testcase,
-            "environment" : environment,
-            "response": res.json(),
-            "status" : status,
-            "payload_used" : testcase['payload'],
-            "project_id" : testcase['project_id'],
-            "user" : user
-        }
-    )
-
+    return {
+        "status": "passed" if status=="passed" else "failed",
+        "outcome": outcome,
+        "response": res.json()
+    }
     if status == "passed":
         return {"testcase_id":testcase['id'], "status":"passed"}
     else:
-        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors, "response": res.json()}
+        return {"testcase_id":testcase['id'], "status":"failed", "outcome":outcome, "response": res.json()}
 
-def validate_expected_outcome(testcase,response):
+
+def validate_expected_outcome(testcase, response):
     """
     
     """
 
     # variable status shows that : 1=> passed, 0=> failed
     status = 1
-    err = []
+    outcome = []
     res = response.json()
     for field in testcase['expected_outcome']:
         field_name = field.get('name')
         field_type = field.get('type')
-        errors = {}
+        res_value = ""
+        error = ""
 
         if field_name == 'status_code':
-            if int(field['value']) != int(response.status_code):
+            res_value = response.status_code
+            if int(field['value']) != int(res_value):
                 status = 0
-                errors['status_code'] = f"Status code of response is not matched with Expected status code. Expected value is {field.get('value')} but got {response.status_code}."
+                error = f"Status code of response is not matched with Expected status code."
         else:
             res_value = res.get(field_name)
+            if not res_value:
+                status = 0
+                error = f"Expected Field not found in response."
+            else:
+                if field['isExact']:
+                    if field.get('value')!=res_value:
+                        status = 0
+                        error = f"Response value is not matched with Expected value."
+                elif field.get('validations'):
+                    validations = field.get('validations')
+                    
+                    max_length = validations.get('maxLength')
+                    min_length = validations.get('minLength')
+                    max_value = validations.get('maxValue')
+                    min_value = validations.get('minValue')
+                    regex_pattern = validations.get('regex')
 
-            if field['isExact']:
-                if field.get('value')==res_value:
-                    status
-                else:
-                    status = 0
-                    errors["value"] = f"Outcome value is not matched with Expected value. Expected value is {field.get('value')} but got {res_value}"
-            elif field.get('validations'):
-                validations = field.get('validations')
-                
-                max_length = validations.get('maxLength')
-                min_length = validations.get('minLength')
-                max_value = validations.get('maxValue')
-                min_value = validations.get('minValue')
-                regex_pattern = validations.get('regex')
+                    err = []
+                    if max_length and len(res_value)>int(max_length):
+                        status = 0
+                        err.append('maxLength')
+                    if min_length and len(res_value)<int(min_length):
+                        status = 0
+                        err.append('minLength')
+                    if min_value and int(res_value)<int(min_value):
+                        status = 0
+                        err.append('minValue')
+                    if max_value and int(res_value)>int(max_value):
+                        status = 0
+                        err.append('maxValue')
+                    if regex_pattern:
+                        pass
 
-                if max_length and len(res_value)>int(max_length):
-                    errors['maxLength'] =  f"Outcome value has more length than expected length. Expected length is {max_length} but got {len(res_value)}"
-                if min_length and len(res_value)<int(min_length):
-                    errors['minLength'] =  f"Outcome value has less length than expected length. Expected length is {min_length} but got {len(res_value)}"
-                if min_value and int(res_value)<int(min_value):
-                    errors['minValue'] =  f"Outcome value is less than expected length. Expected value is {min_value} but got {res_value}"
-                if max_value and int(res_value)>int(max_value):
-                    errors['maxValue'] =  f"Outcome value is more than expected length. Expected value is {max_value} but got {res_value}"
-                if regex_pattern:
-                    pass
-        if(len(errors)):
-            err.append({"name": field_name, "errors": errors, "res": res})
-            
+                    if status==0:
+                        error = f"Validations not matched: {err}"
+        
+        outcome.append({
+            **field, 
+            "res_value": res_value,
+            "status": "passed" if status==1 else "failed",
+            "error": error
+        })
+    
     if status==1:
-        return "passed", err
-    return "failed", err
+        return "passed", outcome
+    return "failed", outcome

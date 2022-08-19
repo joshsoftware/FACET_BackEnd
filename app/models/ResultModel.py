@@ -40,9 +40,9 @@ class ResultModel(db.Model):
     def update(self, data={}):
         for key, item in data.items():
             setattr(self, key, item)
-        self.modified_at = datetime.utcnow()
+        # self.modified_at = datetime.utcnow()
         db.session.commit()
-    
+
     def delete(self):
         db.session.delete(self)
         db.session.commit()
@@ -60,8 +60,8 @@ class ResultModel(db.Model):
         return data
     
     @staticmethod
-    def is_exist(project):
-        return ResultModel.query.filter_by(project = project).first() or None
+    def is_exist(reportId):
+        return ResultModel.query.filter_by(id = reportId).first() or None
 
 
 
@@ -72,7 +72,7 @@ class ResultSchema(Schema):
     id = fields.Int(dump_only=True)
     project = fields.Int(required=True)
     testsuite = fields.Dict(required=True)
-    testcases = fields.List(fields.Dict(required=True))
+    testcases = fields.Dict(required=True)
     environment = fields.Dict(required=True)
     status = fields.Str(required=True)
     no_of_passed_testcases = fields.Int(required=True)

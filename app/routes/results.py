@@ -30,31 +30,71 @@ def getresults(id=0):
         print(e)
         return jsonify(str(e)),400
 
-@results_blueprint.route('/update',methods=["PUT"])
+
+@results_blueprint.route('/addcomment', methods=['POST'])
 @jwt_required()
 def add_comment():
     req_data = request.json
-    user = get_current_user()
+    user = get_current_user().id
     try:
-        result = req_data.get('id')
-        result = ResultModel.query.get(result)
-        if result:
-            if has_access_to_project(result.project_id,user.id):
+        reportId = req_data.get('reportId')
+        testcase_name = req_data.get('testcase')
+        testdata_name = req_data.get('testdata')
+        field_name = req_data.get('field')
+        status = req_data.get('status')
+        comment = req_data.get('comment')
+        report = ResultModel.get_one_result(reportId)
+        is_able_to_update = False
+        if report and has_access_to_project(report['project'], user):
+            newTestcases = report['testcases']
+            del report['testcases']
+            for testcase in newTestcases['testcases']:
+                if testcase['name']==testcase_name:
+                    for testdata in testcase['testdata_combinations']:
+                        if testdata['name']==testdata_name:
+                            for field in testdata['outcome']:
+                                if field['name']==field_name:
+                                    field['comment'] = comment
+                                    field['status'] = status
+                                    field['updated_by'] = user
+                                    is_able_to_update = True
+                                    break
+            if is_able_to_update:
+                # print(newTestcases)
+                updatedResult = ResultModel.query.get(reportId)
+                updatedResult.update({"testcases": newTestcases})
+                return jsonify({"message": "Updated Successfully!"}), 200
+            return jsonify({"error": "Not Found"}), 404
+    except Exception as e:
+        print(e)
+        return jsonify({'error': str(e)}), 400
 
-                if req_data.get('comment'):
-                    result.comment = req_data.get('comment')
+
+# @results_blueprint.route('/update',methods=["PUT"])
+# @jwt_required()
+# def add_comment():
+#     req_data = request.json
+#     user = get_current_user()
+#     try:
+#         result = req_data.get('id')
+#         result = ResultModel.query.get(result)
+#         if result:
+#             if has_access_to_project(result.project_id,user.id):
+
+#                 if req_data.get('comment'):
+#                     result.comment = req_data.get('comment')
                 
-                if req_data.get('status'):
-                    result.status = req_data.get('status')
+#                 if req_data.get('status'):
+#                     result.status = req_data.get('status')
                 
-                result.update()
-            else:
-                return jsonify({"Error" : "You do not have access to this project,kindly connect with project admin to get make updates in the project component"}),401
-        else:
-            return jsonify({"Error" : "No such result exists"}),404
-    except Exception as err:
-        return jsonify(str(err)),400
-    return jsonify({"Success" : "Result updated successfully"}),200
+#                 result.update()
+#             else:
+#                 return jsonify({"Error" : "You do not have access to this project,kindly connect with project admin to get make updates in the project component"}),401
+#         else:
+#             return jsonify({"Error" : "No such result exists"}),404
+#     except Exception as err:
+#         return jsonify(str(err)),400
+#     return jsonify({"Success" : "Result updated successfully"}),200
 
 def modify_outcome_ids(data):
     for result in data:

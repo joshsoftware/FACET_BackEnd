@@ -21,8 +21,8 @@ class SchedulerModel(db.Model):
     environment = db.Column(db.Integer, db.ForeignKey('environments.id',ondelete="CASCADE"))
     frequency_type = db.Column(db.String(100), nullable=False)
     frequency = db.Column(JSON, nullable=False)
-    start_time = db.Column(db.Float, nullable=False)
-    end_time = db.Column(db.Float)
+    start_date_time = db.Column(db.Float, nullable=False)
+    end_date_time = db.Column(db.Float)
     created_at = db.Column(db.DateTime)
 
     def __init__(self,data):
@@ -32,8 +32,8 @@ class SchedulerModel(db.Model):
         self.environment = data.get('environment')
         self.frequency_type = data.get('frequency_type')
         self.frequency = data.get('frequency')
-        self.start_time = data.get('start_time')
-        self.end_time = data.get('end_time')
+        self.start_date_time = data.get('start_date_time')
+        self.end_date_time = data.get('end_date_time')
         self.created_at = datetime.utcnow()
     
     def save(self):
@@ -62,10 +62,12 @@ class SchedulerModel(db.Model):
     def get_all_schedules(project_id):
         data = ScheduleSchema().dump(SchedulerModel.query.filter_by(project=project_id), many=True)
         for job in data:
-            job['start_time'] = datetime.fromtimestamp(job['start_time'])
+            job['start_date_time'] = datetime.fromtimestamp(job['start_date_time'])
             job['scheduled_by'] = UserModel.get_user_name(job['scheduled_by'])
             job['testsuite'] = TestsuiteModel.get_one_testsuite(job['testsuite']).get('name')
             job['environment'] = EnvModel.get_one_env(job['environment']).get('name')
+            if job['end_date_time']:
+                job['end_date_time'] = datetime.fromtimestamp(job['end_date_time'])
         return data
 
 
@@ -81,8 +83,8 @@ class ScheduleSchema(Schema):
     environment = fields.Int(required=True)
     frequency_type = fields.Str(required=True)
     frequency = fields.Dict(required=True)
-    start_time = fields.Float()
-    end_time = fields.Float()
+    start_date_time = fields.Float(required=True)
+    end_date_time = fields.Float()
     created_at = fields.DateTime(dump_ony=True)
  
         

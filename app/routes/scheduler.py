@@ -36,9 +36,11 @@ def addScheduledJob():
         req_data['project'] = get_project_id(req_data.get('project'))
         user = get_current_user()
         req_data['scheduled_by'] = user.id
-        start_time = req_data['startDateTime']
+        req_data['start_date_time'] = req_data['startDateTime']
         del req_data['startDateTime']
-        req_data['start_time'] = start_time
+        if req_data['endDateTime']:
+            req_data['end_date_time'] = req_data['endDateTime']
+        del req_data['endDateTime']
         req_data['frequency'] = to_frequency(req_data.get('frequency_type'),req_data.get('frequency'))
         if has_access_to_project(req_data.get('project'),user.id):
             try:
@@ -65,12 +67,16 @@ def to_frequency(frequency_type,custom_frequency):
     }
     if frequency_type == "daily":
         frequency["days"] = 1
+    if frequency_type == "weekly":
+        frequency["days"] = 7
     if frequency_type == "bi-weekly":
         frequency["days"] = 15
     if frequency_type == "monthly":
         frequency["months"] = 1
     if frequency_type == "yearly":
         frequency["years"] = 1
-    elif frequency_type == "custom":
+    if frequency_type == "custom":
         frequency = custom_frequency
+    elif frequency_type == "one-time":
+        pass
     return frequency

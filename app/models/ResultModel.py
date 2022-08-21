@@ -72,7 +72,7 @@ class ResultSchema(Schema):
     id = fields.Int(dump_only=True)
     project = fields.Int(required=True)
     testsuite = fields.Dict(required=True)
-    testcases = fields.Dict(required=True)
+    testcases = fields.List(fields.Dict(), required=True)
     environment = fields.Dict(required=True)
     status = fields.Str(required=True)
     no_of_passed_testcases = fields.Int(required=True)

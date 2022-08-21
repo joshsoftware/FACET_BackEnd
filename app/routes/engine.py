@@ -98,7 +98,7 @@ def tests():
             data_to_store = {
                 "project": project,
                 "testsuite": testsuite,
-                "testcases": {"testcases": testcase_results_to_store},
+                "testcases": testcase_results_to_store,
                 "environment": environment,
                 "status": status,
                 "no_of_passed_testcases": no_of_passed_testcases,
@@ -154,12 +154,14 @@ def perform_testcases(testcase, testsuite, user, environment):
     temp.save()
     
     
-    status, outcome = validate_expected_outcome(testcase, res)
+    status, outcome, no_of_passed_fields, no_of_failed_fields = validate_expected_outcome(testcase, res)
 
     return {
         "status": "passed" if status=="passed" else "failed",
         "outcome": outcome,
-        "response": res.json()
+        "response": res.json(),
+        "no_of_passed_fields": no_of_passed_fields,
+        "no_of_failed_fields": no_of_failed_fields
     }
 
 def validate_expected_outcome(testcase, response):
@@ -167,30 +169,31 @@ def validate_expected_outcome(testcase, response):
     
     """
 
-    # variable status shows that : 1=> passed, 0=> failed
-    status = 1
+    no_of_passed_fields = 0
+    no_of_failed_fields = 0
     outcome = []
     res = response.json()
     for field in testcase['expected_outcome']:
         field_name = field.get('name')
-        field_type = field.get('type')
+        # field_type = field.get('type')
         res_value = ""
         error = ""
+        is_failed = False
 
         if field_name == 'status_code':
             res_value = response.status_code
             if int(field['value']) != int(res_value):
-                status = 0
+                is_failed = True
                 error = f"Status code of response is not matched with Expected status code."
         else:
             res_value = res.get(field_name)
             if not res_value:
-                status = 0
+                is_failed =  True
                 error = f"Expected Field not found in response."
             else:
                 if field['isExact']:
                     if field.get('value')!=res_value:
-                        status = 0
+                        is_failed = True
                         error = f"Response value is not matched with Expected value."
                 elif field.get('validations'):
                     validations = field.get('validations')
@@ -203,30 +206,33 @@ def validate_expected_outcome(testcase, response):
 
                     err = []
                     if max_length and len(res_value)>int(max_length):
-                        status = 0
                         err.append('maxLength')
                     if min_length and len(res_value)<int(min_length):
-                        status = 0
                         err.append('minLength')
                     if min_value and int(res_value)<int(min_value):
-                        status = 0
                         err.append('minValue')
                     if max_value and int(res_value)>int(max_value):
-                        status = 0
                         err.append('maxValue')
                     if regex_pattern:
                         pass
 
-                    if status==0:
+                    if len(err):
+                        is_failed = True
                         error = f"Validations not matched: {err}"
         
         outcome.append({
             **field, 
             "res_value": res_value,
-            "status": "passed" if status==1 else "failed",
-            "error": error
+            "executed_status": "failed" if is_failed else "passed",
+            "status": "failed" if is_failed else "passed",
+            "error": error,
         })
+
+        if is_failed:
+            no_of_failed_fields += 1
+        else:
+            no_of_passed_fields += 1
     
-    if status==1:
-        return "passed", outcome
-    return "failed", outcome
+    if no_of_failed_fields==0:
+        return "passed", outcome, no_of_passed_fields, no_of_failed_fields
+    return "failed", outcome, no_of_passed_fields, no_of_failed_fields

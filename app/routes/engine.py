@@ -20,7 +20,8 @@ def tests():
         testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
         environment = EnvModel.get_one_env(data['environment'])
 
-        if is_fit_to_run(testsuite):
+        is_fit, missing_components = is_fit_to_run(testsuite)
+        if is_fit:
             res = []
             testcase_results_to_store = []
             no_of_passed_testcases = 0

@@ -1,0 +1,90 @@
+from sqlalchemy.dialects.postgresql import JSON
+from app.models import db
+from marshmallow import Schema,fields
+from datetime import datetime
+
+from app.models.UserModel import UserModel
+from app.models.TestsuiteModel import TestsuiteModel
+from app.models.EnvModel import EnvModel
+
+
+class SchedulerModel(db.Model):
+    """
+    Schedule Model
+    """
+
+    __tablename__ = "scheduler"
+    id = db.Column(db.Integer, primary_key=True)
+    scheduled_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
+    project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
+    testsuite = db.Column(db.Integer, db.ForeignKey('testsuites.id',ondelete="CASCADE"))
+    environment = db.Column(db.Integer, db.ForeignKey('environments.id',ondelete="CASCADE"))
+    frequency_type = db.Column(db.String(100), nullable=False)
+    frequency = db.Column(JSON, nullable=False)
+    start_date_time = db.Column(db.Float, nullable=False)
+    end_date_time = db.Column(db.Float)
+    created_at = db.Column(db.DateTime)
+
+    def __init__(self,data):
+        self.scheduled_by = data.get('scheduled_by')
+        self.project = data.get('project')
+        self.testsuite = data.get('testsuite')
+        self.environment = data.get('environment')
+        self.frequency_type = data.get('frequency_type')
+        self.frequency = data.get('frequency')
+        self.start_date_time = data.get('start_date_time')
+        self.end_date_time = data.get('end_date_time')
+        self.created_at = datetime.utcnow()
+    
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+    
+    def update(self, data={}):
+        for key, item in data.items():
+            setattr(self, key, item)
+        db.session.commit()
+    
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    # @staticmethod
+    # def is_exist(testsuite,environment):
+    #     return SchedulerModel.query.filter_by(testsuite_id = testsuite,environment_id = environment) or None
+    
+    @staticmethod
+    def get_one_schedule(id):
+        data = ScheduleSchema().dump(SchedulerModel.query.get(id))
+        return data
+    
+    @staticmethod
+    def get_all_schedules(project_id):
+        data = ScheduleSchema().dump(SchedulerModel.query.filter_by(project=project_id), many=True)
+        for job in data:
+            job['start_date_time'] = datetime.fromtimestamp(job['start_date_time'])
+            job['scheduled_by'] = UserModel.get_user_name(job['scheduled_by'])
+            job['testsuite'] = TestsuiteModel.get_one_testsuite(job['testsuite']).get('name')
+            job['environment'] = EnvModel.get_one_env(job['environment']).get('name')
+            if job['end_date_time']:
+                job['end_date_time'] = datetime.fromtimestamp(job['end_date_time'])
+        return data
+
+
+
+class ScheduleSchema(Schema):
+    """
+    Schedule Schema
+    """
+    id = fields.Int(dump_only=True)
+    scheduled_by = fields.Int(required=True)
+    project = fields.Int(required=True)
+    testsuite = fields.Int(required=True)
+    environment = fields.Int(required=True)
+    frequency_type = fields.Str(required=True)
+    frequency = fields.Dict(required=True)
+    start_date_time = fields.Float(required=True)
+    end_date_time = fields.Float()
+    created_at = fields.DateTime(dump_ony=True)
+ 
+        

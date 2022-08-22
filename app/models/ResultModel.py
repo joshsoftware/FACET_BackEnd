@@ -49,7 +49,7 @@ class ResultModel(db.Model):
 
     @staticmethod
     def get_all_results(project_id):
-        data = ResultSchema().dump(ResultModel.query.filter_by(project=project_id), many=True)
+        data = ResultSchema().dump(ResultModel.query.filter_by(project=project_id).order_by(ResultModel.id.desc()), many=True)
         for item in data:
             item['executed_by'] = UserModel.get_user_info(item['executed_by'])
         return data

@@ -40,6 +40,7 @@ def is_super_admin(user):
 def is_user_admin(user):
     return UserModel.is_user_admin(user)
 
+
 def get_user_name(id):
     return UserModel.get_user_name(id)
 
@@ -51,11 +52,21 @@ def get_project_members_id(project):
     return members_id
 
 def is_fit_to_run(testsuite):
-    testcases = testsuite['testcases']
     is_fit = True
+    missing_components = {}
+    testcases = testsuite['testcases']
     for testcase in testcases:
-        if testcase['endpoint'] and testcase['header'] and testcase['payload'] and testcase['testdata']:
-            continue
-        else:
+        missing_components[testcase['name']] = []
+        if testcase['endpoint'] == None:
+            missing_components[testcase['name']].append('endpoint missing')
             is_fit = False
-    return is_fit
+        if testcase['header'] == None:
+            missing_components[testcase['name']].append('header missing')
+            is_fit = False
+        if testcase['payload'] == None:
+            missing_components[testcase['name']].append('payload missing')
+            is_fit = False
+        if len(testcase['testdata']) == 0 or testcase['testdata'] == None:
+            missing_components[testcase['name']].append('testdata missing')
+            is_fit = False
+    return is_fit,missing_components

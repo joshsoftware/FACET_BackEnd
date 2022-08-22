@@ -1,7 +1,7 @@
 from flask import Blueprint,jsonify, request
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
-from app.helpers import create_slug, get_project_id,get_current_user
+from app.helpers import create_slug, get_current_user
 from app.helpers.utils import has_access_to_project
 from app.models.TestcaseModel import TestcaseModel
 from app.models.TestdataModel import TestdataModel, TestdataSchema

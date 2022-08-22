@@ -111,7 +111,7 @@ def tests():
             TempModel.get_all_and_delete(testsuite['id'])
             return jsonify({"result": res}), 200
         else:
-            return jsonify({"error" : "Your testcase has missing components"}),400
+            return jsonify({"error" : missing_components}),400
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 

@@ -1,4 +1,3 @@
-from crypt import methods
 from flask import Blueprint, jsonify, request
 from . import jwt
 from flask_jwt_extended import create_access_token,jwt_required

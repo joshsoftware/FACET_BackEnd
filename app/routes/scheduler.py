@@ -2,13 +2,15 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from app.helpers.utils import get_project_id, has_access_to_project
 from ..models.SchedulerModel import SchedulerModel,ScheduleSchema
-from app.models.UserModel import UserModel
+from apscheduler.schedulers.background import BackgroundScheduler
 from marshmallow import ValidationError
 from datetime import datetime
-import json
 
 scheduler_blueprint = Blueprint('scheduler', __name__)
 scheduler_schema = ScheduleSchema()
+scheduler = BackgroundScheduler({'apscheduler.timezone' : 'Asia/Calcutta'})
+scheduler.add_jobstore('sqlalchemy',url='postgresql://poojan:poojan@localhost:5432/scheduler')
+scheduler.start()
 
 @scheduler_blueprint.route('/', methods=["GET"])
 @scheduler_blueprint.route('/<string:id>', methods=["GET"])

@@ -19,8 +19,8 @@ def tests():
     user = get_current_user().id
     testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
     environment = EnvModel.get_one_env(data['environment'])
-
-    if is_fit_to_run(testsuite):
+    is_fit,missing_components = is_fit_to_run(testsuite)
+    if is_fit:
         res = []
         testcase_results_to_store = []
         no_of_passed_testcases = 0
@@ -109,7 +109,7 @@ def tests():
         TempModel.get_all_and_delete(testsuite['id'])
         return jsonify({"result": res}), 200
     else:
-        return jsonify({"Error" : "Your testcase has missing components"}),400
+        return jsonify({"Error" : missing_components}),400
 
 
 

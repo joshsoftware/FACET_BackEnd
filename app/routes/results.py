@@ -97,6 +97,7 @@ def add_comment():
 
 
 def modify_outcome_ids(data):
+    user = get_current_user().id
     for result in data:
-        result['project_id'] = ProjectModel.get_one_project(result['project_id']).get('name')
+        result['project_id'] = ProjectModel.get_one_project(result['project_id'], user).get('name')
     return data

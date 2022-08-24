@@ -13,6 +13,16 @@ project_schema = ProjectSchema()
 @projects_blueprint.route('/', methods=["GET"])
 @jwt_required()
 def getProjects():
+    project = request.args.get('project')
+    if project:
+        project = get_project_id(project)
+    user = get_current_user().id
+    if project:
+        data = ProjectModel.get_one_project(project, user)
+        if not data:
+            return jsonify({'error': 'Project Not Found'}), 404
+        data['is_project_admin'] = data['project_admin']==user
+        return jsonify(data), 200
     data = ProjectModel.get_all_projects(get_current_user().id)
     return jsonify({"projects": data}),200
 
@@ -20,7 +30,8 @@ def getProjects():
 @jwt_required()
 def getMembers():
     project = request.args.get('project')
-    data = ProjectModel.get_one_project(get_project_id(project))
+    user = get_current_user().id
+    data = ProjectModel.get_one_project(get_project_id(project), user)
     project_admin_id = data['project_admin']
     data = data['project_members']
     
@@ -57,6 +68,33 @@ def createProjects():
     else:
         return jsonify({"Error" : "You do not possess the admin rights to create a project, kindly contact the super admin for recieving admin privileges"}),401
 
+
+@projects_blueprint.route('/update-name', methods=['POST'])
+@jwt_required()
+def updateName():
+    req_data = request.json
+    user = get_current_user().id
+    project_name = req_data.get('project')
+    new_project_name = req_data.get('newProjName')
+    if project_name and new_project_name:
+        project = ProjectModel.query.get(get_project_id(project_name))
+        if project:
+            if project_name!=new_project_name:
+                if project.project_admin==user:
+                    if not ProjectModel.is_project_exist(new_project_name, user):
+                        project.name = new_project_name
+                        project.update()
+                    else:
+                        return jsonify({'error': 'Project name already exist!'}), 400
+                else:
+                    return jsonify({'error': 'You do not have access to update the project name.'}), 401
+            else:
+                return jsonify({'error': 'New project name must be different from previous name.'}), 400
+        else:
+            return jsonify({'error': 'Project not found with given name!'}), 404
+    else:
+        return jsonify({'error': 'Something Went Wrong!'}), 400
+    return jsonify({'message': 'Project name updated successfully!'}), 200
 
 @projects_blueprint.route('/delete',methods=["POST"])
 @jwt_required()

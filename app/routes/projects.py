@@ -96,23 +96,25 @@ def updateName():
         return jsonify({'error': 'Something Went Wrong!'}), 400
     return jsonify({'message': 'Project name updated successfully!'}), 200
 
-@projects_blueprint.route('/delete',methods=["POST"])
+@projects_blueprint.route('/delete/',methods=["DELETE"])
 @jwt_required()
 def delete_project():
-    req_data = request.json
-    user = get_current_user()
     try:
-        project = ProjectModel.query.get(req_data.get('project'))
-    except Exception as e:
-        return jsonify(str(e)),400
-    if project:
-        if user.id == project.project_admin:
-            project.delete()
+        print(request.headers)
+        req_data = request.json
+        user = get_current_user()
+        project_id = get_project_id(req_data.get('project'))
+        project = ProjectModel.query.get(project_id)
+        if project:
+            if user.id == project.project_admin:
+                project.delete()
+            else:
+                return jsonify({"error" : "You do not possess the admin rights to delete the project"}),401, {"content-type": "application/json; charset=UTF-8"}
         else:
-            return jsonify({"error" : "You do not possess the admin rights to delete the project"}),401
-    else:
-        return jsonify({"error" : "No such project exists"}),404
-    return jsonify({"Success" : "project deleted successfully"}),200
+            return jsonify({"error" : "No such project exists"}),404, {"content-type": "application/json; charset=UTF-8"}
+        return jsonify({"message" : "project deleted successfully"}),200, {"content-type": "application/json; charset=UTF-8"}
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400, {"content-type": "application/json; charset=UTF-8"}
 
 @projects_blueprint.route('/members/add',methods=["POST"])
 @jwt_required()

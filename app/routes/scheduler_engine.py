@@ -7,16 +7,8 @@ from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestsuiteModel import TestsuiteModel
 
-engine_blueprint = Blueprint('engine', __name__)
-
-# s = Session()
-
-@engine_blueprint.route('/api/tests', methods=['POST'])
-@jwt_required()
-def tests():
+def tests(data,user):
     try:
-        data = request.json
-        user = get_current_user().id
         testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
         environment = EnvModel.get_one_env(data['environment'])
 
@@ -109,19 +101,11 @@ def tests():
             ResultModel(data_to_store).save()
 
             TempModel.get_all_and_delete(testsuite['id'])
-            return jsonify({"result": res}), 200
-        else:
-            return jsonify({"error" : missing_components}),400
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
 def fetch_from_api(testcase):
-    # r = Request(testcase['method'], testcase['endpoint'], json=testcase['payload'], headers=testcase['header'])
-
-    # prepped = s.prepare_request(r)
-    # resp = s.send(prepped)
-    # return resp
     if testcase['method'].lower()=='get':
         r = requests.get(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'], params=testcase['parameters'])
     elif testcase['method'].lower()=='post':
@@ -176,7 +160,6 @@ def validate_expected_outcome(testcase, response):
     res = response.json()
     for field in testcase['expected_outcome']:
         field_name = field.get('name')
-        # field_type = field.get('type')
         res_value = ""
         error = ""
         is_failed = False

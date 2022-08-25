@@ -100,14 +100,18 @@ def update_testsuite():
                     environment = req_data.get('environment')
                     testsuite.environment = environment
                 if req_data.get('array_of_testcases'):
-                    execution_sequence = ""
-                    testsuite.testcases.clear()
                     testcases = req_data.get('array_of_testcases')
-                    for i in testcases:
-                        testcase = TestcaseModel.query.get(i)
-                        execution_sequence = execution_sequence + str(i) + ","
-                        testsuite.testcases.append(testcase)
-                        testsuite.execution_sequence = execution_sequence  
+                    if len(testcases) > 0:
+                        execution_sequence = ""
+                        testsuite.testcases.clear()
+                        for i in testcases:
+                            testcase = TestcaseModel.query.get(i)
+                            execution_sequence = execution_sequence + str(i) + ","
+                            testsuite.testcases.append(testcase)
+                            testsuite.execution_sequence = execution_sequence
+                else:
+                    return jsonify({"Error" : "You cannot delete all the testcases, atleast add one to update"}),400
+                     
                 testsuite.update({'modified_by' : user.id})
             else:
                 return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401

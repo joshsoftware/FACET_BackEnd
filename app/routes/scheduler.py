@@ -2,10 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from app.helpers.utils import get_project_id, has_access_to_project
 from ..models.SchedulerModel import SchedulerModel,ScheduleSchema
-from app.models.UserModel import UserModel
 from marshmallow import ValidationError
-from datetime import datetime
-import json
 
 scheduler_blueprint = Blueprint('scheduler', __name__)
 scheduler_schema = ScheduleSchema()
@@ -22,7 +19,7 @@ def getScheduledJobs(id=0):
                 data = SchedulerModel.get_one_schedule(id)
                 return jsonify(data), 200
             data = SchedulerModel.get_all_schedules(project)
-            return jsonify({"scheduled jobs": data}), 200
+            return jsonify({"scheduled_jobs": data}), 200
         else:
             return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to get access to scheduled jobs of the project"}),401
     except Exception as e:

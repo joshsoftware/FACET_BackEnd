@@ -1,18 +1,18 @@
-from flask import request, jsonify
-from flask_jwt_extended import jwt_required
 import requests
-from app.helpers.utils import is_fit_to_run,get_current_user,store_results
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
+from app.helpers.utils import is_fit_to_run,get_current_user
 from app.models.EnvModel import EnvModel
 from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestsuiteModel import TestsuiteModel
 
-
 def tests(data,user):
     try:
         testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
-        environment = EnvModel.get_one_env(data.get('environment'))
-        is_fit,missing_components = is_fit_to_run(testsuite)
+        environment = EnvModel.get_one_env(data['environment'])
+
+        is_fit, missing_components = is_fit_to_run(testsuite)
         if is_fit:
             res = []
             testcase_results_to_store = []
@@ -48,9 +48,10 @@ def tests(data,user):
 
                     testdata_results_to_store.append({
                         "testdata": td,
-                        "status": resp['status'],
-                        "errors": resp.get('errors'),
-                        "response": resp.get('response')
+                        "name": td['name'],
+                        "parameters": td['parameters'],
+                        "payload": td['payload'],
+                        **resp
                     })
                 
                 if is_testcase_passed:
@@ -100,17 +101,11 @@ def tests(data,user):
             ResultModel(data_to_store).save()
 
             TempModel.get_all_and_delete(testsuite['id'])
-            return jsonify({"result": res}), 200
-        else:
-            return jsonify({"Error" : missing_components}),400
-    except Exception as err:
-        print(str(err))
-        return jsonify(str(err))
-
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
 def fetch_from_api(testcase):
-
     if testcase['method'].lower()=='get':
         r = requests.get(url=testcase['endpoint'], json=testcase['payload'], headers=testcase['header'], params=testcase['parameters'])
     elif testcase['method'].lower()=='post':
@@ -144,75 +139,84 @@ def perform_testcases(testcase, testsuite, user, environment):
     temp.save()
     
     
-    status, errors = validate_expected_outcome(testcase, res)
+    status, outcome, no_of_passed_fields, no_of_failed_fields = validate_expected_outcome(testcase, res)
 
-    store_results(
-        {
-            "testsuite": testsuite, 
-            "testcase": testcase,
-            "environment" : environment,
-            "response": res.json(),
-            "status" : status,
-            "payload_used" : testcase['payload'],
-            "project_id" : testcase['project_id'],
-            "user" : user
-        }
-    )
+    return {
+        "status": "passed" if status=="passed" else "failed",
+        "outcome": outcome,
+        "response": res.json(),
+        "no_of_passed_fields": no_of_passed_fields,
+        "no_of_failed_fields": no_of_failed_fields
+    }
 
-    if status == "passed":
-        return {"testcase_id":testcase['id'], "status":"passed"}
-    else:
-        return {"testcase_id":testcase['id'], "status":"failed", "errors":errors, "response": res.json()}
-
-def validate_expected_outcome(testcase,response):
+def validate_expected_outcome(testcase, response):
     """
     
     """
 
-    # variable status shows that : 1=> passed, 0=> failed
-    status = 1
-    err = []
+    no_of_passed_fields = 0
+    no_of_failed_fields = 0
+    outcome = []
     res = response.json()
     for field in testcase['expected_outcome']:
         field_name = field.get('name')
-        field_type = field.get('type')
-        errors = {}
+        res_value = ""
+        error = ""
+        is_failed = False
 
         if field_name == 'status_code':
-            if int(field['value']) != int(response.status_code):
-                status = 0
-                errors['status_code'] = f"Status code of response is not matched with Expected status code. Expected value is {field.get('value')} but got {response.status_code}."
+            res_value = response.status_code
+            if int(field['value']) != int(res_value):
+                is_failed = True
+                error = f"Status code of response is not matched with Expected status code."
         else:
             res_value = res.get(field_name)
+            if not res_value:
+                is_failed =  True
+                error = f"Expected Field not found in response."
+            else:
+                if field['isExact']:
+                    if field.get('value')!=res_value:
+                        is_failed = True
+                        error = f"Response value is not matched with Expected value."
+                elif field.get('validations'):
+                    validations = field.get('validations')
+                    
+                    max_length = validations.get('maxLength')
+                    min_length = validations.get('minLength')
+                    max_value = validations.get('maxValue')
+                    min_value = validations.get('minValue')
+                    regex_pattern = validations.get('regex')
 
-            if field['isExact']:
-                if field.get('value')==res_value:
-                    status
-                else:
-                    status = 0
-                    errors["value"] = f"Outcome value is not matched with Expected value. Expected value is {field.get('value')} but got {res_value}"
-            elif field.get('validations'):
-                validations = field.get('validations')
-                
-                max_length = validations.get('maxLength')
-                min_length = validations.get('minLength')
-                max_value = validations.get('maxValue')
-                min_value = validations.get('minValue')
-                regex_pattern = validations.get('regex')
+                    err = []
+                    if max_length and len(res_value)>int(max_length):
+                        err.append('maxLength')
+                    if min_length and len(res_value)<int(min_length):
+                        err.append('minLength')
+                    if min_value and int(res_value)<int(min_value):
+                        err.append('minValue')
+                    if max_value and int(res_value)>int(max_value):
+                        err.append('maxValue')
+                    if regex_pattern:
+                        pass
 
-                if max_length and len(res_value)>int(max_length):
-                    errors['maxLength'] =  f"Outcome value has more length than expected length. Expected length is {max_length} but got {len(res_value)}"
-                if min_length and len(res_value)<int(min_length):
-                    errors['minLength'] =  f"Outcome value has less length than expected length. Expected length is {min_length} but got {len(res_value)}"
-                if min_value and int(res_value)<int(min_value):
-                    errors['minValue'] =  f"Outcome value is less than expected length. Expected value is {min_value} but got {res_value}"
-                if max_value and int(res_value)>int(max_value):
-                    errors['maxValue'] =  f"Outcome value is more than expected length. Expected value is {max_value} but got {res_value}"
-                if regex_pattern:
-                    pass
-        if(len(errors)):
-            err.append({"name": field_name, "errors": errors, "res": res})
-            
-    if status==1:
-        return "passed", err
-    return "failed", err
+                    if len(err):
+                        is_failed = True
+                        error = f"Validations not matched: {err}"
+        
+        outcome.append({
+            **field, 
+            "res_value": res_value,
+            "executed_status": "failed" if is_failed else "passed",
+            "status": "failed" if is_failed else "passed",
+            "error": error,
+        })
+
+        if is_failed:
+            no_of_failed_fields += 1
+        else:
+            no_of_passed_fields += 1
+    
+    if no_of_failed_fields==0:
+        return "passed", outcome, no_of_passed_fields, no_of_failed_fields
+    return "failed", outcome, no_of_passed_fields, no_of_failed_fields

@@ -58,7 +58,7 @@ def createProjects():
         return jsonify({"Error" : "You do not possess the admin rights to create a project, kindly contact the super admin for recieving admin privileges"}),401
 
 
-@projects_blueprint.route('/delete',methods=["POST"])
+@projects_blueprint.route('/delete',methods=["DELETE"])
 @jwt_required()
 def delete_project():
     req_data = request.json

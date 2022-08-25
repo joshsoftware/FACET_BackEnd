@@ -28,7 +28,7 @@ def getScheduledJobs(id=0):
                 data = SchedulerModel.get_one_schedule(id)
                 return jsonify(data), 200
             data = SchedulerModel.get_all_schedules(project)
-            return jsonify({"scheduled jobs": data}), 200
+            return jsonify({"scheduled_jobs": data}), 200
         else:
             return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to get access to scheduled jobs of the project"}),401
     except Exception as e:

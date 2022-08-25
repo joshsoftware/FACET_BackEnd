@@ -65,8 +65,8 @@ class ProjectModel(db.Model):
         return data
 
     @staticmethod
-    def get_one_project(id):
-        data = ProjectSchema().dump(ProjectModel.query.get(id))
+    def get_one_project(id, user_id):
+        data = ProjectSchema().dump(db.session.query(ProjectModel).join(project_member).where(project_member.c.member_id == user_id, ProjectModel.id==id).first())
         return data
 
     @staticmethod

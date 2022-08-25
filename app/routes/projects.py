@@ -54,10 +54,10 @@ def createProjects():
         except ValidationError as err:
             return jsonify(err), 400
 
-        project_exist = ProjectModel.is_project_exist(data.get('name'), data.get('project_admin'))
+        project_exist = ProjectModel.is_project_exist(data.get('name'))
 
         if project_exist:
-            return jsonify({"error": "You already have a project of the same name"}), 400
+            return jsonify({"error": "A project of the same name already exists"}), 400
 
         super_admin = UserModel.query.filter_by(is_super_admin=True).first()
         project = ProjectModel(data)
@@ -81,7 +81,7 @@ def updateName():
         if project:
             if project_name!=new_project_name:
                 if project.project_admin==user:
-                    if not ProjectModel.is_project_exist(new_project_name, user):
+                    if not ProjectModel.is_project_exist(new_project_name):
                         project.name = new_project_name
                         project.update()
                     else:
@@ -122,7 +122,7 @@ def add_members():
     req_data = request.json
     req_data['project'] = create_slug(req_data.get('project'))
     admin = get_current_user().id
-    project = ProjectModel.is_project_exist(req_data['project'], admin)
+    project = ProjectModel.is_project_exist(req_data['project'])
     try:
         if project:
             if admin == project.project_admin:
@@ -145,7 +145,7 @@ def remove_members():
     req_data = request.json
     req_data['project'] = create_slug(req_data['project'])
     admin = get_current_user().id
-    project = ProjectModel.is_project_exist(req_data['project'],admin)
+    project = ProjectModel.is_project_exist(req_data['project'])
     try:
         if project:
             if admin == project.project_admin:

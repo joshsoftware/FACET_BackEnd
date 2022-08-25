@@ -21,7 +21,7 @@ class ProjectModel(db.Model):
     __tablename__ = 'projects'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(50), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=True)
     project_admin = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
     project_members = db.relationship('UserModel',secondary = project_member,backref = 'projects')
@@ -76,8 +76,8 @@ class ProjectModel(db.Model):
         return data
 
     @staticmethod
-    def is_project_exist(name, user):
-        return ProjectModel.query.filter_by(name=name, project_admin=user).first()
+    def is_project_exist(name):
+        return ProjectModel.query.filter_by(name=name).first()
     
     @staticmethod
     def is_a_member_of_project(id,user_id):

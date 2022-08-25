@@ -96,14 +96,14 @@ def update_testcase():
                 if req_data.get('method'):
                     method = req_data.get('method')
                     testcase.method = method
-                if req_data.get('endpoint'):
-                    endpoint = req_data.get('endpoint')
+                if req_data.get('endpoint_id'):
+                    endpoint = req_data.get('endpoint_id')
                     testcase.endpoint_id = endpoint
-                if req_data.get('header'):
-                    header = req_data.get('header')
+                if req_data.get('header_id'):
+                    header = req_data.get('header_id')
                     testcase.header_id = header
-                if req_data.get('payload'):
-                    payload = req_data.get('payload')
+                if req_data.get('payload_id'):
+                    payload = req_data.get('payload_id')
                     testcase.payload_id = payload
                 testcase.update({'modified_by' : user.id})
             else:

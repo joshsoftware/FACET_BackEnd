@@ -25,7 +25,7 @@ class Development(object):
     """
     Development environment configuration
     """
-    DEBUG = True
+    DEBUG = False
     TESTING = False
     SECRET_KEY = os.getenv("SECRET_KEY")
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
@@ -41,7 +41,7 @@ class Production(object):
     SECRET_KEY = os.getenv("SECRET_KEY")
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
-    JWT_ACCESS_TOKEN_EXPIRES = os.getenv("JWT_ACCESS_TOKEN_EXPIRES")
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
 
 app_config = {
     'development': Development,

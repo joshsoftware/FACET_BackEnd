@@ -1,19 +1,20 @@
+import os
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from app.helpers.utils import get_project_id, has_access_to_project
 from app.models.SchedulerModel import SchedulerModel,ScheduleSchema
-from app.models.TestsuiteModel import TestsuiteModel
-from app.models.EnvModel import EnvModel
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import current_app as app
 from marshmallow import ValidationError
 from datetime import datetime
 from .scheduler_engine import tests
+from dotenv import load_dotenv
+load_dotenv()
 
 scheduler_blueprint = Blueprint('scheduler', __name__)
 scheduler_schema = ScheduleSchema()
 scheduler = BackgroundScheduler({'apscheduler.timezone' : 'Asia/Calcutta'})
-scheduler.add_jobstore('sqlalchemy',url='postgresql://poojan:poojan@localhost:5432/scheduler')
+scheduler.add_jobstore('sqlalchemy',url=os.getenv('DATABASE_URL'))
 scheduler.start()
 
 @scheduler_blueprint.route('/', methods=["GET"])

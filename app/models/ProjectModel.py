@@ -71,7 +71,7 @@ class ProjectModel(db.Model):
 
     @staticmethod
     def get_project_members(id):
-        data = ProjectModel.get_one_project(id)
+        data = ProjectSchema().dump(ProjectModel.query.get(id))
         data = data['project_members']
         return data
 

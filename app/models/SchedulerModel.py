@@ -63,7 +63,7 @@ class SchedulerModel(db.Model):
     @staticmethod
     def get_all_schedules(project_id = None):
         if project_id:
-            data = ScheduleSchema().dump(SchedulerModel.query.filter_by(project=project_id), many=True)
+            data = ScheduleSchema().dump(SchedulerModel.query.filter_by(project=project_id).order_by(SchedulerModel.id.desc()), many=True)
             for job in data:
                 job['start_date_time'] = datetime.fromtimestamp(job['start_date_time'])
                 job['scheduled_by'] = UserModel.get_user_name(job['scheduled_by'])

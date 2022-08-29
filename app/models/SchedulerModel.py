@@ -23,6 +23,7 @@ class SchedulerModel(db.Model):
     frequency = db.Column(JSON, nullable=False)
     start_date_time = db.Column(db.Float, nullable=False)
     end_date_time = db.Column(db.Float)
+    status = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime)
 
     def __init__(self,data):
@@ -34,6 +35,7 @@ class SchedulerModel(db.Model):
         self.frequency = data.get('frequency')
         self.start_date_time = data.get('start_date_time')
         self.end_date_time = data.get('end_date_time')
+        self.status = data.get('status')
         self.created_at = datetime.utcnow()
     
     def save(self):
@@ -59,15 +61,18 @@ class SchedulerModel(db.Model):
         return data
     
     @staticmethod
-    def get_all_schedules(project_id):
-        data = ScheduleSchema().dump(SchedulerModel.query.filter_by(project=project_id), many=True)
-        for job in data:
-            job['start_date_time'] = datetime.fromtimestamp(job['start_date_time'])
-            job['scheduled_by'] = UserModel.get_user_name(job['scheduled_by'])
-            job['testsuite'] = TestsuiteModel.get_one_testsuite(job['testsuite']).get('name')
-            job['environment'] = EnvModel.get_one_env(job['environment']).get('name')
-            if job['end_date_time']:
-                job['end_date_time'] = datetime.fromtimestamp(job['end_date_time'])
+    def get_all_schedules(project_id = None):
+        if project_id:
+            data = ScheduleSchema().dump(SchedulerModel.query.filter_by(project=project_id).order_by(SchedulerModel.id.desc()), many=True)
+            for job in data:
+                job['start_date_time'] = datetime.fromtimestamp(job['start_date_time'])
+                job['scheduled_by'] = UserModel.get_user_name(job['scheduled_by'])
+                job['testsuite'] = TestsuiteModel.get_one_testsuite(job['testsuite']).get('name')
+                job['environment'] = EnvModel.get_one_env(job['environment']).get('name')
+                if job['end_date_time']:
+                    job['end_date_time'] = datetime.fromtimestamp(job['end_date_time'])
+        else:
+            data = SchedulerModel.query.all()
         return data
 
 
@@ -85,6 +90,7 @@ class ScheduleSchema(Schema):
     frequency = fields.Dict(required=True)
     start_date_time = fields.Float(required=True)
     end_date_time = fields.Float()
+    status = fields.Str()
     created_at = fields.DateTime(dump_ony=True)
  
         

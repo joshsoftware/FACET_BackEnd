@@ -17,6 +17,32 @@ scheduler = BackgroundScheduler({'apscheduler.timezone' : 'Asia/Calcutta'})
 scheduler.add_jobstore('sqlalchemy',url=os.getenv('DATABASE_URL'))
 scheduler.start()
 
+def job_monitor():
+    
+    scheduled_jobs = SchedulerModel.get_all_schedules()
+    for job_iterator in range(len(scheduled_jobs)):
+        scheduled_jobs[job_iterator] = scheduled_jobs[job_iterator].id
+    
+    apscheduler_jobs = scheduler.get_jobs()
+    for job_iterator in range(len(apscheduler_jobs)):
+        apscheduler_jobs[job_iterator] = int(apscheduler_jobs[job_iterator].id)
+    
+    print("monitoring->AP = ",apscheduler_jobs)
+    print("mangaing-> Sch=", scheduled_jobs)
+
+    for job_iterator in scheduled_jobs:
+        if job_iterator in apscheduler_jobs:
+            continue
+        else:
+            job = SchedulerModel.query.get(job_iterator)
+            job.status = "executed"
+            job.save()
+
+monitor_scheduler = BackgroundScheduler({'apscheduler.timezone' : 'Asia/Calcutta'})
+monitor_scheduler.start()
+
+monitor_scheduler.add_job(func=job_monitor,trigger="interval",minutes=1)
+
 @scheduler_blueprint.route('/', methods=["GET"])
 @scheduler_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
@@ -57,6 +83,7 @@ def addScheduledJob():
                     return jsonify(str(err)),400
                 
                 scheduled_job = SchedulerModel(data)
+                scheduled_job.status = "to be executed"
                 scheduled_job.save()
                 
                 job_data = {'testsuite': scheduled_job.testsuite,'environment' : scheduled_job.environment}
@@ -81,9 +108,9 @@ def pause_a_job():
         data = request.json
         job_id = data.get('id')
         pauser = scheduler.pause_job(job_id=job_id)
-        # scheduled_job = SchedulerModel.get_one_schedule(job_id)
-        # scheduled_job.status = "paused"
-        # scheduled_job.save()
+        scheduled_job = SchedulerModel.query.get(job_id)
+        scheduled_job.status = "paused"
+        scheduled_job.save()
         return jsonify({"Success" : "Job paused successfully"}),200
     except Exception as err:
         return jsonify(str(err)),400
@@ -94,9 +121,9 @@ def resume_a_job():
         data = request.json
         job_id = data.get('id')
         hit_resume = scheduler.resume_job(job_id=job_id)
-        # scheduled_job = SchedulerModel.get_one_schedule(job_id)
-        # scheduled_job.status = "on-going"
-        # scheduled_job.save()
+        scheduled_job = SchedulerModel.query.get(job_id)
+        scheduled_job.status = "on-going"
+        scheduled_job.save()
         return jsonify({"Success" : "Job resumed successfully"}),200
     except Exception as err:
         return jsonify(str(err)),400
@@ -107,10 +134,8 @@ def remove_a_job():
         data = request.json
         job_id = data.get('id')
         remover = scheduler.remove_job(job_id=job_id)
-        # scheduled_job = SchedulerModel.get_one_schedule(job_id)
-        
-        # scheduled_job.status = "removed"
-        # scheduled_job.save()
+        scheduled_job = SchedulerModel.query.get(job_id)
+        scheduled_job.delete()
         return jsonify({"Success" : "Job removed successfully"}),200
     except Exception as err:
         return jsonify(str(err)),400

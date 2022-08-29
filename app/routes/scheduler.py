@@ -17,6 +17,32 @@ scheduler = BackgroundScheduler({'apscheduler.timezone' : 'Asia/Calcutta'})
 scheduler.add_jobstore('sqlalchemy',url=os.getenv('DATABASE_URL'))
 scheduler.start()
 
+def job_monitor():
+    
+    scheduled_jobs = SchedulerModel.get_all_schedules()
+    for job_iterator in range(len(scheduled_jobs)):
+        scheduled_jobs[job_iterator] = scheduled_jobs[job_iterator].id
+    
+    apscheduler_jobs = scheduler.get_jobs()
+    for job_iterator in range(len(apscheduler_jobs)):
+        apscheduler_jobs[job_iterator] = int(apscheduler_jobs[job_iterator].id)
+    
+    print("monitoring->AP = ",apscheduler_jobs)
+    print("mangaing-> Sch=", scheduled_jobs)
+
+    for job_iterator in scheduled_jobs:
+        if job_iterator in apscheduler_jobs:
+            continue
+        else:
+            job = SchedulerModel.query.get(job_iterator)
+            job.status = "executed"
+            job.save()
+
+monitor_scheduler = BackgroundScheduler({'apscheduler.timezone' : 'Asia/Calcutta'})
+monitor_scheduler.start()
+
+monitor_scheduler.add_job(func=job_monitor,trigger="interval",minutes=1)
+
 @scheduler_blueprint.route('/', methods=["GET"])
 @scheduler_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
@@ -58,6 +84,7 @@ def addScheduledJob():
                     return jsonify(str(err)),400
                 
                 scheduled_job = SchedulerModel(data)
+                scheduled_job.status = "to be executed"
                 scheduled_job.save()
                 
                 job_data = {'testsuite': scheduled_job.testsuite,'environment' : scheduled_job.environment}
@@ -65,20 +92,55 @@ def addScheduledJob():
                 if scheduled_job.frequency_type == 'oneTime':
                     job = scheduler.add_job(tests,run_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="date",args=[job_data,user.id],id=str(scheduled_job.id))
                 #trigger type interval
-                elif scheduled_job.frequency_type in ['custom','weekly','daily','bi-weekly']:
+                else:
                     if scheduled_job.end_date_time:
                         job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),end_date=str(datetime.fromtimestamp(scheduled_job.end_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
                     else:
                         job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
-                #trigger type cron job
-                # elif scheduled_job.frequency_type in ['monthly']:
-                #     job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="cron",args=[data,user.id],id=str(scheduled_job.id))
                 return jsonify({"success": "Job scheduled successfully!"}), 201
             else:
                 return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to schedule testsuites of the projects"}),401
         except Exception as e:
             print(e)
             return jsonify(str(e) + "----------"),400
+
+@scheduler_blueprint.route('/Pause_a_job',methods=["PUT"])
+def pause_a_job():
+    try:
+        data = request.json
+        job_id = data.get('id')
+        pauser = scheduler.pause_job(job_id=job_id)
+        scheduled_job = SchedulerModel.query.get(job_id)
+        scheduled_job.status = "paused"
+        scheduled_job.save()
+        return jsonify({"Success" : "Job paused successfully"}),200
+    except Exception as err:
+        return jsonify(str(err)),400
+
+@scheduler_blueprint.route('/Resume_a_job',methods=["PUT"])
+def resume_a_job():
+    try:
+        data = request.json
+        job_id = data.get('id')
+        hit_resume = scheduler.resume_job(job_id=job_id)
+        scheduled_job = SchedulerModel.query.get(job_id)
+        scheduled_job.status = "on-going"
+        scheduled_job.save()
+        return jsonify({"Success" : "Job resumed successfully"}),200
+    except Exception as err:
+        return jsonify(str(err)),400
+
+@scheduler_blueprint.route('/Remove_a_job',methods=["DELETE"])
+def remove_a_job():
+    try:
+        data = request.json
+        job_id = data.get('id')
+        remover = scheduler.remove_job(job_id=job_id)
+        scheduled_job = SchedulerModel.query.get(job_id)
+        scheduled_job.delete()
+        return jsonify({"Success" : "Job removed successfully"}),200
+    except Exception as err:
+        return jsonify(str(err)),400
 
 def to_frequency(frequency_type,custom_frequency):
     frequency = {

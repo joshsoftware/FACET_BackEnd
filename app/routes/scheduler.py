@@ -64,19 +64,56 @@ def addScheduledJob():
                 if scheduled_job.frequency_type == 'oneTime':
                     job = scheduler.add_job(tests,run_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="date",args=[job_data,user.id],id=str(scheduled_job.id))
                 #trigger type interval
-                elif scheduled_job.frequency_type in ['custom','weekly','daily','bi-weekly']:
+                else:
                     if scheduled_job.end_date_time:
                         job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),end_date=str(datetime.fromtimestamp(scheduled_job.end_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
                     else:
                         job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
-                #trigger type cron job
-                # elif scheduled_job.frequency_type in ['monthly']:
-                #     job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="cron",args=[data,user.id],id=str(scheduled_job.id))
                 return jsonify({"success": "Job scheduled successfully!"}), 201
             else:
                 return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to schedule testsuites of the projects"}),401
         except Exception as e:
             return jsonify(str(e) + "----------"),400
+
+@scheduler_blueprint.route('/Pause_a_job',methods=["PUT"])
+def pause_a_job():
+    try:
+        data = request.json
+        job_id = data.get('id')
+        pauser = scheduler.pause_job(job_id=job_id)
+        # scheduled_job = SchedulerModel.get_one_schedule(job_id)
+        # scheduled_job.status = "paused"
+        # scheduled_job.save()
+        return jsonify({"Success" : "Job paused successfully"}),200
+    except Exception as err:
+        return jsonify(str(err)),400
+
+@scheduler_blueprint.route('/Resume_a_job',methods=["PUT"])
+def resume_a_job():
+    try:
+        data = request.json
+        job_id = data.get('id')
+        hit_resume = scheduler.resume_job(job_id=job_id)
+        # scheduled_job = SchedulerModel.get_one_schedule(job_id)
+        # scheduled_job.status = "on-going"
+        # scheduled_job.save()
+        return jsonify({"Success" : "Job resumed successfully"}),200
+    except Exception as err:
+        return jsonify(str(err)),400
+
+@scheduler_blueprint.route('/Remove_a_job',methods=["DELETE"])
+def remove_a_job():
+    try:
+        data = request.json
+        job_id = data.get('id')
+        remover = scheduler.remove_job(job_id=job_id)
+        # scheduled_job = SchedulerModel.get_one_schedule(job_id)
+        
+        # scheduled_job.status = "removed"
+        # scheduled_job.save()
+        return jsonify({"Success" : "Job removed successfully"}),200
+    except Exception as err:
+        return jsonify(str(err)),400
 
 def to_frequency(frequency_type,custom_frequency):
     frequency = {

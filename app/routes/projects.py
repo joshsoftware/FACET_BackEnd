@@ -139,7 +139,7 @@ def add_members():
         return jsonify(str(e)),400
     return jsonify({"error" : "No such project exists!!!!"}),404
 
-@projects_blueprint.route('/members/remove',methods=["POST"])
+@projects_blueprint.route('/members/remove',methods=["DELETE"])
 @jwt_required()
 def remove_members():
     req_data = request.json

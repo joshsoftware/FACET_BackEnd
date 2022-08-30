@@ -62,7 +62,7 @@ def create_testcase():
     except Exception as e:
         return jsonify(str(e)), 400
 
-@testcases_blueprint.route('/delete',methods=["POST"])
+@testcases_blueprint.route('/delete/',methods=["DELETE"])
 @jwt_required()
 def delete_testcase():
     req_data = request.json

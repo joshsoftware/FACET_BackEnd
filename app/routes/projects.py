@@ -81,6 +81,8 @@ def updateName():
         if project:
             if project_name!=new_project_name:
                 if project.project_admin==user:
+                    #backend stores data only in slug format, hence converting new name to slug for proper verification
+                    new_project_name = create_slug(new_project_name)
                     if not ProjectModel.is_project_exist(new_project_name):
                         project.name = new_project_name
                         project.update()

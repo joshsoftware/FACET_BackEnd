@@ -48,7 +48,7 @@ def createTestdata():
     testdata.save()
     return jsonify({"success": "Testdata created successfully!"}), 201
 
-@testdata_blueprint.route("/update",methods=["POST"])
+@testdata_blueprint.route("/update",methods=["PUT"])
 @jwt_required()
 def update_Testdata():
     req_data = request.json
@@ -77,3 +77,30 @@ def update_Testdata():
     except Exception as err:
         return jsonify(str(err)),400
     return jsonify({"Success" : "Testdata Updated successfully"}),200
+
+
+"""
+API payload format:
+{
+    "testdata" : id(int)
+}
+"""
+@testdata_blueprint.route("/delete/",methods=["DELETE"])
+@jwt_required()
+def delete_testdata():
+    req_data = request.json
+    user = get_current_user()
+    try:
+        testdata = TestdataModel.query.get(req_data.get('testdata'))
+    except Exception as e:
+        return jsonify(str(e)),400
+    if testdata:
+        testcase_id = testdata.testcase
+        project_id = TestcaseModel.query.get(testcase_id).project_id
+        if has_access_to_project(project_id,user.id):
+            testdata.delete()
+        else:
+            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
+    else:
+        return jsonify({"error" : "No such Testdata exists"}),404
+    return jsonify({"Success" : "Testdata deleted successfully"}),200

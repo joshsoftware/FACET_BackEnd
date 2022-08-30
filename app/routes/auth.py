@@ -63,7 +63,7 @@ def login():
 
     return jsonify({"error": "Invalid Credentials!"}), 400
 
-@auth_blueprint.route('/delete', methods=['POST'])
+@auth_blueprint.route('/delete/', methods=['DELETE'])
 @jwt_required()
 def delete_user():
     req_data = request.json

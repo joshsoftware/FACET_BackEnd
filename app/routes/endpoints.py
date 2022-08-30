@@ -53,7 +53,7 @@ def createEndpoints():
     else:
         return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
 
-@endpoints_blueprint.route('/delete',methods=["POST"])
+@endpoints_blueprint.route('/delete/',methods=["DELETE"])
 @jwt_required()
 def delete_endpoint():
     req_data = request.json

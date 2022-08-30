@@ -130,7 +130,7 @@ def resume_a_job():
     except Exception as err:
         return jsonify(str(err)),400
 
-@scheduler_blueprint.route('/delete',methods=["DELETE"])
+@scheduler_blueprint.route('/delete/',methods=["DELETE"])
 def delete_a_job():
     try:
         data = request.json

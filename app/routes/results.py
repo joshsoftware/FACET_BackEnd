@@ -34,7 +34,7 @@ def add_comment():
     user = get_current_user().id
     try:
         reportId = req_data.get('reportId')
-        testcase_name = req_data.get('testcase')
+        teststep_name = req_data.get('teststep')
         testdata_name = req_data.get('testdata')
         field_name = req_data.get('field')
         status = req_data.get('status')
@@ -42,12 +42,12 @@ def add_comment():
         report = ResultModel.get_one_result(reportId)
         is_able_to_update = False
         if report and has_access_to_project(report['project'], user):
-            newTestcases = report['testcases']
-            del report['testcases']
+            newTeststeps = report['teststeps']
+            del report['teststeps']
 
-            for testcase in newTestcases:
-                if testcase['name']==testcase_name:
-                    for testdata in testcase['testdata_combinations']:
+            for teststep in newTeststeps:
+                if teststep['name']==teststep_name:
+                    for testdata in teststep['testdata_combinations']:
                         if testdata['name']==testdata_name:
                             # is_testdata_failed = testdata['status']=="failed"
                             for field in testdata['outcome']:
@@ -66,28 +66,28 @@ def add_comment():
 
                             if testdata['no_of_failed_fields']==0:
                                 testdata['status'] = "passed"
-                                testcase['no_of_failed_testdata_combinations'] -= 1
-                                testcase['no_of_passed_testdata_combinations'] += 1
+                                teststep['no_of_failed_testdata_combinations'] -= 1
+                                teststep['no_of_passed_testdata_combinations'] += 1
                             else:
                                 if testdata['status']=="passed":
                                     testdata['status'] = "failed"
-                                    testcase['no_of_failed_testdata_combinations'] += 1
-                                    testcase['no_of_passed_testdata_combinations'] -= 1
-                    if testcase['no_of_failed_testdata_combinations']==0:
-                        testcase['status'] = "passed"
-                        report['no_of_failed_testcases'] -= 1
-                        report['no_of_passed_testcases'] += 1
+                                    teststep['no_of_failed_testdata_combinations'] += 1
+                                    teststep['no_of_passed_testdata_combinations'] -= 1
+                    if teststep['no_of_failed_testdata_combinations']==0:
+                        teststep['status'] = "passed"
+                        report['no_of_failed_teststeps'] -= 1
+                        report['no_of_passed_teststeps'] += 1
                     else:
-                        if testcase['status']=="passed":
-                            testcase['status'] = "failed"
-                            report['no_of_failed_testcases'] += 1
-                            report['no_of_passed_testcases'] -= 1
+                        if teststep['status']=="passed":
+                            teststep['status'] = "failed"
+                            report['no_of_failed_teststeps'] += 1
+                            report['no_of_passed_teststeps'] -= 1
             if is_able_to_update:
                 updatedResult = ResultModel.query.get(reportId)
                 updatedResult.update({
-                    "testcases": newTestcases, 
-                    "no_of_passed_testcases": report['no_of_passed_testcases'],
-                    "no_of_failed_testcases": report['no_of_failed_testcases']
+                    "teststeps": newTeststeps, 
+                    "no_of_passed_teststeps": report['no_of_passed_teststeps'],
+                    "no_of_failed_teststeps": report['no_of_failed_teststeps']
                 })
                 return jsonify({"message": "Updated Successfully!"}), 200
             return jsonify({"error": "Not Found"}), 404

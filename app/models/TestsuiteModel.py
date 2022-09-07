@@ -4,13 +4,13 @@ from marshmallow import Schema, fields
 from app.helpers.utils import get_user_name
 from app.models import db
 
-from app.models.TestcaseModel import TestcaseSchema
+from app.models.TeststepModel import TeststepSchema
 
 
-testsuite_testcase = db.Table(
-    'testsuite_testcase', 
+testsuite_teststep = db.Table(
+    'testsuite_teststep', 
     db.Column('testsuite_id', db.Integer, db.ForeignKey('testsuites.id',ondelete="CASCADE")),
-    db.Column('testcase_id', db.Integer, db.ForeignKey('testcases.id',ondelete="CASCADE"))
+    db.Column('teststep_id', db.Integer, db.ForeignKey('teststeps.id',ondelete="CASCADE"))
 )
 
 
@@ -24,7 +24,7 @@ class TestsuiteModel(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text(), nullable=True)
     project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
-    testcases = db.relationship('TestcaseModel', secondary=testsuite_testcase, backref='testcases')
+    teststeps = db.relationship('TestStepModel',secondary=testsuite_teststep,backref='teststeps')
     execution_sequence = db.Column(db.String(400))
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
@@ -64,23 +64,23 @@ class TestsuiteModel(db.Model):
         for testsuite in data:
             testsuite['created_by'] = get_user_name(testsuite['created_by'])
             testsuite['modified_by'] = get_user_name(testsuite['modified_by'])
-            arranged_testcases = TestsuiteModel.rearrange_testcases(testsuite['execution_sequence'],testsuite)
-            testsuite['testcases'] = arranged_testcases['testcases']
+            arranged_teststeps = TestsuiteModel.rearrange_teststeps(testsuite['execution_sequence'],testsuite)
+            testsuite['teststeps'] = arranged_teststeps['teststeps']
         return data
 
     @staticmethod
     def get_one_testsuite(id):
         testsuite = TestsuiteModel.query.get(id)
         data = TestsuiteSchema().dump(testsuite)
-        # data['testcases'] = TestsuiteModel.rearrange_testcases(data['execution_sequence'],data)
+        # data['teststeps'] = TestsuiteModel.rearrange_teststeps(data['execution_sequence'],data)
         order = testsuite.execution_sequence[:-1]
-        testcases = data['testcases']
-        data['testcases'] = []
+        teststeps = data['teststeps']
+        data['teststeps'] = []
         order = order.split(",")
-        for testcase in order:
-            for test in testcases:
-                if int(testcase) == test['id']:
-                    data['testcases'].append(test)
+        for teststep in order:
+            for test in teststeps:
+                if int(teststep) == test['id']:
+                    data['teststeps'].append(test)
         return data
 
     @staticmethod
@@ -90,16 +90,16 @@ class TestsuiteModel(db.Model):
     def __repr__(self):
         return f'<id {self.id}>'
     
-    def rearrange_testcases(order,testsuite):
+    def rearrange_teststeps(order,testsuite):
         data = {}
         order = testsuite.get('execution_sequence')[:-1]
         order = order.split(",")
-        testcases = testsuite['testcases']
-        data['testcases'] = []
-        for testcase in order:
-            for test in testcases:
-                if int(testcase) == test['id']:
-                    data['testcases'].append(test)
+        teststeps = testsuite['teststeps']
+        data['teststeps'] = []
+        for teststep in order:
+            for test in teststeps:
+                if int(teststep) == test['id']:
+                    data['teststeps'].append(test)
         return data
     
 
@@ -111,7 +111,7 @@ class TestsuiteSchema(Schema):
     name = fields.Str(required=True)
     description = fields.Str()
     project = fields.Int(required=True)
-    testcases = fields.List(fields.Nested(TestcaseSchema))
+    teststeps = fields.List(fields.Nested(TeststepSchema))
     execution_sequence = fields.Str() 
     created_at = fields.DateTime(dump_only=True)
     created_by = fields.Int()

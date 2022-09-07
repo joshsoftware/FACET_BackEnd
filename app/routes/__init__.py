@@ -8,7 +8,7 @@ from .projects import projects_blueprint
 from .endpoints import endpoints_blueprint
 from .headers import headers_blueprint
 from .payloads import payloads_blueprint
-from .testcases import testcases_blueprint
+from .teststeps import teststeps_blueprint
 from .testsuites import testsuite_blueprint
 from .testdata import testdata_blueprint
 from .engine import engine_blueprint

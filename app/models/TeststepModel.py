@@ -10,12 +10,12 @@ from app.models.PayloadModel import PayloadSchema
 from app.models.ProjectModel import ProjectSchema
 
 
-class TestcaseModel(db.Model):
+class TestStepModel(db.Model):
     """
-    Testcase Model
+    TestStep Model
     """
 
-    __tablename__ = 'testcases'
+    __tablename__ = 'teststeps'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     endpoint_id = db.Column(db.Integer, db.ForeignKey('endpoints.id',ondelete ="SET NULL"))
@@ -27,7 +27,7 @@ class TestcaseModel(db.Model):
     header = db.relationship('HeaderModel', foreign_keys=header_id)
     payload = db.relationship('PayloadModel', foreign_keys=payload_id)
     project = db.relationship('ProjectModel', foreign_keys=project_id)
-    testdata = db.relationship('TestdataModel', backref='testcases', lazy=True)
+    testdata = db.relationship('TestdataModel', backref='teststeps', lazy=True)
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
     modified_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
@@ -63,29 +63,29 @@ class TestcaseModel(db.Model):
         db.session.commit()
 
     @staticmethod
-    def get_all_testcases(project_id):
-        data = TestcaseSchema().dump(TestcaseModel.query.filter_by(project_id=project_id), many=True)
-        for testcase in data:
-            testcase['created_by'] = get_user_name(testcase['created_by'])
-            testcase['modified_by'] = get_user_name(testcase['modified_by'])
+    def get_all_teststeps(project_id):
+        data = TeststepSchema().dump(TestStepModel.query.filter_by(project_id=project_id), many=True)
+        for teststep in data:
+            teststep['created_by'] = get_user_name(teststep['created_by'])
+            teststep['modified_by'] = get_user_name(teststep['modified_by'])
         return data
 
     @staticmethod
-    def get_one_testcase(id):
-        data = TestcaseSchema().dump(TestcaseModel.query.get(id))
+    def get_one_teststep(id):
+        data = TeststepSchema().dump(TestStepModel.query.get(id))
         return data
     
     @staticmethod
     def is_exist(name, project):
-        return TestcaseModel.query.filter_by(name=name, project_id=project).first() or None
+        return TestStepModel.query.filter_by(name=name, project_id=project).first() or None
 
     def __repr__(self):
         return f'<id {self.id}>'
     
 
-class TestcaseSchema(Schema):
+class TeststepSchema(Schema):
     """
-    Testcase Schema
+    Teststep Schema
     """
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True)

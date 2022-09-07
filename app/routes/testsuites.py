@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 from app.helpers import create_slug, get_project_id,get_current_user
 from app.helpers.utils import has_access_to_project
-from app.models.TestcaseModel import TestcaseModel
+from app.models.TeststepModel import TestStepModel
 from app.models.TestsuiteModel import TestsuiteModel, TestsuiteSchema
 
 testsuite_blueprint = Blueprint('testsuites', __name__)
@@ -38,8 +38,8 @@ def createTestsuites():
     user = get_current_user()
     req_data['created_by'] = user.id
     req_data['modified_by'] = user.id
-    testcases = req_data.get('array_of_testcases')
-    del req_data['array_of_testcases']
+    teststeps = req_data.get('array_of_teststeps')
+    del req_data['array_of_teststeps']
     if has_access_to_project(req_data['project'],user.id):
         try:
             data = testsuite_schema.load(req_data)
@@ -50,15 +50,15 @@ def createTestsuites():
         is_exist = TestsuiteModel.is_exist(data.get('name'), data.get('project'))
 
         if is_exist:
-            return jsonify({"error": "You already have a testcases of the same name in this project."}), 400
+            return jsonify({"error": "You already have a testsuite of the same name in this project."}), 400
 
         testsuite = TestsuiteModel(data)
         testsuite.execution_sequence = ""
-        for i in testcases:
-            testsuite.testcases.append(TestcaseModel.query.get(i))
+        for i in teststeps:
+            testsuite.teststeps.append(TestStepModel.query.get(i))
             testsuite.execution_sequence = testsuite.execution_sequence + str(i) + ","
         testsuite.save()
-        return jsonify({"success" : "testsuite created with the given testcases"}),200
+        return jsonify({"success" : "testsuite created with the given teststeps"}),200
     else:
         return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
 
@@ -99,18 +99,18 @@ def update_testsuite():
                 if req_data.get('environment'):
                     environment = req_data.get('environment')
                     testsuite.environment = environment
-                if req_data.get('array_of_testcases'):
-                    testcases = req_data.get('array_of_testcases')
-                    if len(testcases) > 0:
+                if req_data.get('array_of_teststeps'):
+                    teststeps = req_data.get('array_of_teststeps')
+                    if len(teststeps) > 0:
                         execution_sequence = ""
-                        testsuite.testcases.clear()
-                        for i in testcases:
-                            testcase = TestcaseModel.query.get(i)
+                        testsuite.teststeps.clear()
+                        for i in teststeps:
+                            teststep = TestStepModel.query.get(i)
                             execution_sequence = execution_sequence + str(i) + ","
-                            testsuite.testcases.append(testcase)
+                            testsuite.teststeps.append(teststep)
                             testsuite.execution_sequence = execution_sequence
                 else:
-                    return jsonify({"Error" : "You cannot delete all the testcases, atleast add one to update"}),400
+                    return jsonify({"Error" : "You cannot delete all the teststeps, atleast add one to update"}),400
                      
                 testsuite.update({'modified_by' : user.id})
             else:

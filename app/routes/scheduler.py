@@ -101,7 +101,6 @@ def addScheduledJob():
             else:
                 return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to schedule testsuites of the projects"}),401
         except Exception as e:
-            print(e)
             return jsonify(str(e) + "----------"),400
 
 @scheduler_blueprint.route('/Pause_a_job',methods=["PUT"])

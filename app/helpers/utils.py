@@ -51,10 +51,10 @@ def get_project_members_id(project):
     members_id = [i['id'] for i in members]
     return members_id
 
-def is_fit_to_run(testsuite):
+def is_fit_to_run(testcase):
     is_fit = True
     missing_components = {}
-    teststeps = testsuite['teststeps']
+    teststeps = testcase['teststeps']
     for teststep in teststeps:
         missing_components[teststep['name']] = []
         if teststep['endpoint'] == None:

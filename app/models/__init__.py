@@ -12,6 +12,6 @@ from .HeaderModel import HeaderModel
 from .PayloadModel import PayloadModel
 from .TeststepModel import TestStepModel
 from .TestdataModel import TestdataModel
-from .TestsuiteModel import TestsuiteModel, testsuite_teststep
+from .TestcaseModel import TestcaseModel, testcase_teststep
 from .ResultModel import ResultModel,ResultSchema
 from .SchedulerModel import SchedulerModel,ScheduleSchema

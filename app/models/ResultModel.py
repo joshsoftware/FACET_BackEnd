@@ -13,7 +13,7 @@ class ResultModel(db.Model):
     __tablename__ = 'results'
     id = db.Column(db.Integer, primary_key = True)
     project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
-    testsuite = db.Column(JSON, nullable=False)
+    testcase = db.Column(JSON, nullable=False)
     teststeps = db.Column(JSON, nullable=False)
     environment = db.Column(JSON, nullable=False)
     status = db.Column(db.String(20), nullable=False)
@@ -24,7 +24,7 @@ class ResultModel(db.Model):
 
     def __init__(self,data):
         self.project = data.get('project')
-        self.testsuite = data.get('testsuite')
+        self.testcase = data.get('testcase')
         self.teststeps = data.get('teststeps')
         self.environment = data.get('environment')
         self.status = data.get('status')
@@ -71,7 +71,7 @@ class ResultSchema(Schema):
     """
     id = fields.Int(dump_only=True)
     project = fields.Int(required=True)
-    testsuite = fields.Dict(required=True)
+    testcase = fields.Dict(required=True)
     teststeps = fields.List(fields.Dict(), required=True)
     environment = fields.Dict(required=True)
     status = fields.Str(required=True)

@@ -87,7 +87,7 @@ def addScheduledJob():
                 scheduled_job.status = "to be executed"
                 scheduled_job.save()
                 
-                job_data = {'testsuite': scheduled_job.testsuite,'environment' : scheduled_job.environment}
+                job_data = {'testcase': scheduled_job.testcase,'environment' : scheduled_job.environment}
                 #trigger type date
                 if scheduled_job.frequency_type == 'oneTime':
                     job = scheduler.add_job(tests,run_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="date",args=[job_data,user.id],id=str(scheduled_job.id))
@@ -99,7 +99,7 @@ def addScheduledJob():
                         job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
                 return jsonify({"success": "Job scheduled successfully!"}), 201
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to schedule testsuites of the projects"}),401
+                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to schedule testcases of the projects"}),401
         except Exception as e:
             return jsonify(str(e) + "----------"),400
 

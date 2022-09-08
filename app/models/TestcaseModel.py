@@ -7,24 +7,24 @@ from app.models import db
 from app.models.TeststepModel import TeststepSchema
 
 
-testsuite_teststep = db.Table(
-    'testsuite_teststep', 
-    db.Column('testsuite_id', db.Integer, db.ForeignKey('testsuites.id',ondelete="CASCADE")),
+testcase_teststep = db.Table(
+    'testcase_teststep', 
+    db.Column('testcase_id', db.Integer, db.ForeignKey('testcases.id',ondelete="CASCADE")),
     db.Column('teststep_id', db.Integer, db.ForeignKey('teststeps.id',ondelete="CASCADE"))
 )
 
 
-class TestsuiteModel(db.Model):
+class TestcaseModel(db.Model):
     """
-    TestSuite Model
+    TestCase Model
     """
 
-    __tablename__ = 'testsuites'
+    __tablename__ = 'testcases'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text(), nullable=True)
     project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
-    teststeps = db.relationship('TestStepModel',secondary=testsuite_teststep,backref='teststeps')
+    teststeps = db.relationship('TestStepModel',secondary=testcase_teststep,backref='teststeps')
     execution_sequence = db.Column(db.String(400))
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
@@ -58,22 +58,22 @@ class TestsuiteModel(db.Model):
         db.session.commit()
 
     @staticmethod
-    def get_all_testsuites(project_id):
-        data = TestsuiteModel.query.filter_by(project=project_id)
-        data = TestsuiteSchema().dump(data, many=True)
-        for testsuite in data:
-            testsuite['created_by'] = get_user_name(testsuite['created_by'])
-            testsuite['modified_by'] = get_user_name(testsuite['modified_by'])
-            arranged_teststeps = TestsuiteModel.rearrange_teststeps(testsuite['execution_sequence'],testsuite)
-            testsuite['teststeps'] = arranged_teststeps['teststeps']
+    def get_all_testcases(project_id):
+        data = TestcaseModel.query.filter_by(project=project_id)
+        data = TestcaseSchema().dump(data, many=True)
+        for testcase in data:
+            testcase['created_by'] = get_user_name(testcase['created_by'])
+            testcase['modified_by'] = get_user_name(testcase['modified_by'])
+            arranged_teststeps = TestcaseModel.rearrange_teststeps(testcase['execution_sequence'],testcase)
+            testcase['teststeps'] = arranged_teststeps['teststeps']
         return data
 
     @staticmethod
-    def get_one_testsuite(id):
-        testsuite = TestsuiteModel.query.get(id)
-        data = TestsuiteSchema().dump(testsuite)
+    def get_one_testcase(id):
+        testcase = TestcaseModel.query.get(id)
+        data = TestcaseSchema().dump(testcase)
         # data['teststeps'] = TestsuiteModel.rearrange_teststeps(data['execution_sequence'],data)
-        order = testsuite.execution_sequence[:-1]
+        order = testcase.execution_sequence[:-1]
         teststeps = data['teststeps']
         data['teststeps'] = []
         order = order.split(",")
@@ -85,16 +85,16 @@ class TestsuiteModel(db.Model):
 
     @staticmethod
     def is_exist(name, project):
-        return TestsuiteModel.query.filter_by(name=name, project=project).first() or None
+        return TestcaseModel.query.filter_by(name=name, project=project).first() or None
 
     def __repr__(self):
         return f'<id {self.id}>'
     
-    def rearrange_teststeps(order,testsuite):
+    def rearrange_teststeps(order,testcase):
         data = {}
-        order = testsuite.get('execution_sequence')[:-1]
+        order = testcase.get('execution_sequence')[:-1]
         order = order.split(",")
-        teststeps = testsuite['teststeps']
+        teststeps = testcase['teststeps']
         data['teststeps'] = []
         for teststep in order:
             for test in teststeps:
@@ -103,9 +103,9 @@ class TestsuiteModel(db.Model):
         return data
     
 
-class TestsuiteSchema(Schema):
+class TestcaseSchema(Schema):
     """
-    Testsuite Schema
+    Testcase Schema
     """
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True)

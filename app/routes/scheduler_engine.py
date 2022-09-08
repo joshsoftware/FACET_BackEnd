@@ -5,19 +5,19 @@ from app.helpers.utils import is_fit_to_run,get_current_user
 from app.models.EnvModel import EnvModel
 from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
-from app.models.TestsuiteModel import TestsuiteModel
+from app.models.TestcaseModel import TestcaseModel
 
 def tests(data,user):
     try:
-        testsuite = TestsuiteModel.get_one_testsuite(data.get('testsuite'))
+        testcase = TestcaseModel.get_one_testcase(data.get('testcase'))
         environment = EnvModel.get_one_env(data['environment'])
-        is_fit, missing_components = is_fit_to_run(testsuite)
+        is_fit, missing_components = is_fit_to_run(testcase)
         if is_fit:
             res = []
             teststep_results_to_store = []
             no_of_passed_teststeps = 0
             no_of_failed_teststeps = 0
-            for teststep in testsuite['teststeps']:
+            for teststep in testcase['teststeps']:
                 teststep_resp = []
                 testdata_results_to_store = []
                 is_teststep_passed = True
@@ -33,7 +33,7 @@ def tests(data,user):
                     teststep['payload'] = td['payload']
                     teststep['expected_outcome'] = td['expected_outcome']
                     teststep['parameters'] = td['parameters']
-                    resp = perform_teststeps(teststep, testsuite, user, environment)
+                    resp = perform_teststeps(teststep, testcase, user, environment)
                     if resp['status']=='failed':
                         is_teststep_passed = False
                         no_of_failed_testdata_combinations += 1
@@ -82,14 +82,14 @@ def tests(data,user):
                 })
             
             # store teststuite result into the result model
-            project = testsuite.get('project')
-            del testsuite['project']
-            del testsuite['teststeps']
-            del testsuite['execution_sequence']
+            project = testcase.get('project')
+            del testcase['project']
+            del testcase['teststeps']
+            del testcase['execution_sequence']
             del environment['project']
             data_to_store = {
                 "project": project,
-                "testsuite": testsuite,
+                "testcase": testcase,
                 "teststeps": teststep_results_to_store,
                 "environment": environment,
                 "status": status,
@@ -99,7 +99,7 @@ def tests(data,user):
             }
             ResultModel(data_to_store).save()
 
-            TempModel.get_all_and_delete(testsuite['id'])
+            TempModel.get_all_and_delete(testcase['id'])
     except Exception as e:
         print(str(e))
         # return jsonify({"error": str(e)}), 400
@@ -118,7 +118,7 @@ def fetch_from_api(teststep):
         r = requests.delete(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
     return r
 
-def perform_teststeps(teststep, testsuite, user, environment):
+def perform_teststeps(teststep, testcase, user, environment):
     
     if "$var=" in str(teststep):
         pattern =  "\$var\=(.*?)\'"
@@ -126,7 +126,7 @@ def perform_teststeps(teststep, testsuite, user, environment):
         variable = re.search(pattern, str(teststep)).group(1)
         tmp = variable.split('.')
 
-        var_value = TempModel.get_one(testsuite=testsuite['id'], teststep=tmp[0])
+        var_value = TempModel.get_one(testcase=testcase['id'], teststep=tmp[0])
 
         for i in tmp[1:len(tmp)]:
             var_value = var_value.get(i)
@@ -135,7 +135,7 @@ def perform_teststeps(teststep, testsuite, user, environment):
             
     res = fetch_from_api(teststep)
 
-    temp = TempModel({"testsuite": testsuite['id'], "teststep": teststep['name'], "resp": res.json()})
+    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": res.json()})
     temp.save()
     
     

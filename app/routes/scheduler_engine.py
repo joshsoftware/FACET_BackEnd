@@ -27,8 +27,7 @@ def tests(data,user):
 
                 teststep['endpoint'] = environment['url'] + endpoint
                 teststep['header'] = teststep['header']['header']
-                testdata = teststep['testdata'] if len(teststep['testdata']) else [{"name": "Payload","parameters": {}, "payload":{}, "expected_outcome": {}}]
-
+                testdata = [test_data for test_data in teststep['testdata'] if test_data in testcase['testdatas']]
                 for td in testdata:
                     teststep['payload'] = td['payload']
                     teststep['expected_outcome'] = td['expected_outcome']

@@ -4,6 +4,7 @@ from marshmallow import Schema, fields
 from app.helpers.utils import get_user_name
 from app.models import db
 
+from app.models.TestdataModel import TestdataSchema
 from app.models.TeststepModel import TeststepSchema
 
 
@@ -13,6 +14,11 @@ testcase_teststep = db.Table(
     db.Column('teststep_id', db.Integer, db.ForeignKey('teststeps.id',ondelete="CASCADE"))
 )
 
+testcase_testdata = db.Table(
+    'testcase_testdata',
+    db.Column('testcase_id', db.Integer, db.ForeignKey('testcases.id',ondelete="CASCADE")),
+    db.Column('testdata_id', db.Integer, db.ForeignKey('testdata.id',ondelete="CASCADE"))
+)
 
 class TestcaseModel(db.Model):
     """
@@ -25,6 +31,7 @@ class TestcaseModel(db.Model):
     description = db.Column(db.Text(), nullable=True)
     project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     teststeps = db.relationship('TestStepModel',secondary=testcase_teststep,backref='teststeps')
+    testdatas = db.relationship('TestdataModel',secondary=testcase_testdata,backref='testdata')
     execution_sequence = db.Column(db.String(400))
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
@@ -112,6 +119,7 @@ class TestcaseSchema(Schema):
     description = fields.Str()
     project = fields.Int(required=True)
     teststeps = fields.List(fields.Nested(TeststepSchema))
+    testdatas = fields.List(fields.Nested(TestdataSchema))
     execution_sequence = fields.Str() 
     created_at = fields.DateTime(dump_only=True)
     created_by = fields.Int()

@@ -34,7 +34,8 @@ def tests():
 
                 teststep['endpoint'] = environment['url'] + endpoint
                 teststep['header'] = teststep['header']['header']
-                testdata = teststep['testdata']
+                # testdata = teststep['testdata']
+                testdata = [test_data for test_data in teststep['testdata'] if test_data in testcase['testdatas']]
 
                 for td in testdata:
                     teststep['payload'] = td['payload']

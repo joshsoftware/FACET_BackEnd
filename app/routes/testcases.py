@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 from app.helpers import create_slug, get_project_id,get_current_user
 from app.helpers.utils import has_access_to_project
+from app.models.TestdataModel import TestdataModel
 from app.models.TeststepModel import TestStepModel
 from app.models.TestcaseModel import TestcaseModel, TestcaseSchema
 
@@ -39,7 +40,9 @@ def createTestcases():
     req_data['created_by'] = user.id
     req_data['modified_by'] = user.id
     teststeps = req_data.get('array_of_teststeps')
+    testdatas = req_data.get('array_of_testdata')
     del req_data['array_of_teststeps']
+    del req_data['array_of_testdata']
     if has_access_to_project(req_data['project'],user.id):
         try:
             data = testcase_schema.load(req_data)
@@ -57,6 +60,8 @@ def createTestcases():
         for teststep in teststeps:
             testcase.teststeps.append(TestStepModel.query.get(teststep))
             testcase.execution_sequence = testcase.execution_sequence + str(teststep) + ","
+        for testdata in testdatas:
+            testcase.testdatas.append(TestdataModel.query.get(testdata))
         testcase.save()
         return jsonify({"success" : "testcase created with the given teststeps"}),200
     else:
@@ -111,6 +116,12 @@ def update_testcase():
                             testcase.execution_sequence = execution_sequence
                 else:
                     return jsonify({"Error" : "You cannot delete all the teststeps, atleast add one to update"}),400
+                
+                # if req_data.get('array_of_testdata'):
+                #     testdatas = req_data.get('array_of_testdatas')
+                #     if len(testdatas) > 0:
+                #         testcase.testdatas.clear()
+
                      
                 testcase.update({'modified_by' : user.id})
             else:

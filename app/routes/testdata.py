@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 from app.helpers import create_slug, get_current_user
 from app.helpers.utils import has_access_to_project
-from app.models.TestcaseModel import TestcaseModel
+from app.models.TeststepModel import TestStepModel
 from app.models.TestdataModel import TestdataModel, TestdataSchema
 
 testdata_blueprint = Blueprint('testdata', __name__)
@@ -15,12 +15,12 @@ testdata_schema = TestdataSchema()
 @jwt_required()
 def getTestdata(id=0):
     try:
-        testcase_id = request.args.get("testcase")
+        teststep_id = request.args.get("teststep")
         if id!=0:
             data = TestdataModel.get_one_testdata(id)
             return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
 
-        data = TestdataModel.get_all_testdatas(testcase_id)
+        data = TestdataModel.get_all_testdatas(teststep_id)
         return jsonify({"testdata": data}), 200, {"content-type": "application/json; charset=UTF-8"}
     except Exception as e:
         return jsonify(e), 400
@@ -39,10 +39,10 @@ def createTestdata():
     except ValidationError as err:
         return jsonify(str(err)), 400
 
-    is_exist = TestdataModel.is_exist(data.get('name'), data.get('testcase'))
+    is_exist = TestdataModel.is_exist(data.get('name'), data.get('teststep'))
 
     if is_exist:
-        return jsonify({"error": "You already have a Testdata of the same name in this Testcase."}), 400
+        return jsonify({"error": "You already have a Testdata of the same name in this Teststep."}), 400
 
     testdata = TestdataModel(data)
     testdata.save()
@@ -54,11 +54,11 @@ def update_Testdata():
     req_data = request.json
     try:
         testdata = req_data.get('id')
-        testdata = TestdataModel.query.get('testdata')
+        testdata = TestdataModel.query.get(testdata)
         user = get_current_user()
         if testdata:
-            testcase = TestcaseModel.query.filter_by(id = testdata.testcase).first()
-            project = testcase.project
+            teststep = TestStepModel.query.filter_by(id = testdata.teststep).first()
+            project = int(str(teststep.project)[3:-1])
             if has_access_to_project(project,user.id):
                 if req_data.get('name'):
                     name = req_data.get('name')
@@ -95,8 +95,8 @@ def delete_testdata():
     except Exception as e:
         return jsonify(str(e)),400
     if testdata:
-        testcase_id = testdata.testcase
-        project_id = TestcaseModel.query.get(testcase_id).project_id
+        teststep_id = testdata.teststep
+        project_id = TestStepModel.query.get(teststep_id).project_id
         if has_access_to_project(project_id,user.id):
             testdata.delete()
         else:

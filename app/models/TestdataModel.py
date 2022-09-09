@@ -16,7 +16,7 @@ class TestdataModel(db.Model):
     payload = db.Column(JSON, default={}, nullable=False)
     parameters = db.Column(JSON, default={})
     expected_outcome = db.Column(JSON, nullable=False)
-    testcase = db.Column(db.Integer, db.ForeignKey('testcases.id',ondelete="CASCADE"))
+    teststep = db.Column(db.Integer, db.ForeignKey('teststeps.id',ondelete="CASCADE"))
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
     modified_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
@@ -30,7 +30,7 @@ class TestdataModel(db.Model):
         self.payload = data.get('payload')
         self.parameters = data.get('parameters')
         self.expected_outcome = data.get('expected_outcome')
-        self.testcase = data.get('testcase')
+        self.teststep = data.get('teststep')
         self.created_by = data.get('created_by')
         self.created_at = datetime.utcnow()
         self.modified_by = data.get('modified_by')
@@ -51,8 +51,8 @@ class TestdataModel(db.Model):
         db.session.commit()
 
     @staticmethod
-    def get_all_testdatas(testcase_id):
-        data = TestdataSchema().dump(TestdataModel.query.filter_by(testcase=testcase_id), many=True)
+    def get_all_testdatas(teststep_id):
+        data = TestdataSchema().dump(TestdataModel.query.filter_by(teststep=teststep_id), many=True)
         for testdata in data:
             testdata['created_by'] = get_user_name(testdata['created_by'])
             testdata['modified_by'] = get_user_name(testdata['modified_by'])
@@ -64,8 +64,8 @@ class TestdataModel(db.Model):
         return data
 
     @staticmethod
-    def is_exist(name, testcase):
-        return TestdataModel.query.filter_by(name=name, testcase=testcase).first() or None
+    def is_exist(name, teststep):
+        return TestdataModel.query.filter_by(name=name, teststep=teststep).first() or None
 
     def __repr__(self):
         return f'<id {self.id}>'
@@ -80,7 +80,7 @@ class TestdataSchema(Schema):
     payload = fields.Dict(required=True)
     parameters = fields.Dict(required=True)
     expected_outcome = fields.List(fields.Dict(), required=True)
-    testcase = fields.Int(required=True)
+    teststep = fields.Int(required=True)
     created_at = fields.DateTime(dump_only=True)
     created_by = fields.Int()
     modified_by = fields.Int()

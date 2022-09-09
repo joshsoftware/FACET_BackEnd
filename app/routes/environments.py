@@ -31,7 +31,7 @@ def getEnvs(id=0):
 @jwt_required()
 def createEnv():
     req_data = request.json
-    req_data['project'] = get_project_id(req_data.get("project"))
+    req_data['project'] = get_project_id(create_slug(req_data.get("project")))
     req_data['name'] = create_slug(req_data.get("name"))
     user = get_current_user()
     req_data['created_by'] = user.id

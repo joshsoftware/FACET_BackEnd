@@ -12,8 +12,8 @@ class TempModel(db.Model):
 
     __tablename__ = 'temp'
     id = db.Column(db.Integer, primary_key=True)
-    testsuite = db.Column(db.Integer, db.ForeignKey('testsuites.id'))
-    testcase = db.Column(db.String(256), nullable=False)
+    testcase = db.Column(db.Integer, db.ForeignKey('testcases.id'))
+    teststep = db.Column(db.String(256), nullable=False)
     resp = db.Column(JSON, nullable=False)
     created_at = db.Column(db.DateTime)
 
@@ -22,8 +22,8 @@ class TempModel(db.Model):
         Class constructor
         """
 
-        self.testsuite = data.get('testsuite')
         self.testcase = data.get('testcase')
+        self.teststep = data.get('teststep')
         self.resp = data.get('resp')
         self.created_at = datetime.utcnow()
 
@@ -33,18 +33,18 @@ class TempModel(db.Model):
         db.session.commit()
 
     @staticmethod
-    def get_one(testsuite, testcase):
-        data = TempSchema().dump(TempModel.query.filter_by(testsuite=testsuite, testcase=testcase).first())
+    def get_one(testcase, teststeps):
+        data = TempSchema().dump(TempModel.query.filter_by(testcase=testcase, teststeps=teststeps).first())
         return data
 
     @staticmethod
-    def get_all(testsuite):
-        data = TempSchema().dump(TempModel.query.get(testsuite=testsuite))
+    def get_all(testcase):
+        data = TempSchema().dump(TempModel.query.get(testcase=testcase))
         return data
 
     @staticmethod
-    def get_all_and_delete(testsuite):
-        for i in TempModel.query.filter_by(testsuite=testsuite):
+    def get_all_and_delete(testcase):
+        for i in TempModel.query.filter_by(testcase=testcase):
             i.delete()
 
     def delete(self):
@@ -57,7 +57,7 @@ class TempSchema(Schema):
     Temp Schema
     """
     id = fields.Int(dump_only=True)
-    testsuite = fields.Int(required=True)
-    testcase = fields.Str(required=True)
+    testcase = fields.Int(required=True)
+    teststep = fields.Str(required=True)
     resp = fields.Dict(required=True)
     created_at = fields.DateTime(dump_only=True)

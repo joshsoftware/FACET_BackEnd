@@ -58,10 +58,10 @@ def createTestcases():
         testcase = TestcaseModel(data)
         testcase.execution_sequence = ""
         for teststep in teststeps:
-            testcase.teststeps.append(TestStepModel.query.get(teststep))
-            testcase.execution_sequence = testcase.execution_sequence + str(teststep) + ","
-        for testdata in testdatas:
-            testcase.testdatas.append(TestdataModel.query.get(testdata))
+            testcase.teststeps.append(TestStepModel.query.get(teststep['teststep']))
+            testcase.execution_sequence = testcase.execution_sequence + str(teststep.get('teststep')) + ","
+            for td in teststep['testdata']:
+                testcase.testdatas.append(TestdataModel.query.get(td))
         testcase.save()
         return jsonify({"success" : "testcase created with the given teststeps"}),200
     else:
@@ -109,20 +109,17 @@ def update_testcase():
                     if len(teststeps) > 0:
                         execution_sequence = ""
                         testcase.teststeps.clear()
-                        for i in teststeps:
-                            teststep = TestStepModel.query.get(i)
-                            execution_sequence = execution_sequence + str(i) + ","
+                        testcase.testdatas.clear()
+                        for test_step in teststeps:
+                            teststep = TestStepModel.query.get(test_step["teststep"])
+                            execution_sequence = execution_sequence + str(test_step["teststep"]) + ","
                             testcase.teststeps.append(teststep)
                             testcase.execution_sequence = execution_sequence
+                            for td in test_step['testdata']:
+                                testcase.testdatas.append(TestdataModel.query.get(td))
                 else:
                     return jsonify({"Error" : "You cannot delete all the teststeps, atleast add one to update"}),400
-                
-                # if req_data.get('array_of_testdata'):
-                #     testdatas = req_data.get('array_of_testdatas')
-                #     if len(testdatas) > 0:
-                #         testcase.testdatas.clear()
 
-                     
                 testcase.update({'modified_by' : user.id})
             else:
                 return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401

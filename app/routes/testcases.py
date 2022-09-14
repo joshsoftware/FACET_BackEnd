@@ -40,9 +40,7 @@ def createTestcases():
     req_data['created_by'] = user.id
     req_data['modified_by'] = user.id
     teststeps = req_data.get('array_of_teststeps')
-    testdatas = req_data.get('array_of_testdata')
     del req_data['array_of_teststeps']
-    del req_data['array_of_testdata']
     if has_access_to_project(req_data['project'],user.id):
         try:
             data = testcase_schema.load(req_data)
@@ -58,10 +56,10 @@ def createTestcases():
         testcase = TestcaseModel(data)
         testcase.execution_sequence = ""
         for teststep in teststeps:
-            testcase.teststeps.append(TestStepModel.query.get(teststep))
-            testcase.execution_sequence = testcase.execution_sequence + str(teststep) + ","
-        for testdata in testdatas:
-            testcase.testdatas.append(TestdataModel.query.get(testdata))
+            testcase.teststeps.append(TestStepModel.query.get(teststep['teststep']))
+            testcase.execution_sequence = testcase.execution_sequence + str(teststep.get('teststep')) + ","
+            for td in teststep['testdata']:
+                testcase.testdatas.append(TestdataModel.query.get(td))
         testcase.save()
         return jsonify({"success" : "testcase created with the given teststeps"}),200
     else:

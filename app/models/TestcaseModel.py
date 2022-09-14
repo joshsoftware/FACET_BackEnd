@@ -73,6 +73,13 @@ class TestcaseModel(db.Model):
             testcase['modified_by'] = get_user_name(testcase['modified_by'])
             arranged_teststeps = TestcaseModel.rearrange_teststeps(testcase['execution_sequence'],testcase)
             testcase['teststeps'] = arranged_teststeps['teststeps']
+
+            selected_testdatas_id = [i['id'] for i in testcase['testdatas']]
+            
+            for i in testcase['teststeps']:
+                i['selected_testdata'] = [testdata['id'] for testdata in i['testdata'] if testdata['id'] in selected_testdatas_id]
+
+            del testcase['testdatas']
         return data
 
     @staticmethod

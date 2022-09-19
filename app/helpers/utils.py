@@ -51,22 +51,22 @@ def get_project_members_id(project):
     members_id = [i['id'] for i in members]
     return members_id
 
-def is_fit_to_run(testsuite):
+def is_fit_to_run(testcase):
     is_fit = True
     missing_components = {}
-    testcases = testsuite['testcases']
-    for testcase in testcases:
-        missing_components[testcase['name']] = []
-        if testcase['endpoint'] == None:
-            missing_components[testcase['name']].append('endpoint missing')
+    teststeps = testcase['teststeps']
+    for teststep in teststeps:
+        missing_components[teststep['name']] = []
+        if teststep['endpoint'] == None:
+            missing_components[teststep['name']].append('endpoint missing')
             is_fit = False
-        if testcase['header'] == None:
-            missing_components[testcase['name']].append('header missing')
+        if teststep['header'] == None:
+            missing_components[teststep['name']].append('header missing')
             is_fit = False
-        if testcase['payload'] == None:
-            missing_components[testcase['name']].append('payload missing')
+        if teststep['payload'] == None:
+            missing_components[teststep['name']].append('payload missing')
             is_fit = False
-        if len(testcase['testdata']) == 0 or testcase['testdata'] == None:
-            missing_components[testcase['name']].append('testdata missing')
+        if len(teststep['testdata']) == 0 or teststep['testdata'] == None:
+            missing_components[teststep['name']].append('testdata missing')
             is_fit = False
     return is_fit,missing_components

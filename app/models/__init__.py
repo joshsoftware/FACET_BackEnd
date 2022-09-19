@@ -10,8 +10,8 @@ from .EnvModel import EnvModel
 from .EndpointModel import EndpointModel
 from .HeaderModel import HeaderModel
 from .PayloadModel import PayloadModel
-from .TestcaseModel import TestcaseModel
+from .TeststepModel import TestStepModel
 from .TestdataModel import TestdataModel
-from .TestsuiteModel import TestsuiteModel, testsuite_testcase
+from .TestcaseModel import TestcaseModel, testcase_teststep
 from .ResultModel import ResultModel,ResultSchema
 from .SchedulerModel import SchedulerModel,ScheduleSchema

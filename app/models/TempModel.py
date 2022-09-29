@@ -12,6 +12,7 @@ class TempModel(db.Model):
 
     __tablename__ = 'temp'
     id = db.Column(db.Integer, primary_key=True)
+    run_time_id = db.Column(db.String(256),nullable=False)
     testcase = db.Column(db.Integer, db.ForeignKey('testcases.id'))
     teststep = db.Column(db.String(256), nullable=False)
     resp = db.Column(JSON, nullable=False)
@@ -24,6 +25,7 @@ class TempModel(db.Model):
 
         self.testcase = data.get('testcase')
         self.teststep = data.get('teststep')
+        self.run_time_id = data.get('run_time_id')
         self.resp = data.get('resp')
         self.created_at = datetime.utcnow()
 
@@ -33,19 +35,19 @@ class TempModel(db.Model):
         db.session.commit()
 
     @staticmethod
-    def get_one(testcase, teststeps):
-        data = TempSchema().dump(TempModel.query.filter_by(testcase=testcase, teststeps=teststeps).first())
+    def get_one(testcase, teststeps,run_time_id):
+        data = TempSchema().dump(TempModel.query.filter_by(testcase=testcase, teststeps=teststeps, run_time_id = run_time_id).first())
         return data
 
     @staticmethod
-    def get_all(testcase):
-        data = TempSchema().dump(TempModel.query.get(testcase=testcase))
+    def get_all(testcase, run_time_id):
+        data = TempSchema().dump(TempModel.query.get(testcase=testcase, run_time_id=run_time_id))
         return data
 
     @staticmethod
-    def get_all_and_delete(testcase):
-        for i in TempModel.query.filter_by(testcase=testcase):
-            i.delete()
+    def get_all_and_delete(testcase,run_time_id):
+        for temp_data in TempModel.query.filter_by(testcase=testcase,run_time_id = run_time_id):
+            temp_data.delete()
 
     def delete(self):
         db.session.delete(self)
@@ -59,5 +61,6 @@ class TempSchema(Schema):
     id = fields.Int(dump_only=True)
     testcase = fields.Int(required=True)
     teststep = fields.Str(required=True)
+    run_time_id = fields.Str(required=True)
     resp = fields.Dict(required=True)
     created_at = fields.DateTime(dump_only=True)

@@ -4,6 +4,7 @@ from marshmallow import Schema, fields
 from sqlalchemy.dialects.postgresql import JSON
 from app.helpers.utils import get_user_name
 from app.models import db
+from app.models.ExpectedOutcomeModel import ExpectedOutcomeSchema
 
 class PayloadModel(db.Model):
     """
@@ -15,7 +16,7 @@ class PayloadModel(db.Model):
     name = db.Column(db.String(100), nullable=False)
     payload = db.Column(JSON, nullable=False)
     parameters = db.Column(JSON, default={})
-    expected_outcome = db.Column(JSON, nullable=False)
+    expected_outcome = db.relationship('ExpectedOutcomeModel', backref='payloads', lazy=True)
     project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
     created_at = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
@@ -29,7 +30,6 @@ class PayloadModel(db.Model):
         self.name = data.get('name')
         self.payload = data.get('payload')
         self.parameters = data.get('parameters')
-        self.expected_outcome = data.get('expected_outcome')
         self.project = data.get('project')
         self.created_at = datetime.utcnow()
         self.created_by = data.get('created_by')
@@ -79,7 +79,7 @@ class PayloadSchema(Schema):
     name = fields.Str(required=True)
     payload = fields.Dict(required=True)
     parameters = fields.Dict(required=True)
-    expected_outcome = fields.List(fields.Dict(), required=True)
+    expected_outcome = fields.List(fields.Nested(ExpectedOutcomeSchema))
     project = fields.Int(required=True)
     created_at = fields.DateTime(dump_only=True)
     created_by = fields.Int()

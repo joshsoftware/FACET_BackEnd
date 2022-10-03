@@ -1,3 +1,4 @@
+from datetime import datetime
 import requests
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
@@ -24,6 +25,7 @@ def tests():
             teststep_results_to_store = []
             no_of_passed_teststeps = 0
             no_of_failed_teststeps = 0
+            unique_run_time_id = str(testcase['name']) + str(datetime.now())
             for teststep in testcase['teststeps']:
                 teststep_resp = []
                 testdata_results_to_store = []
@@ -41,7 +43,7 @@ def tests():
                     teststep['payload'] = td['payload']
                     teststep['expected_outcome'] = td['expected_outcome']
                     teststep['parameters'] = td['parameters']
-                    resp = perform_teststeps(teststep, testcase, user, environment)
+                    resp = perform_teststeps(teststep, testcase, user, environment,unique_run_time_id)
                     if resp['status']=='failed':
                         is_teststep_passed = False
                         no_of_failed_testdata_combinations += 1
@@ -104,7 +106,7 @@ def tests():
                 "executed_by": user
             }
             ResultModel(data_to_store).save()
-            TempModel.get_all_and_delete(testcase['id'])
+            TempModel.get_all_and_delete(testcase=testcase['id'],run_time_id=unique_run_time_id)
             return jsonify({"result": res}), 200
         else:
             return jsonify({"error" : missing_components}),400
@@ -130,7 +132,7 @@ def fetch_from_api(teststep):
         r = requests.delete(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
     return r
 
-def perform_teststeps(teststep, testcase, user, environment):
+def perform_teststeps(teststep, testcase, user, environment,unique_run_time_id):
     
     if "$var=" in str(teststep):
         pattern =  "\$var\=(.*?)\'"
@@ -138,7 +140,7 @@ def perform_teststeps(teststep, testcase, user, environment):
         variable = re.search(pattern, str(teststep)).group(1)
         tmp = variable.split('.')
 
-        var_value = TempModel.get_one(testcase=testcase['id'], teststep=tmp[0])
+        var_value = TempModel.get_one(testcase=testcase['id'], teststep=tmp[0],run_time_id=unique_run_time_id)
 
         for i in tmp[1:len(tmp)]:
             var_value = var_value.get(i)
@@ -146,7 +148,7 @@ def perform_teststeps(teststep, testcase, user, environment):
         teststep = eval(str(teststep).replace(f"$var={variable}", var_value))
             
     res = fetch_from_api(teststep)
-    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": res.json()})
+    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": res.json(), "run_time_id" : unique_run_time_id})
     temp.save()
     
     status, outcome, no_of_passed_fields, no_of_failed_fields = validate_expected_outcome(teststep, res)

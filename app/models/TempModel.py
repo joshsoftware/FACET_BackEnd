@@ -36,7 +36,7 @@ class TempModel(db.Model):
 
     @staticmethod
     def get_one(testcase, teststeps,run_time_id):
-        data = TempSchema().dump(TempModel.query.filter_by(testcase=testcase, teststeps=teststeps, run_time_id = run_time_id).first())
+        data = TempSchema().dump(TempModel.query.filter_by(testcase=testcase, teststep=teststeps, run_time_id = run_time_id).first())
         return data
 
     @staticmethod

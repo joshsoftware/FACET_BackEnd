@@ -57,6 +57,7 @@ def is_fit_to_run(testcase):
     teststeps = testcase['teststeps']
     for teststep in teststeps:
         missing_components[teststep['name']] = []
+        testdata = [test_data for test_data in teststep['testdata'] if test_data in testcase['testdatas']]
         if teststep['endpoint'] == None:
             missing_components[teststep['name']].append('endpoint missing')
             is_fit = False
@@ -66,7 +67,7 @@ def is_fit_to_run(testcase):
         if teststep['payload'] == None:
             missing_components[teststep['name']].append('payload missing')
             is_fit = False
-        if len(teststep['testdata']) == 0 or teststep['testdata'] == None:
+        if testdata is None or len(testdata) == 0:
             missing_components[teststep['name']].append('testdata missing')
             is_fit = False
     return is_fit,missing_components

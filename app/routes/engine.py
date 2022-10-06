@@ -140,7 +140,7 @@ def perform_teststeps(teststep, testcase, user, environment,unique_run_time_id):
         variable = re.search(pattern, str(teststep)).group(1)
         tmp = variable.split('.')
 
-        var_value = TempModel.get_one(testcase=testcase['id'], teststep=tmp[0],run_time_id=unique_run_time_id)
+        var_value = TempModel.get_one(testcase=testcase['id'], teststeps=tmp[0],run_time_id=unique_run_time_id)
 
         for i in tmp[1:len(tmp)]:
             var_value = var_value.get(i)

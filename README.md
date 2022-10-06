@@ -1,4 +1,4 @@
-# FACET
+# FACET (Backend)
 
 ### Prerequisites:
 - Postgres
@@ -12,7 +12,7 @@ Step 1:
 
 Clone the repository:
 ```
-git clone https://github.com/tanmaythole/api-testing-tool.git
+git clone https://github.com/joshsoftware/FACET_BackEnd.git
 ```
 
 Go to root folder and install requirements.txt
@@ -73,6 +73,3 @@ To run application use following command:
 ```
 flask run
 ```
-
-
-

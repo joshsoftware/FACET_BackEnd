@@ -61,10 +61,8 @@ def createProjects():
 
         super_admin = UserModel.query.filter_by(is_super_admin=True).first()
         project = ProjectModel(data)
-        if user.id == super_admin.id:
-            project.project_members.append(user)
-        else:
-            project.project_members.append(user)
+        project.project_members.append(user)
+        if user.id != super_admin.id:
             project.project_members.append(super_admin)
         project.save()
         return jsonify({"success": "project created successfully"}),200

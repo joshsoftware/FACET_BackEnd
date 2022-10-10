@@ -27,9 +27,6 @@ def job_monitor():
     for job_iterator in range(len(apscheduler_jobs)):
         apscheduler_jobs[job_iterator] = int(apscheduler_jobs[job_iterator].id)
     
-    print("monitoring->AP = ",apscheduler_jobs)
-    print("mangaing-> Sch=", scheduled_jobs)
-
     for job_iterator in scheduled_jobs:
         if job_iterator in apscheduler_jobs:
             continue

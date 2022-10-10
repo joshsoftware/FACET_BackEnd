@@ -6,7 +6,6 @@ from flask_cors import CORS
 from .models import db, bcrypt
 from .routes import *
 from dotenv import load_dotenv
-import logging
 load_dotenv()
 
 migrate = Migrate()
@@ -24,7 +23,6 @@ def create_app():
     db.init_app(app)
     db.app = app
     migrate.init_app(app, db)
-    configure_logging(app)
     app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
     app.register_blueprint(projects_blueprint, url_prefix='/api/projects')
     app.register_blueprint(endpoints_blueprint, url_prefix='/api/endpoints')
@@ -40,10 +38,3 @@ def create_app():
 
     return app
 
-def configure_logging(app:Flask):
-    logging.basicConfig(filename='records.log',format='[%(asctime)s] %(levelname)s %(name)s: %(message)s')
-    logging.getLogger().setLevel(logging.INFO)
-    logging.getLogger('apscheduler').setLevel(logging.WARNING)
-
-    if app.debug:
-        logging.getLogger().setLevel(logging.DEBUG)

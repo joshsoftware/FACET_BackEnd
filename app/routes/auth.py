@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from . import jwt,logger
+from . import jwt
 from flask_jwt_extended import create_access_token,jwt_required
 from app.helpers.utils import get_current_user, get_project_members_id, is_super_admin
 from marshmallow import ValidationError
@@ -27,17 +27,14 @@ def signup():
     try:
         data = user_schema.load(req_data)
     except ValidationError as err:
-        logger.warning(msg=f'Invalid user signup due to {err.messages}')
         return jsonify(err.messages), 400
 
     user_exist = UserModel.get_user_by_email(data.get('email'))
     if user_exist:
-        logger.warning(msg=f'user already exists for the same credentials')
         return jsonify({'error':"User already exist, please supply another email address"}), 400
     
     user = UserModel(data)
     user.save()
-    logger.info(msg=f'User with {user.name} created successfully')
     return jsonify({"message":"User Created Successfully!"}), 201
 
 
@@ -46,27 +43,21 @@ def signup():
 def login():
     req_data = request.json
     try:
-        logger.info(msg=f'Login request attempted with data {req_data}')
         data = user_schema.load(req_data, partial=True)
     except ValidationError as err:
-        logger.info(msg=f'Login failed due to the following error {err}')
         return jsonify(err), 400
 
     if not req_data.get('email') or not req_data.get('password'):
-        logger.info(msg=f'Login failed as both email and password were not provided')
         return jsonify({"error": "Email and Password are required fields!"}), 400
 
     user = UserModel.get_user_by_email(data.get('email'))
 
     if not user:
-        logger.info(msg=f'Invalid credentials provided')
         return jsonify({"error": "Invalid Credentials!"}), 400
     
     if user and user.check_hash(data.get('password')):
         token = create_access_token(identity=user.id)
-        logger.info(msg=f'User login successful for {user.id}')
         return jsonify({"token":token, "user": UserModel.get_user_profile(user)}), 200
-    logger.info(msg=f'Login failed due to invalid credentials')
     return jsonify({"error": "Invalid Credentials!"}), 400
 
 @auth_blueprint.route('/delete/', methods=['DELETE'])

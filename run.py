@@ -12,9 +12,9 @@ def init_rollbar():
     """init rollbar module"""
     rollbar.init(
         # access token
-        'ce78c3c226a9415d8fcf617cc993188c',
+        app.config['ROLLBAR_ACCESS_TOKEN'],
         # environment name
-        'production',
+        os.getenv('FLASK_ENV'),
         # server root directory, makes tracebacks prettier
         root=os.path.dirname(os.path.realpath(__file__)),
         # flask already sets up logging
@@ -25,4 +25,4 @@ def init_rollbar():
 
 
 if __name__=='__main__':
-    app.run() 
+    app.run()   

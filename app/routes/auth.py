@@ -35,7 +35,6 @@ def signup():
     
     user = UserModel(data)
     user.save()
-
     return jsonify({"message":"User Created Successfully!"}), 201
 
 
@@ -43,7 +42,6 @@ def signup():
 @auth_blueprint.route('/login', methods=['POST'])
 def login():
     req_data = request.json
-
     try:
         data = user_schema.load(req_data, partial=True)
     except ValidationError as err:
@@ -60,7 +58,6 @@ def login():
     if user and user.check_hash(data.get('password')):
         token = create_access_token(identity=user.id)
         return jsonify({"token":token, "user": UserModel.get_user_profile(user)}), 200
-
     return jsonify({"error": "Invalid Credentials!"}), 400
 
 @auth_blueprint.route('/delete/', methods=['DELETE'])

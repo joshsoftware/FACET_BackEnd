@@ -1,5 +1,7 @@
 from flask_jwt_extended import JWTManager
+import logging
 
+logger = logging.getLogger(__name__)
 jwt = JWTManager()
 
 

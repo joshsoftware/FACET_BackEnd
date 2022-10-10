@@ -25,6 +25,7 @@ class Production(object):
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES"))
+    # SQLALCHEMY_ECHO = True
 
 app_config = {
     'development': Development,

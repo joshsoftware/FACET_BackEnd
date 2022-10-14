@@ -7,7 +7,6 @@ from app.models.EnvModel import EnvModel
 from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestcaseModel import TestcaseModel
-import json
 
 engine_blueprint = Blueprint('engine', __name__)
 
@@ -113,7 +112,6 @@ def tests():
             }
             ResultModel(data_to_store).save()
             TempModel.get_all_and_delete(testcase=testcase['id'],run_time_id=unique_run_time_id)
-            print(res)
             return jsonify({"result": res}), 200
         else:
             return jsonify({"error" : missing_components}),400

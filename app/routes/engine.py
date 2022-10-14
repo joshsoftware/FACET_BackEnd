@@ -38,12 +38,17 @@ def tests():
                 teststep['header'] = teststep['header']['header']
                 # testdata = teststep['testdata']
                 testdata = [test_data for test_data in teststep['testdata'] if test_data in testcase['testdatas']]
-
                 for td in testdata:
+                    td['name'] = "[" + td['name'] + "]"
                     teststep['payload'] = td['payload']
                     teststep['expected_outcome'] = td['expected_outcome']
                     teststep['parameters'] = td['parameters']
+                    teststep['name'] = teststep['name'] + td['name']
                     resp = perform_teststeps(teststep, testcase, user, environment,unique_run_time_id)
+                    ind = teststep['name'].find(td['name'])
+                    teststep['name'] = teststep['name'][:ind]
+
+                    td['name'] = td['name'].strip("[]")
                     if resp['status']=='failed':
                         is_teststep_passed = False
                         no_of_failed_testdata_combinations += 1
@@ -120,17 +125,20 @@ def fetch_from_api(teststep):
     # prepped = s.prepare_request(r)
     # resp = s.send(prepped)
     # return resp
-    if teststep['method'].lower()=='get':
-        r = requests.get(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    elif teststep['method'].lower()=='post':
-        r = requests.post(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    elif teststep['method'].lower()=='put':
-        r = requests.put(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    elif teststep['method'].lower()=='patch':
-        r = requests.patch(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    elif teststep['method'].lower()=='delete':
-        r = requests.delete(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    return r
+    try:
+        if teststep['method'].lower()=='get':
+            r = requests.get(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
+        elif teststep['method'].lower()=='post':
+            r = requests.post(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
+        elif teststep['method'].lower()=='put':
+            r = requests.put(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
+        elif teststep['method'].lower()=='patch':
+            r = requests.patch(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
+        elif teststep['method'].lower()=='delete':
+            r = requests.delete(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
+        return r
+    except Exception as err:
+        return str(err)
 
 def perform_teststeps(teststep, testcase, user, environment,unique_run_time_id):
     
@@ -139,8 +147,24 @@ def perform_teststeps(teststep, testcase, user, environment,unique_run_time_id):
         import re
         variable = re.search(pattern, str(teststep)).group(1)
         tmp = variable.split('.')
-
         var_value = TempModel.get_one(testcase=testcase['id'], teststeps=tmp[0],run_time_id=unique_run_time_id)
+        
+        if var_value is None:
+            outcome  = [
+                {
+                    "res_value": "Not found",
+                    "executed_status": "failed",
+                    "status": "failed",
+                    "error": "Incorrect Testdata, Testdata does not exist, hence execution failed"
+                }
+            ]
+            return {
+                "status" : "failed",
+                "outcome" : outcome,
+                "response" : {"Error" : "Testdata does not exist hence execution aborted"},
+                "no_of_passed_fields": 0,
+                "no_of_failed_fields": 0
+            }
 
         for i in tmp[1:len(tmp)]:
             var_value = var_value.get(i)
@@ -148,6 +172,22 @@ def perform_teststeps(teststep, testcase, user, environment,unique_run_time_id):
         teststep = eval(str(teststep).replace(f"$var={variable}", var_value))
             
     res = fetch_from_api(teststep)
+    if type(res) is str:
+        outcome  = [
+                {
+                    "res_value": "Not found",
+                    "executed_status": "failed",
+                    "status": "failed",
+                    "error": res
+                }
+            ]
+        return {
+                "status" : "failed",
+                "outcome" : outcome,
+                "response" : {"Error" : "Testdata does not exist hence execution aborted"},
+                "no_of_passed_fields": 0,
+                "no_of_failed_fields": 0
+            }
     temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": res.json(), "run_time_id" : unique_run_time_id})
     temp.save()
     

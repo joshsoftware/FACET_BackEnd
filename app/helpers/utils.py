@@ -20,7 +20,10 @@ def create_id():
 
 
 def get_project_id(slug):
-    return ProjectModel.query.filter_by(name=slug).first().id or None
+    project = ProjectModel.query.filter_by(name=slug).first() or None
+    if project is not None:
+        return project.id
+    return None
 
 def store_results(data):
     try:

@@ -21,7 +21,7 @@ def create_id():
 
 def get_project_id(slug):
     project = ProjectModel.query.filter_by(name=slug).first() or None
-    if project is not None:
+    if project:
         return project.id
     return None
 
@@ -37,8 +37,7 @@ def store_results(data):
 def has_access_to_project(project_id,user_id):
     if project_id is None or user_id is None:
         return False
-    else:
-        return ProjectModel.is_a_member_of_project(project_id,user_id)
+    return ProjectModel.is_a_member_of_project(project_id,user_id)
 
 def is_super_admin(user):
     return UserModel.is_super_user(user)

@@ -13,13 +13,18 @@ results_blueprint = Blueprint('results', __name__)
 def getresults(id=0):
     try:
         user = get_current_user()
-        project = get_project_id(request.args.get("project"))
+        project = get_project_id(request.args.get("project")) 
+        page_no = request.args.get("page") or None
+        row_size = request.args.get("pageSize") or None
         if has_access_to_project(project, user.id):
             if id!=0:
                 data = ResultModel.get_one_result(id)
                 return jsonify(data), 200
-            data = ResultModel.get_all_results(project)
-            return jsonify({"results": data}), 200
+            if page_no is not None:
+                data = ResultModel.get_paginated_results(project_id=project,page_no=page_no,row_size=row_size)
+                return jsonify({"results": data}), 200
+            else:
+                return jsonify({"Error": "Page number or page size not specified"})
         else:
             return jsonify({"error" : "You do not have access to project,kindly connect with project admin to get access to project components"}),401
     except Exception as e:

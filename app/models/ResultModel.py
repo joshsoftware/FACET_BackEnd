@@ -1,8 +1,11 @@
+from asyncio import proactor_events
 from datetime import datetime
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import JSON
 from marshmallow import Schema, fields
 from app.models import db
 from app.models.UserModel import UserModel, UserSchema
+import json
 
 
 class ResultModel(db.Model):
@@ -58,7 +61,17 @@ class ResultModel(db.Model):
     def get_one_result(id):
         data = ResultSchema().dump(ResultModel.query.get(id))
         return data
-    
+
+    @staticmethod
+    def get_paginated_results(project_id,page_no,row_size):
+        if row_size is not None:
+            data = ResultModel.query.filter_by(project=project_id).paginate(page=int(page_no),per_page=int(row_size))
+        else:
+            data = ResultModel.query.filter_by(project=project_id).paginate(page=int(page_no),per_page=20)
+        data = ResultSchema().dump(data.items,many=True)
+        
+        return data
+
     @staticmethod
     def is_exist(reportId):
         return ResultModel.query.filter_by(id = reportId).first() or None

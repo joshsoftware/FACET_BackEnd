@@ -1,12 +1,8 @@
-from asyncio import proactor_events
 from datetime import datetime
-from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import JSON
 from marshmallow import Schema, fields
 from app.models import db
 from app.models.UserModel import UserModel, UserSchema
-import json
-
 
 class ResultModel(db.Model):
     """

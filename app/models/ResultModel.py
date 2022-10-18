@@ -64,10 +64,9 @@ class ResultModel(db.Model):
             data = ResultModel.query.filter_by(project=project_id).paginate(page=int(page_no), per_page=int(row_size))
             data = ResultSchema().dump(data.items, many=True)
             total_results = ResultModel.query.filter_by(project=project_id).count()
-            data.append({"total_results" : total_results})
-            return data
+            return data,total_results
         except Exception as err:
-            return str(err)
+            return str(err),0
 
     @staticmethod
     def is_exist(reportId):

@@ -23,7 +23,7 @@ def getresults(id=0):
 
             data, total_results = ResultModel.get_paginated_results(project_id=project, page_no=page_no, row_size=row_size)
             if type(data) is str:
-                return jsonify({"error" : "You are trying to access paginated results which are out of bounds in comparison to the total results"}),404
+                return jsonify({"error" : data}),404
             return jsonify({"results" : data, "total_results" : total_results}), 200
         else:
             return jsonify({"error" : "You do not have access to project,kindly connect with project admin to get access to project components"}),401

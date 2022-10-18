@@ -63,6 +63,8 @@ class ResultModel(db.Model):
         try:
             data = ResultModel.query.filter_by(project=project_id).paginate(page=int(page_no), per_page=int(row_size))
             data = ResultSchema().dump(data.items, many=True)
+            for item in data:
+                item['executed_by'] = UserModel.get_user_info(id=item['executed_by'])
             total_results = ResultModel.query.filter_by(project=project_id).count()
             return data,total_results
         except Exception as err:

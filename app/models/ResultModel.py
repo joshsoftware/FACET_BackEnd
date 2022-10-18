@@ -4,7 +4,6 @@ from marshmallow import Schema, fields
 from app.models import db
 from app.models.UserModel import UserModel, UserSchema
 
-
 class ResultModel(db.Model):
     """
     Results Model
@@ -58,7 +57,17 @@ class ResultModel(db.Model):
     def get_one_result(id):
         data = ResultSchema().dump(ResultModel.query.get(id))
         return data
-    
+
+    @staticmethod
+    def get_paginated_results(project_id, page_no,row_size):
+        try:
+            data = ResultModel.query.filter_by(project=project_id).paginate(page=int(page_no), per_page=int(row_size))
+            data = ResultSchema().dump(data.items, many=True)
+            total_results = ResultModel.query.filter_by(project=project_id).count()
+            return data,total_results
+        except Exception as err:
+            return str(err),0
+
     @staticmethod
     def is_exist(reportId):
         return ResultModel.query.filter_by(id = reportId).first() or None

@@ -18,7 +18,10 @@ def create_id():
 
 
 def get_project_id(slug):
-    return ProjectModel.query.filter_by(name=slug).first().id
+    project = ProjectModel.query.filter_by(name=slug).first() or None
+    if project:
+        return project.id
+    return None
 
 def store_results(data):
     try:
@@ -30,6 +33,8 @@ def store_results(data):
     result.save()
 
 def has_access_to_project(project_id,user_id):
+    if project_id is None or user_id is None:
+        return False
     return ProjectModel.is_a_member_of_project(project_id,user_id)
 
 def is_super_admin(user):

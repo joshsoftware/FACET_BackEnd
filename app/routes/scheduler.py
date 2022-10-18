@@ -64,7 +64,6 @@ def addScheduledJob():
     with app.app_context():
         try:
             req_data = request.json
-            print(req_data)
             req_data['project'] = get_project_id(req_data.get('project'))
             user = get_current_user()
             req_data['scheduled_by'] = user.id

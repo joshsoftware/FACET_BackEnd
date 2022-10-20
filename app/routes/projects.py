@@ -103,7 +103,6 @@ def updateName():
 @jwt_required()
 def delete_project():
     try:
-        print(request.headers)
         req_data = request.json
         user = get_current_user()
         project_id = get_project_id(req_data.get('project'))

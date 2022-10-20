@@ -4,7 +4,6 @@ from marshmallow import Schema, fields
 from app.models import db
 from app.models.UserModel import UserModel, UserSchema
 
-
 class ResultModel(db.Model):
     """
     Results Model
@@ -12,7 +11,7 @@ class ResultModel(db.Model):
 
     __tablename__ = 'results'
     id = db.Column(db.Integer, primary_key = True)
-    project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
+    project = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete="CASCADE"))
     testcase = db.Column(JSON, nullable=False)
     teststeps = db.Column(JSON, nullable=False)
     environment = db.Column(JSON, nullable=False)
@@ -58,7 +57,19 @@ class ResultModel(db.Model):
     def get_one_result(id):
         data = ResultSchema().dump(ResultModel.query.get(id))
         return data
-    
+
+    @staticmethod
+    def get_paginated_results(project_id, page_no, row_size):
+        try:
+            data = ResultModel.query.filter_by(project=project_id).order_by(ResultModel.id.desc()).paginate(page=int(page_no), per_page=int(row_size))
+            data = ResultSchema().dump(data.items, many=True)
+            for item in data:
+                item['executed_by'] = UserModel.get_user_info(id=item['executed_by'])
+            total_results = ResultModel.query.filter_by(project=project_id).count()
+            return data, total_results
+        except Exception as err:
+            return str(err), 0
+
     @staticmethod
     def is_exist(reportId):
         return ResultModel.query.filter_by(id = reportId).first() or None

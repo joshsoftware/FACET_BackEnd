@@ -33,8 +33,9 @@ def create_app():
     app.register_blueprint(testcase_blueprint, url_prefix='/api/testcases')
     app.register_blueprint(env_blueprint, url_prefix='/api/environments')
     app.register_blueprint(engine_blueprint, url_prefix='')
-    app.register_blueprint(results_blueprint,url_prefix='/api/results')
-    app.register_blueprint(scheduler_blueprint,url_prefix='/api/schedule')
+    app.register_blueprint(results_blueprint, url_prefix='/api/results')
+    app.register_blueprint(scheduler_blueprint, url_prefix='/api/schedule')
+    app.register_blueprint(user_blueprint, url_prefix='/api/user')
 
     return app
 

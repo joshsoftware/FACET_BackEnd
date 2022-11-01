@@ -38,18 +38,18 @@ def signup():
         - if success JSON response containing message with 201 code
             e.g. { message: "User Created Successfully!" }
         - if fails JSON response containing error message with 400 code
-            e.g. {error: string}
+            e.g. {error: string or array or dict}
     """
     req_data = request.json
 
     try:
         data = user_schema.load(req_data)
     except ValidationError as err:
-        return jsonify(err.messages), 400
+        return jsonify({"error": err.messages}), 400
 
     user_exist = UserModel.get_user_by_email(data.get('email'))
     if user_exist:
-        return jsonify({'error': "User already exist, please supply another email address"}), 400
+        return jsonify({"error": "User already exist, please supply another email address"}), 400
 
     user = UserModel(data)
     user.save()
@@ -76,13 +76,13 @@ def login():
                     refresh_token: string
                 }
         - if fails JSON response containing error message with 400 code
-            e.g. {error: string}
+            e.g. {error: string or array or dict}
     """
     req_data = request.json
     try:
         data = user_schema.load(req_data, partial=True)
     except ValidationError as err:
-        return jsonify(err), 400
+        return jsonify({"error": err.messages}), 400
 
     if not req_data.get('email') or not req_data.get('password'):
         return jsonify({"error": "Email and Password are required fields!"}), 400
@@ -145,8 +145,8 @@ def delete_user():
     super_admin = get_current_user().id
     try:
         user = UserModel.get_one_user(req_data.get('user'))
-    except Exception as e:
-        return jsonify(str(e)), 400
+    except Exception as err:
+        return jsonify({"error": str(err)}), 400
 
     if not user:
         return jsonify({"error": "No such user exists"}), 404
@@ -181,7 +181,7 @@ def add():
     user = get_current_user()
 
     if not is_super_admin(user.id):
-        return jsonify({'Error': 'You do not possess the super admin rights to add modify a user status'}), 401
+        return jsonify({"error": "You do not possess the super admin rights to add modify a user status"}), 401
 
     try:
         admins = req_data['admin']
@@ -192,7 +192,9 @@ def add():
                 member.is_admin = True
                 member.update()
             return jsonify({"message": "Members successfully updated to admin"}), 200
-    except Exception as e:
+    except Exception as err:
+        # add logger
+        print(err)
         return jsonify({"error": "Something went wrong!"}), 400
 
 
@@ -225,7 +227,7 @@ def get_all_users():
         if exclude == 'admins':
             if not is_super_admin(user.id):
                 return jsonify({
-                    'error': 'You do not possess the super admin rights to access all the users of the organization'
+                    "error": "You do not possess the super admin rights to access all the users of the organization"
                 }), 401
             users = [user for user in users if not user['is_admin']]
         elif exclude == 'projectMembers':
@@ -233,6 +235,8 @@ def get_all_users():
             users = [user for user in users if user['id']
                      not in project_members]
 
-        return jsonify({'users': users})
-    except Exception as e:
+        return jsonify({"users": users}), 200
+    except Exception as err:
+        # add logger
+        print(err)
         return jsonify({"error": "Something Went Wrong!"}), 400

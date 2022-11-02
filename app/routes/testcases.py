@@ -122,7 +122,7 @@ def update_testcase():
             else:
                 return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
         else:
-            return jsonify({"error" : "no such endpoint exists"}),404
+            return jsonify({"error" : "no such testcase exists"}),404
     except Exception as err:
         return jsonify(str(err)),400
     return jsonify({"Success" : "Testcase Updated Successfully"}),200

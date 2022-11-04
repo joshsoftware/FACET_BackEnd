@@ -22,8 +22,9 @@ def getTestdata(id=0):
 
         data = TestdataModel.get_all_testdatas(teststep_id)
         return jsonify({"testdata": data}), 200, {"content-type": "application/json; charset=UTF-8"}
-    except Exception as e:
-        return jsonify(e), 400
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 
 @testdata_blueprint.route("/new",methods = ["POST"])
@@ -46,7 +47,7 @@ def createTestdata():
 
     testdata = TestdataModel(data)
     testdata.save()
-    return jsonify({"success": "Testdata created successfully!"}), 201
+    return jsonify({"message": "Testdata created successfully!"}), 201
 
 @testdata_blueprint.route("/update",methods=["PUT"])
 @jwt_required()
@@ -56,27 +57,32 @@ def update_Testdata():
         testdata = req_data.get('id')
         testdata = TestdataModel.query.get(testdata)
         user = get_current_user()
-        if testdata:
-            teststep = TestStepModel.query.filter_by(id = testdata.teststep).first()
-            project = int(str(teststep.project)[3:-1])
-            if has_access_to_project(project,user.id):
-                if req_data.get('name'):
-                    name = req_data.get('name')
-                    testdata.name = name
-                if req_data.get('payload'):
-                    payload = req_data.get('payload')
-                    testdata.payload = payload
-                if req_data.get('expected_outcome'):
-                    expected_outcome = req_data.get('expected_outcome')
-                    testdata.expected_outcome = expected_outcome
-                testdata.update({'modified_by' : user.id})
-            else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
-        else:
-            return jsonify({"Error" : "No such Testdata exists"}),404
+        if not testdata:
+            return jsonify({"error" : "No such Testdata exists"}),404
+
+        teststep = TestStepModel.query.filter_by(id = testdata.teststep).first()
+        project = int(str(teststep.project)[3:-1])
+        
+        if not has_access_to_project(project,user.id):
+            return jsonify({"error" : "You do not have access to this project, kindly connect to project admin to make updates in the project components"}),401
+        
+        if req_data.get('name'):
+            name = req_data.get('name')
+            testdata.name = name
+        
+        if req_data.get('payload'):
+            payload = req_data.get('payload')
+            testdata.payload = payload
+        
+        if req_data.get('expected_outcome'):
+            expected_outcome = req_data.get('expected_outcome')
+            testdata.expected_outcome = expected_outcome
+        
+        testdata.update({'modified_by' : user.id})
+        return jsonify({"message" : "Testdata Updated successfully"}),200
     except Exception as err:
-        return jsonify(str(err)),400
-    return jsonify({"Success" : "Testdata Updated successfully"}),200
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 
 """
@@ -92,15 +98,16 @@ def delete_testdata():
     user = get_current_user()
     try:
         testdata = TestdataModel.query.get(req_data.get('testdata'))
-    except Exception as e:
-        return jsonify(str(e)),400
-    if testdata:
-        teststep_id = testdata.teststep
-        project_id = TestStepModel.query.get(teststep_id).project_id
-        if has_access_to_project(project_id,user.id):
-            testdata.delete()
-        else:
-            return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
-    else:
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
+    if not testdata:
         return jsonify({"error" : "No such Testdata exists"}),404
-    return jsonify({"Success" : "Testdata deleted successfully"}),200
+    
+    teststep_id = testdata.teststep
+    project_id = TestStepModel.query.get(teststep_id).project_id
+    if not has_access_to_project(project_id,user.id):
+        return jsonify({"error" : "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}),401
+    
+    testdata.delete()
+    return jsonify({"message" : "Testdata deleted successfully"}),200

@@ -116,7 +116,7 @@ def tests():
         else:
             return jsonify({"error" : missing_components}),400
     except Exception as e:
-        return jsonify({"Error": str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
 def fetch_from_api(teststep):

@@ -16,9 +16,9 @@ def profile():
         user = get_current_user()
         user = UserModel.get_user_profile(user)
         return jsonify({ "user": user }), 200
-    except Exception as e:
-        print(str(e))
-        return jsonify({ "error": "Something Went Wrong!" }), 400
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 @user_blueprint.route('/change-password', methods=['POST'])
 @jwt_required()
@@ -59,9 +59,9 @@ def change_password():
         else:
             return jsonify({ "error": "Invalid password!" }), 400
         pass
-    except Exception as e:
-        print(str(e), e)
-        return jsonify({ "error": "Something Went Wrong!" }), 400
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 @user_blueprint.route('/profile/update', methods=['PATCH'])
 @jwt_required()
@@ -92,6 +92,6 @@ def update_profile():
         user.update(req_data)
         user = UserModel.get_user_info(user.id)
         return jsonify({ "message": "Profile updated successfully!", "user": user }), 200
-    except Exception as e:
-        print(e)
-        return jsonify({ "error": "Something Went Wrong!" }), 400
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400

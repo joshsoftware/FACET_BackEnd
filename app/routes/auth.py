@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from . import jwt
-from flask_jwt_extended import create_access_token,jwt_required
+from flask_jwt_extended import create_access_token, jwt_required
 from app.helpers.utils import get_current_user, get_project_members_id, is_super_admin
 from marshmallow import ValidationError
 from app.models.UserModel import UserModel, UserSchema
@@ -8,10 +8,11 @@ from app.models.UserModel import UserModel, UserSchema
 auth_blueprint = Blueprint('auth', __name__)
 user_schema = UserSchema()
 
+
 @jwt.user_lookup_loader
 def _user_lookup_callback(_jwt_header, jwt_data):
     identity = jwt_data["sub"]
-    
+
     user = UserModel.get_one_user(identity)
     if user is None:
         return None
@@ -31,11 +32,11 @@ def signup():
 
     user_exist = UserModel.get_user_by_email(data.get('email'))
     if user_exist:
-        return jsonify({'error':"User already exist, please supply another email address"}), 400
-    
+        return jsonify({"error": "User already exist, please supply another email address"}), 400
+
     user = UserModel(data)
     user.save()
-    return jsonify({"message":"User Created Successfully!"}), 201
+    return jsonify({"message": "User Created Successfully!"}), 201
 
 
 # Login Account
@@ -54,11 +55,12 @@ def login():
 
     if not user:
         return jsonify({"error": "Invalid Credentials!"}), 400
-    
+
     if user and user.check_hash(data.get('password')):
         token = create_access_token(identity=user.id)
-        return jsonify({"token":token, "user": UserModel.get_user_profile(user)}), 200
+        return jsonify({"token": token, "user": UserModel.get_user_profile(user)}), 200
     return jsonify({"error": "Invalid Credentials!"}), 400
+
 
 @auth_blueprint.route('/delete/', methods=['DELETE'])
 @jwt_required()
@@ -67,16 +69,18 @@ def delete_user():
     super_admin = get_current_user().id
     try:
         user = UserModel.get_one_user(req_data.get('user'))
-    except Exception as e:
-        return jsonify(str(e)),400
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error": "something went wrong"}), 400
     if user:
         if is_super_admin(super_admin):
             user.delete()
         else:
-            return jsonify({"Error" : "Sorry you do not possess the super admin rights to delete a user"}),401
+            return jsonify({"rrror": "Sorry you do not possess the super admin rights to delete a user"}), 401
     else:
-        return jsonify({"Error" : "No such user exists"}),404
-    return jsonify({"success" : "User deleted sucessfully"}),200
+        return jsonify({"rrror": "No such user exists"}), 404
+    return jsonify({"message": "User deleted sucessfully"}), 200
+
 
 '''
 The below API provides the functionality of adding both members and admins
@@ -85,7 +89,9 @@ Input :
     JWT token for authorisation
     admin -> input list, optional in nature, required to be interger in nature
 '''
-@auth_blueprint.route('/add_admins',methods=['POST'])
+
+
+@auth_blueprint.route('/add_admins', methods=['POST'])
 @jwt_required()
 def add():
     req_data = request.json
@@ -99,30 +105,33 @@ def add():
                     member = UserModel.get_one_user(id)
                     member.is_admin = True
                     member.update()
-                return jsonify({"Success" : "Members successfully updated to admin"}),201
-        except Exception as e:
-            return jsonify(str(e)),400
+                return jsonify({"message": "Members successfully updated to admin"}), 201
+        except Exception as err:
+            print(str(err))
+            return jsonify({"error": "something went wrong"}), 400
     else:
-        return jsonify({'Error' : 'You do not possess the super admin rights to add modify a user status'}),401
+        return jsonify({"error": "You do not possess the super admin rights to add modify a user status"}), 401
 
-@auth_blueprint.route('/get_all_users',methods=['GET'])
+
+@auth_blueprint.route('/get_all_users', methods=['GET'])
 @jwt_required()
 def get_all_users():
     exclude = request.args.get('exclude')
     project = request.args.get('project')
 
     user = get_current_user()
-    
+
     try:
         users = UserModel.get_all_members()
-        if exclude=='admins':
+        if exclude == 'admins':
             if is_super_admin(user.id):
                 users = [i for i in users if not i['is_admin']]
             else:
-                return jsonify({'Error' : 'You do not possess the super admin rights to access all the users of the organization'}),401
-        elif exclude=='projectMembers':
+                return jsonify({'Error': 'You do not possess the super admin rights to access all the users of the organization'}), 401
+        elif exclude == 'projectMembers':
             project_members = get_project_members_id(project)
             users = [i for i in users if i['id'] not in project_members]
-        return jsonify({'users' : users})
-    except Exception as e:
-        return jsonify(str(e)),400
+        return jsonify({'users': users})
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}), 400

@@ -20,7 +20,7 @@ def getProjects():
     if project:
         data = ProjectModel.get_one_project(project, user)
         if not data:
-            return jsonify({'error': 'Project Not Found'}), 404
+            return jsonify({"error": 'Project Not Found'}), 404
         data['is_project_admin'] = data['project_admin']==user
         return jsonify(data), 200
     data = ProjectModel.get_all_projects(get_current_user().id)
@@ -65,9 +65,9 @@ def createProjects():
         if user.id != super_admin.id:
             project.project_members.append(super_admin)
         project.save()
-        return jsonify({"success": "project created successfully"}),200
+        return jsonify({"message": "project created successfully"}),200
     else:
-        return jsonify({"Error" : "You do not possess the admin rights to create a project, kindly contact the super admin for recieving admin privileges"}),401
+        return jsonify({"error" : "You do not possess the admin rights to create a project, kindly contact the super admin for recieving admin privileges"}),401
 
 
 @projects_blueprint.route('/update-name', methods=['POST'])
@@ -88,16 +88,16 @@ def updateName():
                         project.name = new_project_name
                         project.update()
                     else:
-                        return jsonify({'error': 'Project name already exist!'}), 400
+                        return jsonify({"error": "Project name already exist!"}), 400
                 else:
-                    return jsonify({'error': 'You do not have access to update the project name.'}), 401
+                    return jsonify({"error": "You do not have access to update the project name"}), 401
             else:
-                return jsonify({'error': 'New project name must be different from previous name.'}), 400
+                return jsonify({"error": "New project name must be different from previous name"}), 400
         else:
-            return jsonify({'error': 'Project not found with given name!'}), 404
+            return jsonify({"error": "Project not found with given name!"}), 404
     else:
-        return jsonify({'error': 'Something Went Wrong!'}), 400
-    return jsonify({'message': 'Project name updated successfully!'}), 200
+        return jsonify({"error": "Something Went Wrong!"}), 400
+    return jsonify({'message': "Project name updated successfully!"}), 200
 
 @projects_blueprint.route('/delete/',methods=["DELETE"])
 @jwt_required()
@@ -115,8 +115,9 @@ def delete_project():
         else:
             return jsonify({"error" : "No such project exists"}),404, {"content-type": "application/json; charset=UTF-8"}
         return jsonify({"message" : "project deleted successfully"}),200, {"content-type": "application/json; charset=UTF-8"}
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400, {"content-type": "application/json; charset=UTF-8"}
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error": "something went wrong"}), 400, {"content-type": "application/json; charset=UTF-8"}
 
 @projects_blueprint.route('/members/add',methods=["POST"])
 @jwt_required()
@@ -134,11 +135,12 @@ def add_members():
                     id = UserModel.get_one_user(member)
                     project.project_members.append(id)
                 project.update({'modified_by': admin})
-                return jsonify({"Success" : "New members added successfully"}),200
+                return jsonify({"message" : "New members added successfully"}),200
             else:
                 return jsonify({"error" : "You do not have the admin rights to add members"}),401
-    except Exception as e:
-        return jsonify(str(e)),400
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
     return jsonify({"error" : "No such project exists!!!!"}),404
 
 @projects_blueprint.route('/members/remove',methods=["DELETE"])
@@ -157,9 +159,10 @@ def remove_members():
                     id = UserModel.get_one_user(member)
                     project.project_members.remove(id)
                 project.update({'modified_by':admin})
-                return jsonify({"Success":"Members removed successfully"}),200
+                return jsonify({"message":"Members removed successfully"}),200
             else:
-                return jsonify({"Error": "You do not have the admin rights to delete members"}),401
-    except Exception as e:
-        return jsonify(str(e)),400
-    return jsonify({"Error" : "No such project exists"}),404
+                return jsonify({"error": "You do not have the admin rights to delete members"}),401
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
+    return jsonify({"error" : "No such project exists"}),404

@@ -29,18 +29,19 @@ def getTestsuites(id=0):
     try:
         user = get_current_user()
         project = get_project_id(request.args.get("project"))
-        if has_access_to_project(project_id=project, user_id=user.id):
-            if id != 0:
-                data = TestsuiteModel.get_one_testsuite(id=id)
-                return jsonify(data), 200
-            data = TestsuiteModel.get_all_testsuites(project=project)
-            return jsonify({"testsuites": data}), 200
-        else:
-            return jsonify({"Error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
+        if not has_access_to_project(project_id=project, user_id=user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
+
+        if id != 0:
+            data = TestsuiteModel.get_one_testsuite(id=id)
+            return jsonify(data), 200
+
+        data = TestsuiteModel.get_all_testsuites(project=project)
+        return jsonify({"testsuites": data}), 200
 
     except Exception as err:
         print(str(err))
-        return jsonify({"Error": "Something went wrong"}), 400
+        return jsonify({"error": "Something went wrong"}), 400
 
 
 @testsuite_blueprint.route('/new', methods=["POST"])
@@ -69,27 +70,30 @@ def createTestsuites():
     user = get_current_user()
     req_data['created_by'] = user.id
     req_data['modified_by'] = user.id
-    testcases = req_data['array_of_testcases']
+    testcases = req_data.get('array_of_testcases')
+    if not testcases:
+        return jsonify({"error":"Testcases missing"}), 400
     del req_data['array_of_testcases']
-    if has_access_to_project(project_id=req_data['project'], user_id=user.id):
-        try:
-            data = testsuite_schema.load(req_data)
-        except ValidationError as err:
-            return jsonify(str(err)), 400
 
-        is_exist = TestsuiteModel.is_exist(
-            name=data.get('name'), project=data.get('project'))
+    if not has_access_to_project(project_id=req_data['project'], user_id=user.id):
+        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
 
-        if is_exist:
-            return jsonify({"error": "You already have a testsuite of the same name in this project."}), 400
+    try:
+        data = testsuite_schema.load(req_data)
+    except ValidationError as err:
+        return jsonify({"error": str(err)}), 400
 
-        testsuite = TestsuiteModel(data)
-        for testcase in testcases:
-            testsuite.testcases.append(TestcaseModel.query.get(testcase))
-        testsuite.save()
-        return jsonify({"success": "testcase created with the given testsuites"}), 200
-    else:
-        return jsonify({"Error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
+    is_exist = TestsuiteModel.is_exist(
+        name=data.get('name'), project=data.get('project'))
+
+    if is_exist:
+        return jsonify({"error": "You already have a testsuite of the same name in this project."}), 400
+
+    testsuite = TestsuiteModel(data)
+    for testcase in testcases:
+        testsuite.testcases.append(TestcaseModel.query.get(testcase))
+    testsuite.save()
+    return jsonify({"message": "testcase created with the given testsuites"}), 200
 
 
 @testsuite_blueprint.route('/delete', methods=["DELETE"])
@@ -123,7 +127,7 @@ def deleteTestsuiets():
     if not has_access_to_project(project_id=testsuite.project, user_id=user.id):
         return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
     testsuite.delete()
-    return jsonify({"success": "testsuite deleted successfully"}), 200
+    return jsonify({"message": "testsuite deleted successfully"}), 200
 
 
 @testsuite_blueprint.route('/update', methods=["PUT"])
@@ -167,7 +171,7 @@ def updateTestsuites():
 
         testsuite.update({'modified_by': user.id})
 
-        return jsonify({"success": "Testsuite Updated successfully"}), 200
+        return jsonify({"message": "Testsuite Updated successfully"}), 200
 
     except Exception as err:
         print(str(err))

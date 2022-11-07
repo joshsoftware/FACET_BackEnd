@@ -19,7 +19,7 @@ def getTestcases(id=0):
         user = get_current_user()
         project = get_project_id(request.args.get("project"))
         if not has_access_to_project(project, user.id):
-            return jsonify({"Error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
         
         if id != 0:
             data = TestcaseModel.get_one_testcase(id)
@@ -44,7 +44,7 @@ def createTestcases():
     del req_data['array_of_teststeps']
     
     if not has_access_to_project(req_data['project'], user.id):
-        return jsonify({"Error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
+        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
     
     try:
         data = testcase_schema.load(req_data)
@@ -67,7 +67,7 @@ def createTestcases():
         for td in teststep['testdata']:
             testcase.testdatas.append(TestdataModel.query.get(td))
     testcase.save()
-    return jsonify({"success": "testcase created with the given teststeps"}), 200
+    return jsonify({"message": "testcase created with the given teststeps"}), 200
 
 
 @testcase_blueprint.route('/delete/', methods=["DELETE"])
@@ -87,7 +87,7 @@ def delete_testcase():
         return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
     
     testcase.delete()
-    return jsonify({"Success": "testcase deleted successfully"}), 200
+    return jsonify({"message": "testcase deleted successfully"}), 200
 
 
 @testcase_blueprint.route('/update', methods=["PUT"])
@@ -102,7 +102,7 @@ def update_testcase():
             return jsonify({"error": "no such testcase exists"}), 404
         
         if not has_access_to_project(testcase.project, user.id):
-            return jsonify({"Error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
         
         if req_data.get('name'):
             name = req_data.get('name')
@@ -133,9 +133,9 @@ def update_testcase():
                         testcase.testdatas.append(
                             TestdataModel.query.get(td))
         else:
-            return jsonify({"Error": "You cannot delete all the teststeps, atleast add one to update"}), 400
+            return jsonify({"error": "You cannot delete all the teststeps, atleast add one to update"}), 400
 
         testcase.update({'modified_by': user.id})
-        return jsonify({"Success": "Testcase Updated Successfully"}), 200
+        return jsonify({"message": "Testcase Updated Successfully"}), 200
     except Exception as err:
         return jsonify(str(err)), 400

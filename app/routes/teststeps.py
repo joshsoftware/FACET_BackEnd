@@ -60,7 +60,7 @@ def create_teststep():
 
         teststep = TestStepModel(data)
         teststep.save()
-        return jsonify({"success": "Teststep created successfully!"}), 201
+        return jsonify({"message": "Teststep created successfully!"}), 201
     except Exception as err:
         print(str(err))
         return jsonify({"error": "something went wrong"}), 400
@@ -125,4 +125,4 @@ def update_teststep():
     except Exception as err:
         print(str(err))
         return jsonify({"error": "something went wrong"}), 400
-    return jsonify({"Success": "Teststep Updated successfully"}), 200
+    return jsonify({"message": "Teststep Updated successfully"}), 200

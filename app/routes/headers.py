@@ -41,7 +41,7 @@ def createHeaders():
     req_data['modified_by'] = user.id
     if not has_access_to_project(req_data['project'], user.id):
         return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
-    
+
     try:
         data = header_schema.load(req_data)
     except ValidationError as err:
@@ -67,13 +67,13 @@ def delete_header():
     except Exception as err:
         print(str(err))
         return jsonify({"error": "something went wrong"}), 400
-    
+
     if not header:
         return jsonify({"error": "No such header exists"}), 404
-    
+
     if not has_access_to_project(header.project, user.id):
         return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
-    
+
     header.delete()
     return jsonify({"message": "Header deleted successfully"}), 200
 
@@ -88,18 +88,18 @@ def update_header():
         header = HeaderModel.query.get(header)
         if not header:
             return jsonify({"error": "No such header exists"}), 404
-        
+
         if not has_access_to_project(header.project, user.id):
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
-        
+
         if req_data.get('name'):
             name = req_data.get('name')
             header.name = name
-        
+
         if req_data.get('header'):
             new_header = req_data.get('header')
             header.header = new_header
-        
+
         header.update({'modified_by': user.id})
         return jsonify({"message": "Header updated successfully"}), 200
     except Exception as err:

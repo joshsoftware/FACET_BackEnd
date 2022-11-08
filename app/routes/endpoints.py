@@ -97,13 +97,9 @@ def update_endpoint():
         if not has_access_to_project(endpoint.project, user.id):
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
 
-        if req_data.get('name'):
-            name = req_data.get('name')
-            endpoint.name = name
+        endpoint.name = req_data.get('name') if req_data.get('name') else endpoint.name
 
-        if req_data.get('endpoint'):
-            new_endpoint = req_data.get('endpoint')
-            endpoint.endpoint = new_endpoint
+        endpoint.endpoint = req_data.get('endpoint') if req_data.get('endpoint') else endpoint.endpoint
 
         endpoint.update({'modified_by': user.id})
         return jsonify({"message": "Endpoint updated successfully"}), 200

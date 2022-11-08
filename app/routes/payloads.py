@@ -121,13 +121,9 @@ def update_payload():
         if not has_access_to_project(payload.project, user.id):
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
 
-        if req_data.get('name'):
-            name = req_data.get('name')
-            payload.name = name
+        payload.name = req_data.get('name') if req_data.get('name') else payload.name
 
-        if req_data.get('payload'):
-            new_payload = req_data.get('payload')
-            payload.payload = new_payload
+        payload.payload = req_data.get('payload') if req_data.get('payload') else payload.payload
 
         if req_data.get('expected_outcome'):
             expected_outcome = req_data.get('expected_outcome')
@@ -152,9 +148,7 @@ def update_payload():
                         print(err)
                         return jsonify({"error": "something went wrong"}), 400
 
-        if req_data.get('parameters'):
-            parameters = req_data.get('parameters')
-            payload.parameters = parameters
+        payload.parameters = req_data.get('parameters') if req_data.get('parameters') else payload.parameters
 
         payload.update({'modified_by': user.id})
         return jsonify({"message": "Payload updated successfully"}), 200

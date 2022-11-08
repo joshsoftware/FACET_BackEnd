@@ -114,18 +114,12 @@ def update_testcase():
         if not has_access_to_project(testcase.project, user.id):
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
 
-        if req_data.get('name'):
-            name = req_data.get('name')
-            testcase.name = name
+        testcase.name = req_data.get('name') if req_data.get('name') else testcase.name
 
-        if req_data.get('description'):
-            description = req_data.get('description')
-            testcase.description = description
-
-        if req_data.get('environment'):
-            environment = req_data.get('environment')
-            testcase.environment = environment
-
+        testcase.description = req_data.get('description') if req_data.get('description') else testcase.description
+        
+        testcase.environment = req_data.get('environment') if req_data.get('environment') else testcase.environment
+        
         if req_data.get('array_of_teststeps'):
             teststeps = req_data.get('array_of_teststeps')
             if len(teststeps) > 0:

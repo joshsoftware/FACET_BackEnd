@@ -1,13 +1,13 @@
 from app.models import db
-from marshmallow import Schema,fields
+from marshmallow import Schema, fields
 from datetime import datetime 
 from app.models.TestcaseModel import TestcaseSchema
 from app.helpers.utils import get_user_name
 
 testsuite_testcase = db.Table(
     'testsuite_testcase',
-    db.Column('testsuite_id', db.Integer, db.ForeignKey('testsuites.id',ondelete="CASCADE")),
-    db.Column('testcase_id', db.Integer, db.ForeignKey('testcases.id',ondelete="CASCADE"))
+    db.Column('testsuite_id', db.Integer, db.ForeignKey('testsuites.id', ondelete="CASCADE")),
+    db.Column('testcase_id', db.Integer, db.ForeignKey('testcases.id', ondelete="CASCADE"))
 )
 
 class TestsuiteModel(db.Model):
@@ -18,11 +18,11 @@ class TestsuiteModel(db.Model):
     __tablename__ = 'testsuites'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    project = db.Column(db.Integer, db.ForeignKey('projects.id',ondelete="CASCADE"))
-    testcases = db.relationship('TestcaseModel',secondary=testsuite_testcase,backref='testcases')
+    project = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete="CASCADE"))
+    testcases = db.relationship('TestcaseModel', secondary=testsuite_testcase, backref='testcases')
     created_at = db.Column(db.DateTime)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
-    modified_by = db.Column(db.Integer, db.ForeignKey('users.id',ondelete="SET NULL"))
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="SET NULL"))
+    modified_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="SET NULL"))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):
@@ -51,8 +51,8 @@ class TestsuiteModel(db.Model):
         db.session.commit()
     
     @staticmethod
-    def is_exist(name,project):
-        return TestsuiteModel.query.filter_by(name=name,project=project).first() or None
+    def is_exist(name, project):
+        return TestsuiteModel.query.filter_by(name=name, project=project).first() or None
     
     @staticmethod
     def get_one_testsuite(id):

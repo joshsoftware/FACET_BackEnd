@@ -64,36 +64,40 @@ def createTestsuites():
         - error message with status code 400, with the message 'the testsuite already exists' if it already exists
         - error message with status code 400 and message 'something went wrong' if faulty input of any sort is provided
     """
-    req_data = request.json
-    req_data['project'] = get_project_id(slug=req_data.get("project"))
-    req_data['name'] = create_slug(req_data.get("name"))
-    user = get_current_user()
-    req_data['created_by'] = user.id
-    req_data['modified_by'] = user.id
-    testcases = req_data.get('array_of_testcases')
-    if not testcases:
-        return jsonify({"error":"Testcases missing"}), 400
-    del req_data['array_of_testcases']
-
-    if not has_access_to_project(project_id=req_data['project'], user_id=user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
-
     try:
-        data = testsuite_schema.load(req_data)
-    except ValidationError as err:
-        return jsonify({"error": str(err)}), 400
+        req_data = request.json
+        req_data['project'] = get_project_id(slug=req_data.get("project"))
+        req_data['name'] = create_slug(req_data.get("name"))
+        user = get_current_user()
+        req_data['created_by'] = user.id
+        req_data['modified_by'] = user.id
+        testcases = req_data.get('array_of_testcases')
+        if not testcases:
+            return jsonify({"error": "Testcases missing"}), 400
+        del req_data['array_of_testcases']
 
-    is_exist = TestsuiteModel.is_exist(
-        name=data.get('name'), project=data.get('project'))
+        if not has_access_to_project(project_id=req_data['project'], user_id=user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
 
-    if is_exist:
-        return jsonify({"error": "You already have a testsuite of the same name in this project."}), 400
+        try:
+            data = testsuite_schema.load(req_data)
+        except ValidationError as err:
+            return jsonify({"error": str(err)}), 400
 
-    testsuite = TestsuiteModel(data)
-    for testcase in testcases:
-        testsuite.testcases.append(TestcaseModel.query.get(testcase))
-    testsuite.save()
-    return jsonify({"message": "testcase created with the given testsuites"}), 200
+        is_exist = TestsuiteModel.is_exist(
+            name=data.get('name'), project=data.get('project'))
+
+        if is_exist:
+            return jsonify({"error": "You already have a testsuite of the same name in this project."}), 400
+
+        testsuite = TestsuiteModel(data)
+        for testcase in testcases:
+            testsuite.testcases.append(TestcaseModel.query.get(testcase))
+        testsuite.save()
+        return jsonify({"message": "testcase created with the given testsuites"}), 200
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error": "something went wrong"}), 400
 
 
 @testsuite_blueprint.route('/delete', methods=["DELETE"])
@@ -114,20 +118,24 @@ def deleteTestsuiets():
         - error message with status code 404 and message "testsuite not found" if the testsuite does not exist
         - error message with status code 401 if somebody without access to the project hits the api 
     """
-    req_data = request.json
-    user = get_current_user()
-    testsuite = req_data.get('testsuite')
-    if not type(testsuite) is int:
-        return jsonify({"error": "faulty input"}), 400
+    try:
+        req_data = request.json
+        user = get_current_user()
+        testsuite = req_data.get('testsuite')
+        if not type(testsuite) is int:
+            return jsonify({"error": "faulty input"}), 400
 
-    testsuite = TestsuiteModel.query.get(testsuite) or None
-    if not testsuite:
-        return jsonify({"error": "testsuite not found"}), 404
+        testsuite = TestsuiteModel.query.get(testsuite) or None
+        if not testsuite:
+            return jsonify({"error": "testsuite not found"}), 404
 
-    if not has_access_to_project(project_id=testsuite.project, user_id=user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
-    testsuite.delete()
-    return jsonify({"message": "testsuite deleted successfully"}), 200
+        if not has_access_to_project(project_id=testsuite.project, user_id=user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
+        testsuite.delete()
+        return jsonify({"message": "testsuite deleted successfully"}), 200
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error": "something went wrong"}), 400
 
 
 @testsuite_blueprint.route('/update', methods=["PUT"])
@@ -150,9 +158,9 @@ def updateTestsuites():
         - error message with status code 404 and message "testsuite not found" if the testsuite does not exist
         - error message with status code 401 if somebody without access to the project hits the api 
     """
-    req_data = request.json
-    user = get_current_user()
     try:
+        req_data = request.json
+        user = get_current_user()
         testsuite = req_data.get('id')
         testsuite = TestsuiteModel.query.get(testsuite)
         if not testsuite:

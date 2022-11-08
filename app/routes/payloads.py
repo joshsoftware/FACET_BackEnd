@@ -52,7 +52,7 @@ def create_payloads():
         try:
             data = payload_schema.load(req_data)
         except ValidationError as err:
-            return jsonify(err), 400
+            return jsonify({"error": str(err)}), 400
 
         is_exist = PayloadModel.is_exist(data.get('name'), data.get('project'))
         if is_exist:
@@ -85,30 +85,34 @@ def create_payloads():
 @payloads_blueprint.route('/delete/', methods=["DELETE"])
 @jwt_required()
 def delete_payload():
-    req_data = request.json
-    user = get_current_user()
     try:
-        payload = PayloadModel.query.get(req_data.get('payload'))
+        req_data = request.json
+        user = get_current_user()
+        try:
+            payload = PayloadModel.query.get(req_data.get('payload'))
+        except Exception as err:
+            print(err)
+            return jsonify({"error": "something went wrong"}), 400
+
+        if not payload:
+            return jsonify({"error": "No such payload exists"}), 404
+
+        if not has_access_to_project(payload.project, user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
+
+        payload.delete()
+        return jsonify({"message": "payload deleted successfully"}), 200
     except Exception as err:
-        print(err)
-        return jsonify({"error": "something went wrong"}), 400
-
-    if not payload:
-        return jsonify({"error": "No such payload exists"}), 404
-
-    if not has_access_to_project(payload.project, user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
-
-    payload.delete()
-    return jsonify({"message": "payload deleted successfully"}), 200
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 
 @payloads_blueprint.route('/update', methods=["PUT"])
 @jwt_required()
 def update_payload():
-    req_data = request.json
-    user = get_current_user()
     try:
+        req_data = request.json
+        user = get_current_user()
         payload = req_data.get('id')
         payload = PayloadModel.query.get(payload)
         if not payload:
@@ -117,13 +121,9 @@ def update_payload():
         if not has_access_to_project(payload.project, user.id):
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
 
-        if req_data.get('name'):
-            name = req_data.get('name')
-            payload.name = name
+        payload.name = req_data.get('name') if req_data.get('name') else payload.name
 
-        if req_data.get('payload'):
-            new_payload = req_data.get('payload')
-            payload.payload = new_payload
+        payload.payload = req_data.get('payload') if req_data.get('payload') else payload.payload
 
         if req_data.get('expected_outcome'):
             expected_outcome = req_data.get('expected_outcome')
@@ -148,9 +148,7 @@ def update_payload():
                         print(err)
                         return jsonify({"error": "something went wrong"}), 400
 
-        if req_data.get('parameters'):
-            parameters = req_data.get('parameters')
-            payload.parameters = parameters
+        payload.parameters = req_data.get('parameters') if req_data.get('parameters') else payload.parameters
 
         payload.update({'modified_by': user.id})
         return jsonify({"message": "Payload updated successfully"}), 200

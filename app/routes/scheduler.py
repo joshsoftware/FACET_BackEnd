@@ -80,7 +80,7 @@ def addScheduledJob():
             try:
                 data = scheduler_schema.load(req_data)
             except ValidationError as err:
-                return jsonify(str(err)),400
+                return jsonify({"error": str(err)}), 400
             
             scheduled_job = SchedulerModel(data)
             scheduled_job.status = "to be executed"

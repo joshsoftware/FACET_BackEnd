@@ -50,7 +50,7 @@ def create_teststep():
         try:
             data = teststep_schema.load(req_data)
         except ValidationError as err:
-            return jsonify(str(err)), 400
+            return jsonify({"error": str(err)}), 400
 
         is_exist = TestStepModel.is_exist(
             data.get('name'), data.get('project_id'))
@@ -69,30 +69,34 @@ def create_teststep():
 @teststeps_blueprint.route('/delete/', methods=["DELETE"])
 @jwt_required()
 def delete_teststep():
-    req_data = request.json
-    user = get_current_user()
     try:
-        teststep = TestStepModel.query.get(req_data.get('teststep'))
+        req_data = request.json
+        user = get_current_user()
+        try:
+            teststep = TestStepModel.query.get(req_data.get('teststep'))
+        except Exception as err:
+            print(str(err))
+            return jsonify({"error": "something went wrong"}), 400
+
+        if not teststep:
+            return jsonify({"error": "No such teststep exists"}), 404
+
+        if not has_access_to_project(teststep.project_id, user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
+
+        teststep.delete()
+        return jsonify({"message": "teststep deleted successfully"}), 200
     except Exception as err:
         print(str(err))
         return jsonify({"error": "something went wrong"}), 400
-
-    if not teststep:
-        return jsonify({"error": "No such teststep exists"}), 404
-
-    if not has_access_to_project(teststep.project_id, user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
-
-    teststep.delete()
-    return jsonify({"message": "teststep deleted successfully"}), 200
 
 
 @teststeps_blueprint.route('/update', methods=["PUT"])
 @jwt_required()
 def update_teststep():
-    req_data = request.json
-    user = get_current_user()
     try:
+        req_data = request.json
+        user = get_current_user()
         teststep = req_data.get('id')
         teststep = TestStepModel.query.get(teststep)
         if not teststep:
@@ -101,25 +105,15 @@ def update_teststep():
         if not has_access_to_project(teststep.project_id, user.id):
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
 
-        if req_data.get('name'):
-            name = req_data.get('name')
-            teststep.name = name
+        teststep.name = req_data.get('name') if req_data.get('name') else teststep.name
+        
+        teststep.method  = req_data.get('method') if req_data.get('method') else teststep.method
 
-        if req_data.get('method'):
-            method = req_data.get('method')
-            teststep.method = method
+        teststep.endpoint = req_data.get('endpoint_id') if req_data.get('endpoint_id') else teststep.endpoint
 
-        if req_data.get('endpoint_id'):
-            endpoint = req_data.get('endpoint_id')
-            teststep.endpoint_id = endpoint
-
-        if req_data.get('header_id'):
-            header = req_data.get('header_id')
-            teststep.header_id = header
-
-        if req_data.get('payload_id'):
-            payload = req_data.get('payload_id')
-            teststep.payload_id = payload
+        teststep.header = req_data.get('header_id') if req_data.get('header_id') else teststep.header
+        
+        teststep.payload = req_data.get('payload_id') if req_data.get('payload_id') else teststep.payload
 
         teststep.update({'modified_by': user.id})
     except Exception as err:

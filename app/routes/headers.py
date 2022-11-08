@@ -33,57 +33,64 @@ def getHeaders(id=0):
 @headers_blueprint.route('/new', methods=["POST"])
 @jwt_required()
 def createHeaders():
-    req_data = request.json
-    req_data['name'] = create_slug(req_data.get('name'))
-    req_data['project'] = get_project_id(req_data.get('project'))
-    user = get_current_user()
-    req_data['created_by'] = user.id
-    req_data['modified_by'] = user.id
-    if not has_access_to_project(req_data['project'], user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
-
     try:
-        data = header_schema.load(req_data)
-    except ValidationError as err:
-        return jsonify(err), 400
+        req_data = request.json
+        req_data['name'] = create_slug(req_data.get('name'))
+        req_data['project'] = get_project_id(req_data.get('project'))
+        user = get_current_user()
+        req_data['created_by'] = user.id
+        req_data['modified_by'] = user.id
+        if not has_access_to_project(req_data['project'], user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
 
-    is_exist = HeaderModel.is_exist(data.get('name'), data.get('project'))
+        try:
+            data = header_schema.load(req_data)
+        except ValidationError as err:
+            return jsonify({"error": str(err)}), 400
 
-    if is_exist:
-        return jsonify({"error": "You already have a header of the same name in this project."}), 400
+        is_exist = HeaderModel.is_exist(data.get('name'), data.get('project'))
 
-    endpoint = HeaderModel(data)
-    endpoint.save()
-    return jsonify({"message": "Header created successfully!"}), 201
+        if is_exist:
+            return jsonify({"error": "You already have a header of the same name in this project."}), 400
+
+        endpoint = HeaderModel(data)
+        endpoint.save()
+        return jsonify({"message": "Header created successfully!"}), 201
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 
 @headers_blueprint.route('/delete/', methods=["DELETE"])
 @jwt_required()
 def delete_header():
-    req_data = request.json
-    user = get_current_user()
     try:
-        header = HeaderModel.query.get(req_data.get('header'))
+        req_data = request.json
+        user = get_current_user()
+        try:
+            header = HeaderModel.query.get(req_data.get('header'))
+        except Exception as err:
+            print(str(err))
+            return jsonify({"error": "something went wrong"}), 400
+
+        if not header:
+            return jsonify({"error": "No such header exists"}), 404
+
+        if not has_access_to_project(header.project, user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
+
+        header.delete()
+        return jsonify({"message": "Header deleted successfully"}), 200
     except Exception as err:
         print(str(err))
-        return jsonify({"error": "something went wrong"}), 400
-
-    if not header:
-        return jsonify({"error": "No such header exists"}), 404
-
-    if not has_access_to_project(header.project, user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
-
-    header.delete()
-    return jsonify({"message": "Header deleted successfully"}), 200
-
+        return jsonify({"error":"something went wrong"}),400
 
 @headers_blueprint.route('/update', methods=["PUT"])
 @jwt_required()
 def update_header():
-    req_data = request.json
-    user = get_current_user()
     try:
+        req_data = request.json
+        user = get_current_user()
         header = req_data.get('id')
         header = HeaderModel.query.get(header)
         if not header:
@@ -92,14 +99,10 @@ def update_header():
         if not has_access_to_project(header.project, user.id):
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
 
-        if req_data.get('name'):
-            name = req_data.get('name')
-            header.name = name
-
-        if req_data.get('header'):
-            new_header = req_data.get('header')
-            header.header = new_header
-
+        header.name = req_data.get('name') if req_data.get('name') else header.name
+        
+        header.header = req_data.get('header') if req_data.get('header') else header.header
+        
         header.update({'modified_by': user.id})
         return jsonify({"message": "Header updated successfully"}), 200
     except Exception as err:

@@ -52,7 +52,7 @@ def create_payloads():
         try:
             data = payload_schema.load(req_data)
         except ValidationError as err:
-            return jsonify(err), 400
+            return jsonify({"error": str(err)}), 400
 
         is_exist = PayloadModel.is_exist(data.get('name'), data.get('project'))
         if is_exist:
@@ -85,30 +85,34 @@ def create_payloads():
 @payloads_blueprint.route('/delete/', methods=["DELETE"])
 @jwt_required()
 def delete_payload():
-    req_data = request.json
-    user = get_current_user()
     try:
-        payload = PayloadModel.query.get(req_data.get('payload'))
+        req_data = request.json
+        user = get_current_user()
+        try:
+            payload = PayloadModel.query.get(req_data.get('payload'))
+        except Exception as err:
+            print(err)
+            return jsonify({"error": "something went wrong"}), 400
+
+        if not payload:
+            return jsonify({"error": "No such payload exists"}), 404
+
+        if not has_access_to_project(payload.project, user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
+
+        payload.delete()
+        return jsonify({"message": "payload deleted successfully"}), 200
     except Exception as err:
-        print(err)
-        return jsonify({"error": "something went wrong"}), 400
-
-    if not payload:
-        return jsonify({"error": "No such payload exists"}), 404
-
-    if not has_access_to_project(payload.project, user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
-
-    payload.delete()
-    return jsonify({"message": "payload deleted successfully"}), 200
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 
 @payloads_blueprint.route('/update', methods=["PUT"])
 @jwt_required()
 def update_payload():
-    req_data = request.json
-    user = get_current_user()
     try:
+        req_data = request.json
+        user = get_current_user()
         payload = req_data.get('id')
         payload = PayloadModel.query.get(payload)
         if not payload:

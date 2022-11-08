@@ -32,56 +32,63 @@ def getEndpoints(id=0):
 @endpoints_blueprint.route('/new', methods=["POST"])
 @jwt_required()
 def createEndpoints():
-    req_data = request.json
-    req_data['name'] = create_slug(req_data.get('name'))
-    req_data['project'] = get_project_id(req_data.get('project'))
-    user = get_current_user()
-    req_data['created_by'] = user.id
-    req_data['modified_by'] = user.id
-    if not has_access_to_project(req_data['project'], user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
     try:
-        data = endpoint_schema.load(req_data)
-    except ValidationError as err:
-        return jsonify(err), 400
+        req_data = request.json
+        req_data['name'] = create_slug(req_data.get('name'))
+        req_data['project'] = get_project_id(req_data.get('project'))
+        user = get_current_user()
+        req_data['created_by'] = user.id
+        req_data['modified_by'] = user.id
+        if not has_access_to_project(req_data['project'], user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
+        try:
+            data = endpoint_schema.load(req_data)
+        except ValidationError as err:
+            return jsonify({"error": str(err)}), 400
 
-    is_exist = EndpointModel.is_exist(data.get('name'), data.get('project'))
+        is_exist = EndpointModel.is_exist(data.get('name'), data.get('project'))
 
-    if is_exist:
-        return jsonify({"error": "You already have a endpoint of the same name in this project."}), 400
+        if is_exist:
+            return jsonify({"error": "You already have a endpoint of the same name in this project."}), 400
 
-    endpoint = EndpointModel(data)
-    endpoint.save()
-    return jsonify({"message": "Endpoint created successfully!"}), 201
+        endpoint = EndpointModel(data)
+        endpoint.save()
+        return jsonify({"message": "Endpoint created successfully!"}), 201
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 
 @endpoints_blueprint.route('/delete/', methods=["DELETE"])
 @jwt_required()
 def delete_endpoint():
-    req_data = request.json
-    user = get_current_user()
     try:
-        endpoint = EndpointModel.query.get(req_data.get('endpoint'))
+        req_data = request.json
+        user = get_current_user()
+        try:
+            endpoint = EndpointModel.query.get(req_data.get('endpoint'))
+        except Exception as err:
+            print(str(err))
+            return jsonify({"error": "something went wrong"}), 400
+
+        if not endpoint:
+            return jsonify({"error": "No such endpoint exists"}), 404
+
+        if not has_access_to_project(endpoint.project, user.id):
+            return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
+
+        endpoint.delete()
+        return jsonify({"message": "Endpoint deleted successfully"}), 200
     except Exception as err:
         print(str(err))
-        return jsonify({"error": "something went wrong"}), 400
-
-    if not endpoint:
-        return jsonify({"error": "No such endpoint exists"}), 404
-
-    if not has_access_to_project(endpoint.project, user.id):
-        return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
-
-    endpoint.delete()
-    return jsonify({"message": "Endpoint deleted successfully"}), 200
-
+        return jsonify({"error":"something went wrong"}),400
 
 @endpoints_blueprint.route('/update', methods=["PUT"])
 @jwt_required()
 def update_endpoint():
-    req_data = request.json
-    user = get_current_user()
     try:
+        req_data = request.json
+        user = get_current_user()
         endpoint = req_data.get('id')
         endpoint = EndpointModel.query.get(endpoint)
         if not endpoint:
@@ -101,4 +108,5 @@ def update_endpoint():
         endpoint.update({'modified_by': user.id})
         return jsonify({"message": "Endpoint updated successfully"}), 200
     except Exception as err:
-        return jsonify(str(err))
+        print(str(err))
+        return jsonify({"error":"something went wrong"})

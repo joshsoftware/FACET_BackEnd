@@ -123,7 +123,7 @@ def update_payload():
 
         payload.name = req_data.get('name') if req_data.get('name') else payload.name
 
-        payload.payload = req_data.get('payload') if req_data.get('payload') else payload.payload
+        payload.payload = req_data.get('payload') if type(req_data.get('payload')) is dict else payload.payload
 
         if req_data.get('expected_outcome'):
             expected_outcome = req_data.get('expected_outcome')
@@ -148,7 +148,7 @@ def update_payload():
                         print(err)
                         return jsonify({"error": "something went wrong"}), 400
 
-        payload.parameters = req_data.get('parameters') if req_data.get('parameters') else payload.parameters
+        payload.parameters = req_data.get('parameters') if type(req_data.get('parameters')) is dict else payload.parameters
 
         payload.update({'modified_by': user.id})
         return jsonify({"message": "Payload updated successfully"}), 200

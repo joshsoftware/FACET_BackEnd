@@ -34,7 +34,8 @@ def get_teststeps(id=0):
 @jwt_required()
 def create_teststep():
     """
-    Accepts project, endpoint_id, payload_id, header_id, name, method as inputs
+    Accepts project, endpoint_id
+, payload_id, header_id, name, method as inputs
     """
     try:
         req_data = request.json
@@ -109,11 +110,11 @@ def update_teststep():
         
         teststep.method  = req_data.get('method') if req_data.get('method') else teststep.method
 
-        teststep.endpoint = req_data.get('endpoint_id') if req_data.get('endpoint_id') else teststep.endpoint
+        teststep.endpoint_id = req_data.get('endpoint_id') if req_data.get('endpoint_id') else teststep.endpoint
 
-        teststep.header = req_data.get('header_id') if req_data.get('header_id') else teststep.header
+        teststep.header_id = req_data.get('header_id') if req_data.get('header_id') else teststep.header
         
-        teststep.payload = req_data.get('payload_id') if req_data.get('payload_id') else teststep.payload
+        teststep.payload_id = req_data.get('payload_id') if req_data.get('payload_id') else teststep.payload
 
         teststep.update({'modified_by': user.id})
     except Exception as err:

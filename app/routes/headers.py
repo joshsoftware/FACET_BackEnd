@@ -101,8 +101,8 @@ def update_header():
 
         header.name = req_data.get('name') if req_data.get('name') else header.name
         
-        header.header = req_data.get('header') if req_data.get('header') else header.header
-        
+        header.header  = req_data.get('header') if type(req_data.get('header')) is dict else header.header
+         
         header.update({'modified_by': user.id})
         return jsonify({"message": "Header updated successfully"}), 200
     except Exception as err:

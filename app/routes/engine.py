@@ -15,39 +15,86 @@ engine_blueprint = Blueprint('engine', __name__)
 @engine_blueprint.route('/api/tests', methods=['POST'])
 @jwt_required()
 def engine():
+    """"
+
+    """
     try:
         req_data = request.json
         user = get_current_user().id
-        
+
         if not ((req_data.get('testsuite') and req_data.get('level') == 'testsuite') or (req_data.get('testcase') and req_data.get('level') == 'testcase')) and req_data.get('environment'):
             return jsonify({"error": "incomplete request, kindly send all required parameters"}), 400
 
-        execution_data = {'user' : user}
+        """
+        {
+                id = fields.Int(dump_only=True)
+                project = fields.Int(required=True)
+                result = fields.Dict(required=True)
+                environment = fields.Dict(required=True)
+                status = fields.Str(required=True)
+                level = fields.Str(required=True)
+                executed_by = fields.Int(required=True)
+                executed_on = fields.DateTime(dump_only=True)
+        }
+        """
+        execution_data = {'user': user}
         if req_data.get('level') == "testsuite":
             testsuite = TestsuiteModel.get_one_testsuite(id=req_data['testsuite'])
-            result = []
             no_of_passed_testcases = 0
             no_of_failed_testcases = 0
+            testcase_result_to_store = []
+            status = "passed"
             for testcase in testsuite['testcases']:
                 execution_data['environment'] = EnvModel.get_one_env(req_data['environment'])
                 execution_data['testcase'] = testcase
-                # result.append({testcase['name']:tests(data=execution_data)})
                 resp = tests(data=execution_data)
-            return jsonify({"result" : result}), 200
-        else:
+                if resp.get('error'):
+                    no_of_failed_testcases += 1
+                else:
+                    if resp['result']['status'] == "failed":
+                        no_of_failed_testcases += 1
+                        status = "failed"
+                    else:
+                        no_of_passed_testcases += 1
+            data_to_store = {
+                "project" : testsuite['project'],
+                "environment" : EnvModel.get_one_env(req_data['environment']),
+                "level" : "testsuite",
+                "result" : testcase_result_to_store,
+                "executed_by": user,
+                "status" : status
+            }
+            return jsonify({"result": data_to_store}), 200
+        elif req_data.get('level') == "testcase":
             execution_data['environment'] = EnvModel.get_one_env(req_data['environment'])
             execution_data['testcase'] = TestcaseModel.get_one_testcase(req_data['testcase'])
             response = tests(data=execution_data)
-
-        if response.get('error') is not None:
-            return jsonify({"error": response['error']}), 400
-
-        return jsonify({"result": response['result']}), 200
+            if response.get('error'):
+                return jsonify({"error": response['error']}), 400
+            else:
+                result_to_store = {
+                    "project" : execution_data['testcase']['project'],
+                    "environment" : execution_data['environment'],
+                    "status" : response['result']['status'],
+                    "level" : "testcase",
+                    "executed_by" : user 
+                }
+                del response['result']['status']
+                result_to_store['result'] = response['result']
+                result_to_store['result']['testcase'] = execution_data['testcase']
+                del result_to_store['result']['testcase']['project']
+                del result_to_store['result']['testcase']['teststeps']
+                del result_to_store['result']['testcase']['execution_sequence']
+                try:
+                    result = ResultModel(result_to_store)
+                    result.save()
+                except Exception as err:
+                    print(str(err))
+                    return jsonify({"error": "something went wrong"})
+                return jsonify({"result": response['result_to_show'], "result_id": result.id}), 200
     except Exception as err:
         print(str(err))
-        return jsonify({"error" : "something went wrong"})
-
-
+        return jsonify({"error": "something went wrong"}), 400
 def tests(data):
     try:
         testcase = data['testcase']
@@ -78,17 +125,18 @@ def tests(data):
                     teststep['expected_outcome'] = td['expected_outcome']
                     teststep['parameters'] = td['parameters']
                     teststep['name'] = teststep['name'] + td['name']
-                    resp = perform_teststeps(teststep, testcase, user, environment,unique_run_time_id)
+                    resp = perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
+                    
                     ind = teststep['name'].find(td['name'])
                     teststep['name'] = teststep['name'][:ind]
 
                     td['name'] = td['name'].strip("[]")
-                    if resp['status']=='failed':
+                    if resp['status'] == 'failed':
                         is_teststep_passed = False
                         no_of_failed_testdata_combinations += 1
                     else:
                         no_of_passed_testdata_combinations += 1
-                        
+
                     teststep_resp.append({
                         "name": td['name'],
                         **resp
@@ -100,18 +148,19 @@ def tests(data):
                         "payload": td['payload'],
                         **resp
                     })
-                
+
                 if is_teststep_passed:
                     status = "passed"
                     no_of_passed_teststeps += 1
                 else:
                     status = "failed"
                     no_of_failed_teststeps += 1
+
                 res.append({
                     "teststep_id": teststep['id'],
                     "name": teststep['name'],
                     "status": status,
-                    "response": teststep_resp,
+                    # "response": teststep_resp,
                     "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
                     "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations
                 })
@@ -127,30 +176,32 @@ def tests(data):
                     "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
                     "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations,
                 })
-            
+
             # store teststuite result into the result model
-            project = testcase.get('project')
-            del testcase['project']
-            del testcase['teststeps']
-            del testcase['execution_sequence']
+            # project = testcase.get('project')
+            # del testcase['project']
+            # del testcase['teststeps']
+            # del testcase['execution_sequence']
+            #this data gets repeated, as the same information is present in the above json of teststep_results_to_store.check dict on line 92, which gets stored in teststep_results_to_store.
+            # del testcase['testdatas'] 
             del environment['project']
             data_to_store = {
-                "project": project,
-                "testcase": testcase,
+                # "project": project,
+                # "testcase": testcase,
                 "teststeps": teststep_results_to_store,
-                "environment": environment,
+                # "environment": environment,
                 "status": status,
                 "no_of_passed_teststeps": no_of_passed_teststeps,
                 "no_of_failed_teststeps": no_of_failed_teststeps,
-                "executed_by": user
+                # "executed_by": user
             }
-            ResultModel(data_to_store).save()
-            TempModel.get_all_and_delete(testcase=testcase['id'],run_time_id=unique_run_time_id)
-            return {"result": res}
+            # ResultModel(data_to_store).save()
+            TempModel.get_all_and_delete(testcase=testcase['id'], run_time_id=unique_run_time_id)
+            return {"result": data_to_store, "result_to_show": res}
         else:
             return {"error": missing_components}
     except Exception as err:
-        # print(str(err))
+        print(str(err))
         return {"error": str(err)}
 
 

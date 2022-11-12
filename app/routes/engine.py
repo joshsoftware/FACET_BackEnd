@@ -57,8 +57,8 @@ def engine():
             no_of_passed_testcases = 0
             no_of_failed_testcases = 0
             testcase_result_to_store = []
+            data_to_send = []
             status = "passed"
-            project = testsuite['project']
             for testcase in testsuite['testcases']:
                 execution_data['environment'] = environment
                 execution_data['testcase'] = testcase
@@ -79,6 +79,13 @@ def engine():
                             "error": resp['error']
                         }
                     })
+                    data_to_send.append({
+                        "status" : "failed",
+                        "no_of_passed_fields": 0,
+                        "no_of_failed_fields": 0,
+                        "name" : testcase['name'],
+                        "testcase_id" : testcase['id']
+                    })
                 else:
                     if resp['result']['status'] == "failed":
                         no_of_failed_testcases += 1
@@ -90,6 +97,13 @@ def engine():
                             "testcase" : testcase,
                             "teststeps": resp['result']
                         })
+                        data_to_send.append({
+                        "status" : "failed",
+                        "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
+                        "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
+                        "name" : testcase['name'],
+                        "testcase_id" : testcase['id']
+                    })
                     else:
                         no_of_passed_testcases += 1
                         testcase_result_to_store.append({
@@ -99,6 +113,15 @@ def engine():
                             "testcase" : testcase,
                             "teststeps": resp['result']
                         })
+                        data_to_send.append({
+                        "status" : "passed",
+                        "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
+                        "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
+                        "name" : testcase['name'],
+                        "testcase_id" : testcase['id']
+                    })
+
+            project = testsuite['project']
             del testsuite['project']
             del testsuite['testcases']
 
@@ -122,13 +145,6 @@ def engine():
 
             if no_of_failed_testcases > 0:
                 status = "failed"
-
-            data_to_send = {
-                "name" : testsuite['name'],
-                "no_of_passed_fields" : no_of_passed_testcases,
-                "no_of_failed_fields" : no_of_failed_testcases,
-                "status" : status
-            }
 
             return jsonify({"result": data_to_send, "result_id": result.id}), 200
         elif req_data.get('level') == "testcase":
@@ -243,8 +259,6 @@ def tests(data):
                     "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
                     "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations,
                 })
-
-            del environment['project']
             data_to_store = {
                 "teststeps": teststep_results_to_store,
                 "status": status,

@@ -46,8 +46,9 @@ def engine():
     try:
         req_data = request.json
         user = get_current_user().id
+        is_req_data_valid = ((req_data.get('testsuite') and req_data.get('level') == 'testsuite') or (req_data.get('testcase') and req_data.get('level') == 'testcase')) and req_data.get('environment')
 
-        if not ((req_data.get('testsuite') and req_data.get('level') == 'testsuite') or (req_data.get('testcase') and req_data.get('level') == 'testcase')) and req_data.get('environment'):
+        if not is_req_data_valid:
             return jsonify({"error": "incomplete request, kindly send all required parameters"}), 400
 
         execution_data = {'user': user}
@@ -59,6 +60,7 @@ def engine():
             testcase_result_to_store = []
             data_to_send = []
             status = "passed"
+            testcase_status = "passed"
             for testcase in testsuite['testcases']:
                 execution_data['environment'] = environment
                 execution_data['testcase'] = testcase
@@ -68,6 +70,7 @@ def engine():
                 del testcase['teststeps']
                 del testcase['execution_sequence']
 
+                #Error handling condition for testcase, in case the testcase has missing components or the function blows up due to any other error
                 if resp.get('error'):
                     no_of_failed_testcases += 1
                     testcase_result_to_store.append({
@@ -90,36 +93,25 @@ def engine():
                     if resp['result']['status'] == "failed":
                         no_of_failed_testcases += 1
                         status = "failed"
-                        testcase_result_to_store.append({
-                            "status" : "failed",
-                            "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
-                            "no_of_failed_teststeps": resp['result']['no_of_failed_teststeps'],
-                            "testcase" : testcase,
-                            "teststeps": resp['result']
-                        })
-                        data_to_send.append({
-                        "status" : "failed",
-                        "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
-                        "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
-                        "name" : testcase['name'],
-                        "testcase_id" : testcase['id']
-                    })
+                        testcase_status = "failed"
                     else:
                         no_of_passed_testcases += 1
-                        testcase_result_to_store.append({
-                            "status" : "passed",
-                            "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
-                            "no_of_failed_teststeps": resp['result']['no_of_failed_teststeps'],
-                            "testcase" : testcase,
-                            "teststeps": resp['result']
-                        })
-                        data_to_send.append({
-                        "status" : "passed",
-                        "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
-                        "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
-                        "name" : testcase['name'],
-                        "testcase_id" : testcase['id']
+                        testcase_status = "passed"
+                    
+                    testcase_result_to_store.append({
+                        "status" : testcase_status,
+                        "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
+                        "no_of_failed_teststeps": resp['result']['no_of_failed_teststeps'],
+                        "testcase" : testcase,
+                        "teststeps": resp['result']
                     })
+                    data_to_send.append({
+                    "status" : testcase_status,
+                    "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
+                    "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
+                    "name" : testcase['name'],
+                    "testcase_id" : testcase['id']
+                })
 
             project = testsuite['project']
             del testsuite['project']
@@ -147,6 +139,7 @@ def engine():
                 status = "failed"
 
             return jsonify({"result": data_to_send, "result_id": result.id}), 200
+        #Execution of a single testcase
         elif req_data.get('level') == "testcase":
             execution_data['environment'] = environment
             execution_data['testcase'] = TestcaseModel.get_one_testcase(req_data['testcase'])

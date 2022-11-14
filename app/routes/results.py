@@ -16,13 +16,13 @@ def getresults(id=0):
         project = get_project_id(request.args.get("project"))
         page_no = request.args.get("page") or None
         row_size = request.args.get("pageSize") or 20
-
-        if not has_access_to_project(project, user.id):
-            return jsonify({"error": "You do not have access to project,kindly connect with project admin to get access to project components"}), 401
-
+        
         if id != 0:
             data = ResultModel.get_one_result(id)
             return jsonify(data), 200
+
+        if not has_access_to_project(project, user.id):
+            return jsonify({"error": "You do not have access to project,kindly connect with project admin to get access to project components"}), 401
 
         data, total_results = ResultModel.get_paginated_results(
             project_id=project, page_no=page_no, row_size=row_size)

@@ -69,6 +69,7 @@ def engine():
                 del testcase['project']
                 del testcase['teststeps']
                 del testcase['execution_sequence']
+                del testcase['testdatas']
 
                 #Error handling condition for testcase, in case the testcase has missing components or the function blows up due to any other error
                 if resp.get('error'):
@@ -161,6 +162,7 @@ def engine():
                 del result_to_store['result']['testcase']['project']
                 del result_to_store['result']['testcase']['teststeps']
                 del result_to_store['result']['testcase']['execution_sequence']
+                del result_to_store['result']['testcase']['testdatas']
                 
                 result = ResultModel(result_to_store)
                 result.save()

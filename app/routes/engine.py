@@ -266,7 +266,7 @@ def tests(data):
             return {"error": missing_components}
     except Exception as err:
         print(str(err))
-        return {"error": str(err)}
+        return {"error": "something went wrong"}
 
 
 def fetch_from_api(teststep):

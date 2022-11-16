@@ -104,7 +104,7 @@ def engine():
                         "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
                         "no_of_failed_teststeps": resp['result']['no_of_failed_teststeps'],
                         "testcase" : testcase,
-                        "teststeps": resp['result']
+                        "teststeps": resp['result']['teststeps']
                     })
                     data_to_send.append({
                     "status" : testcase_status,

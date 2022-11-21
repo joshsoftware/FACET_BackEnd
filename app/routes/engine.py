@@ -307,7 +307,8 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
                     "res_value": "Not found",
                     "executed_status": "failed",
                     "status": "failed",
-                    "error": "Incorrect Testdata, Testdata does not exist, hence execution failed"
+                    "error": "Incorrect Testdata, Testdata does not exist, hence execution failed",
+                    "is_status_manually_updated" : False
                 }
             ]
             return {
@@ -329,7 +330,8 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
                 "res_value": "Not found",
                 "executed_status": "failed",
                 "status": "failed",
-                "error": res
+                "error": res,
+                "is_status_manually_updated" : False
             }
         ]
         return {

@@ -14,9 +14,9 @@ def getresults(id=0):
     try:
         user = get_current_user()
         project = get_project_id(request.args.get("project"))
-        page_no = request.args.get("page") or None
+        page_no = request.args.get("page") or 1
         row_size = request.args.get("pageSize") or 20
-        
+
         if id != 0:
             data = ResultModel.get_one_result(id)
             return jsonify(data), 200
@@ -42,75 +42,98 @@ def add_comment():
     req_data = request.json
     user = get_current_user().id
     try:
+        """
+        {
+            "reportId": "47",
+            "teststep": "get-all-cricket-news",
+            "testdata": "get-cricket-data",
+            "field": "status_code",
+            "status": "failed",
+            "comment": "manually failed",
+            "testcase": "get-all-news",
+            "project": "newsapi",
+            "testsuite": null,
+        }
+        """
         reportId = req_data.get('reportId')
         teststep_name = req_data.get('teststep')
         testdata_name = req_data.get('testdata')
         field_name = req_data.get('field')
         status = req_data.get('status')
         comment = req_data.get('comment')
-        report = ResultModel.get_one_result(reportId)
-        is_able_to_update = False
-        if not report:
-            return jsonify({"error": "result not Found"}), 404
-        if not has_access_to_project(report['project'], user):
+        testcase =  req_data.get('testcase') if req_data.get('testcase') else None
+        testsuite = req_data.get('testsuite') if req_data.get('testsuite') else None
+        project = get_project_id(slug=req_data.get('project'))
+        
+        if not has_access_to_project(project, user):
             return jsonify({"error": "You do not have access to project,kindly connect with project admin to get access to project components"}), 401
 
-        newTeststeps = report['teststeps']
-        del report['teststeps']
+        report = ResultModel.get_one_result(reportId)
 
-        for teststep in newTeststeps:
-            if teststep['name'] == teststep_name:
-                for testdata in teststep['testdata_combinations']:
-                    if testdata['name'] == testdata_name:
-                        # is_testdata_failed = testdata['status']=="failed"
-                        for field in testdata['outcome']:
-                            if field['name'] == field_name:
-                                field['comment'] = comment
-                                field['status'] = "m" + status
-                                field['updated_by'] = user
-                                is_able_to_update = True
+        if not report:
+            return jsonify({"error": "result not Found"}), 404
 
-                                if field['status'] == "mpassed":
-                                    testdata['no_of_failed_fields'] -= 1
-                                    testdata['no_of_passed_fields'] += 1
-                                elif field['status'] == "mfailed":
-                                    testdata['no_of_failed_fields'] += 1
-                                    testdata['no_of_passed_fields'] -= 1
-
-                        if testdata['no_of_failed_fields'] == 0:
-                            testdata['status'] = "passed"
-                            teststep['no_of_failed_testdata_combinations'] -= 1
-                            teststep['no_of_passed_testdata_combinations'] += 1
-                        else:
-                            if testdata['status'] == "passed":
-                                testdata['status'] = "failed"
-                                teststep['no_of_failed_testdata_combinations'] += 1
-                                teststep['no_of_passed_testdata_combinations'] -= 1
-                if teststep['no_of_failed_testdata_combinations'] == 0:
-                    teststep['status'] = "passed"
-                    report['no_of_failed_teststeps'] -= 1
-                    report['no_of_passed_teststeps'] += 1
-                else:
-                    if teststep['status'] == "passed":
-                        teststep['status'] = "failed"
-                        report['no_of_failed_teststeps'] += 1
-                        report['no_of_passed_teststeps'] -= 1
-        if is_able_to_update:
+        if testsuite:
+            for test_case in report['result']['testsuite_execution']:
+                if test_case['testcase']['name'] == testcase:
+                    is_able_to_update = teststep_modification(result=test_case,teststep_name=teststep_name,testdata_name=testdata_name,field_name=field_name,status=status,comment=comment, user=user)
             updatedResult = ResultModel.query.get(reportId)
             updatedResult.update({
-                "teststeps": newTeststeps,
-                "no_of_passed_teststeps": report['no_of_passed_teststeps'],
-                "no_of_failed_teststeps": report['no_of_failed_teststeps']
+                "result" : report['result']
             })
+            return jsonify({"message": "Updated Successfully!"}), 200
+        else:
+            result = report['result']
+            is_able_to_update = teststep_modification(result=result,teststep_name=teststep_name,testdata_name=testdata_name,field_name=field_name,status=status,comment=comment, user=user)
+        
+        if is_able_to_update:
             return jsonify({"message": "Updated Successfully!"}), 200
     except Exception as err:
         print(str(err))
         return jsonify({"error": "something went wrong"}), 400
 
 
-def modify_outcome_ids(data):
-    user = get_current_user().id
-    for result in data:
-        result['project_id'] = ProjectModel.get_one_project(
-            result['project_id'], user).get('name')
-    return data
+def teststep_modification(result,teststep_name,testdata_name,field_name,status,comment,user):
+    is_able_to_update = False
+        # newTeststeps = report['teststeps']
+    newTeststeps = result['teststeps']
+        # del report['teststeps']
+    for teststep in newTeststeps:
+        if teststep['name'] == teststep_name:
+            for testdata in teststep['testdata_combinations']:
+                if testdata['name'] == testdata_name:
+                    # is_testdata_failed = testdata['status']=="failed"
+                    for field in testdata['outcome']:
+                        if field['name'] == field_name:
+                            field['comment'] = comment
+                            field['status'] = status
+                            field['updated_by'] = user
+                            field['is_status_manually_updated'] = True
+                            is_able_to_update = True
+
+                            if field['status'] == "passed":
+                                testdata['no_of_failed_fields'] -= 1
+                                testdata['no_of_passed_fields'] += 1
+                            elif field['status'] == "failed":
+                                testdata['no_of_failed_fields'] += 1
+                                testdata['no_of_passed_fields'] -= 1
+
+                    if testdata['no_of_failed_fields'] == 0:
+                        testdata['status'] = "passed"
+                        teststep['no_of_failed_testdata_combinations'] -= 1
+                        teststep['no_of_passed_testdata_combinations'] += 1
+                    else:
+                        if testdata['status'] == "passed":
+                            testdata['status'] = "failed"
+                            teststep['no_of_failed_testdata_combinations'] += 1
+                            teststep['no_of_passed_testdata_combinations'] -= 1
+            if teststep['no_of_failed_testdata_combinations'] == 0:
+                teststep['status'] = "passed"
+                result['no_of_failed_teststeps'] -= 1
+                result['no_of_passed_teststeps'] += 1
+            else:
+                if teststep['status'] == "passed":
+                    teststep['status'] = "failed"
+                    result['no_of_failed_teststeps'] += 1
+                    result['no_of_passed_teststeps'] -= 1
+    return is_able_to_update

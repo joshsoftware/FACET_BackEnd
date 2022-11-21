@@ -73,4 +73,6 @@ def is_fit_to_run(testcase):
         if testdata is None or len(testdata) == 0:
             missing_components[teststep['name']].append('testdata missing')
             is_fit = False
+        if len(missing_components[teststep['name']]) == 0:
+            del missing_components[teststep['name']]
     return is_fit,missing_components

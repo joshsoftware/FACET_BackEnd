@@ -10,6 +10,7 @@ load_dotenv()
 
 migrate = Migrate()
 
+
 def create_app():
     """
         Create App
@@ -36,6 +37,6 @@ def create_app():
     app.register_blueprint(results_blueprint, url_prefix='/api/results')
     app.register_blueprint(scheduler_blueprint, url_prefix='/api/schedule')
     app.register_blueprint(user_blueprint, url_prefix='/api/user')
+    app.register_blueprint(testsuite_blueprint, url_prefix='/api/testsuites')
 
     return app
-

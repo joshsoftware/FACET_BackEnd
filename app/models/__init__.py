@@ -16,3 +16,4 @@ from .TestcaseModel import TestcaseModel, testcase_teststep
 from .ResultModel import ResultModel,ResultSchema
 from .SchedulerModel import SchedulerModel,ScheduleSchema
 from .ExpectedOutcomeModel import ExpectedOutcomeModel,ExpectedOutcomeSchema
+from .TestsuiteModel import TestsuiteModel,TestsuiteSchema

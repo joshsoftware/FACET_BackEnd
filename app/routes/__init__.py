@@ -16,3 +16,4 @@ from .environments import env_blueprint
 from .results import results_blueprint
 from .scheduler import scheduler_blueprint
 from .user import user_blueprint
+from .testsuites import testsuite_blueprint

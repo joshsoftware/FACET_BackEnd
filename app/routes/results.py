@@ -85,7 +85,10 @@ def add_comment():
         else:
             result = report['result']
             is_able_to_update = teststep_modification(result=result,teststep_name=teststep_name,testdata_name=testdata_name,field_name=field_name,status=status,comment=comment, user=user)
-        
+            updatedResult = ResultModel.query.get(reportId)
+            updatedResult.update({
+                "result" : result
+            })
         if is_able_to_update:
             return jsonify({"message": "Updated Successfully!"}), 200
     except Exception as err:

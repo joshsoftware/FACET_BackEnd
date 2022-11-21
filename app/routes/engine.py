@@ -419,6 +419,7 @@ def validate_expected_outcome(teststep, response):
             "executed_status": "failed" if is_failed else "passed",
             "status": "failed" if is_failed else "passed",
             "error": error,
+            "is_status_manually_updated" : False
         })
 
         if is_failed:

@@ -18,7 +18,7 @@ def create_app():
     env_name = os.getenv('FLASK_ENV')
     app = Flask(__name__)
     app.config.from_object(app_config[env_name])
-    CORS(app)
+    CORS(app, expose_headers=["Content-Disposition"])
     bcrypt.init_app(app)
     jwt.init_app(app)
     db.init_app(app)
@@ -38,5 +38,6 @@ def create_app():
     app.register_blueprint(scheduler_blueprint, url_prefix='/api/schedule')
     app.register_blueprint(user_blueprint, url_prefix='/api/user')
     app.register_blueprint(testsuite_blueprint, url_prefix='/api/testsuites')
+    app.register_blueprint(testdata_excel_blueprint, url_prefix='/api/testdata-excel')
 
     return app

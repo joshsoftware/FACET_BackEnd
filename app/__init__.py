@@ -18,7 +18,10 @@ def create_app():
     env_name = os.getenv('FLASK_ENV')
     app = Flask(__name__)
     app.config.from_object(app_config[env_name])
-    CORS(app)
+    app.config['UPLOAD_FOLDER'] = 'media/excel_files/upload_files'
+    app.config['DOWNLOAD_FOLDER'] = 'media/excel_files/download_files'
+    app.config['MAX_CONTENT-PATH'] = 1024*1024
+    CORS(app, expose_headers=["Content-Disposition"])
     bcrypt.init_app(app)
     jwt.init_app(app)
     db.init_app(app)
@@ -38,5 +41,6 @@ def create_app():
     app.register_blueprint(scheduler_blueprint, url_prefix='/api/schedule')
     app.register_blueprint(user_blueprint, url_prefix='/api/user')
     app.register_blueprint(testsuite_blueprint, url_prefix='/api/testsuites')
+    app.register_blueprint(file_uploader_blueprint, url_prefix='/api/file_uploader')
 
     return app

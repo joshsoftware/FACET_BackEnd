@@ -11,14 +11,14 @@ import json
 import os
 import re
 
-file_uploader_blueprint = Blueprint('file_uploader', __name__)
+testdata_excel_blueprint = Blueprint('testdata_excel', __name__)
 email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 datetime_regex = r'/^(0[1-9]|1\d|2\d|3[01])\-(0[1-9]|1\d|2\d|3[01])\-(19|20)\d{2}$/'
 date_regex = r'^([0-2][0-9]|(3)[0-1])(\/)(((0)[0-9])|((1)[0-2]))(\/)\d{4}$'
 number_regex = r'^[-+]?[0-9]+$'
 
 
-@file_uploader_blueprint.route("/testdata_excel_downloader", methods=["GET"])
+@testdata_excel_blueprint.route("/download", methods=["GET"])
 @jwt_required()
 def testdata_excel_downloader():
     try:
@@ -45,7 +45,7 @@ def testdata_excel_downloader():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@file_uploader_blueprint.route("/testdata_excel_uploader", methods=["POST"])
+@testdata_excel_blueprint.route("/upload", methods=["POST"])
 @jwt_required()
 def testdata_uploader():
     """
@@ -67,9 +67,9 @@ def testdata_uploader():
             if is_json_data_valid == True:
                 formatted_json_testdata = expected_outcome_modifier(testdata_json=formatted_json_testdata)
                 testdata_json_to_models(formatted_json_testdata, project, user)
-                return jsonify({"Success": formatted_json_testdata})
+                return jsonify({"message": "testdata updated successfully"}), 200
             else:
-                return jsonify({"error": is_json_data_valid["error"]})
+                return jsonify({"error": is_json_data_valid["error"]}), 400
         else:
             return jsonify({"error": "You do not have access to this project,kindly connect with the admin to make interact with the project components"}), 401
     except Exception as err:

@@ -53,7 +53,7 @@ def testdata_uploader():
     """
     try:
         user = get_current_user().id
-        project = get_project_id(request.args.get('project'))
+        project = get_project_id(request.form['project'])
         if has_access_to_project(project_id=project, user_id=user):
             data = request.files['file']
             data.save(os.path.join(current_app.config['UPLOAD_FOLDER'], data.filename))

@@ -74,10 +74,10 @@ class TestcaseModel(db.Model):
             arranged_teststeps = TestcaseModel.rearrange_teststeps(testcase['execution_sequence'],testcase)
             testcase['teststeps'] = arranged_teststeps['teststeps']
 
-            selected_testdatas_id = [i['id'] for i in testcase['testdatas']]
+            selected_testdatas_id = [testdata['id'] for testdata in testcase['testdatas']]
             
-            for i in testcase['teststeps']:
-                i['selected_testdata'] = [testdata['id'] for testdata in i['testdata'] if testdata['id'] in selected_testdatas_id]
+            for teststep in testcase['teststeps']:
+                teststep['selected_testdata'] = [testdata['id'] for testdata in teststep['testdata'] if testdata['id'] in selected_testdatas_id]
 
             del testcase['testdatas']
         return data

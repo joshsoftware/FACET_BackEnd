@@ -47,16 +47,16 @@ def getScheduledJobs(id=0):
     try:
         user = get_current_user()
         project = get_project_id(request.args.get("project"))
-        if has_access_to_project(project,user.id):
-            if id!=0:
-                data = SchedulerModel.get_one_schedule(id)
-                return jsonify(data), 200
-            data = SchedulerModel.get_all_schedules(project)
-            return jsonify({"scheduled_jobs": data}), 200
-        else:
+        if not has_access_to_project(project,user.id):
             return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to get access to scheduled jobs of the project"}),401
-    except Exception as e:
-        return jsonify(str(e)),400
+        if id!=0:
+            data = SchedulerModel.get_one_schedule(id)
+            return jsonify(data), 200
+        data = SchedulerModel.get_all_schedules(project)
+        return jsonify({"scheduled_jobs": data}), 200
+    except Exception as err:
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 @scheduler_blueprint.route('/new',methods=['POST'])
 @jwt_required()
@@ -64,7 +64,6 @@ def addScheduledJob():
     with app.app_context():
         try:
             req_data = request.json
-            print(req_data)
             req_data['project'] = get_project_id(req_data.get('project'))
             user = get_current_user()
             req_data['scheduled_by'] = user.id
@@ -74,31 +73,34 @@ def addScheduledJob():
                 req_data['end_date_time'] = req_data['endDateTime']
             del req_data['endDateTime']
             req_data['frequency'] = to_frequency(req_data.get('frequency_type'),req_data.get('frequency'))
-            if has_access_to_project(req_data.get('project'),user.id):
-                try:
-                    data = scheduler_schema.load(req_data)
-                except ValidationError as err:
-                    return jsonify(str(err)),400
-                
-                scheduled_job = SchedulerModel(data)
-                scheduled_job.status = "to be executed"
-                scheduled_job.save()
-                
-                job_data = {'testcase': scheduled_job.testcase,'environment' : scheduled_job.environment}
-                #trigger type date
-                if scheduled_job.frequency_type == 'oneTime':
-                    job = scheduler.add_job(tests,run_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="date",args=[job_data,user.id],id=str(scheduled_job.id))
-                #trigger type interval
-                else:
-                    if scheduled_job.end_date_time:
-                        job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),end_date=str(datetime.fromtimestamp(scheduled_job.end_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
-                    else:
-                        job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
-                return jsonify({"success": "Job scheduled successfully!"}), 201
+            
+            if not has_access_to_project(req_data.get('project'),user.id):
+                return jsonify({"error": "You do not have access to project,kindly connect with project admin to get access to project components"}), 401
+            
+            try:
+                data = scheduler_schema.load(req_data)
+            except ValidationError as err:
+                return jsonify({"error": str(err)}), 400
+            
+            scheduled_job = SchedulerModel(data)
+            scheduled_job.status = "to be executed"
+            scheduled_job.save()
+            
+            job_data = {'testcase': scheduled_job.testcase,'environment' : scheduled_job.environment}
+            #trigger type date
+            if scheduled_job.frequency_type == 'oneTime':
+                job = scheduler.add_job(tests,run_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="date",args=[job_data,user.id],id=str(scheduled_job.id))
+            #trigger type interval
             else:
-                return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to schedule testcases of the projects"}),401
-        except Exception as e:
-            return jsonify(str(e) + "----------"),400
+                if scheduled_job.end_date_time:
+                    job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),end_date=str(datetime.fromtimestamp(scheduled_job.end_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
+                else:
+                    job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
+            return jsonify({"message": "Job scheduled successfully!"}), 201
+        
+        except Exception as err:
+            print(str(err))
+            return jsonify({"error":"something went wrong"}),400
 
 @scheduler_blueprint.route('/Pause_a_job',methods=["PUT"])
 def pause_a_job():
@@ -109,9 +111,10 @@ def pause_a_job():
         scheduled_job = SchedulerModel.query.get(job_id)
         scheduled_job.status = "paused"
         scheduled_job.save()
-        return jsonify({"Success" : "Job paused successfully"}),200
+        return jsonify({"message" : "Job paused successfully"}),200
     except Exception as err:
-        return jsonify(str(err)),400
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 @scheduler_blueprint.route('/Resume_a_job',methods=["PUT"])
 def resume_a_job():
@@ -122,9 +125,10 @@ def resume_a_job():
         scheduled_job = SchedulerModel.query.get(job_id)
         scheduled_job.status = "on-going"
         scheduled_job.save()
-        return jsonify({"Success" : "Job resumed successfully"}),200
+        return jsonify({"message" : "Job resumed successfully"}),200
     except Exception as err:
-        return jsonify(str(err)),400
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 @scheduler_blueprint.route('/delete/',methods=["DELETE"])
 def delete_a_job():
@@ -134,9 +138,10 @@ def delete_a_job():
         remover = scheduler.remove_job(job_id=job_id)
         scheduled_job = SchedulerModel.query.get(job_id)
         scheduled_job.delete()
-        return jsonify({"Success" : "Job removed successfully"}),200
+        return jsonify({"message" : "Job removed successfully"}),200
     except Exception as err:
-        return jsonify(str(err)),400
+        print(str(err))
+        return jsonify({"error":"something went wrong"}),400
 
 def to_frequency(frequency_type,custom_frequency):
     frequency = {

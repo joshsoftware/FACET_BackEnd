@@ -6,6 +6,7 @@ from app.helpers import create_slug, get_project_id, get_current_user
 from app.helpers.utils import has_access_to_project
 from app.models.ExpectedOutcomeModel import ExpectedOutcomeModel, ExpectedOutcomeSchema
 from app.models.PayloadModel import PayloadModel, PayloadSchema
+import logging
 
 payloads_blueprint = Blueprint('payloads', __name__)
 payload_schema = PayloadSchema()
@@ -18,17 +19,21 @@ def get_payloads(id=0):
     try:
         user = get_current_user()
         project_id = get_project_id(request.args.get("project"))
+        logging.info(f"GET request to fetch payload by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         if not has_access_to_project(project_id, user.id):
+            logging.info(f"GET request failed due to unauthorised access")
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
 
         if id != 0:
             data = PayloadModel.get_one_payload(id)
-            return jsonify(data), 200, {"content-type": "application/json; charset=UTF-8"}
+            logging.info(f"GET request successfull, payload returned successfully for payload id:{id}")
+            return jsonify(data), 200
 
         data = PayloadModel.get_all_payloads(project_id)
-        return jsonify({"payloads": data}), 200, {"content-type": "application/json; charset=UTF-8"}
+        logging.info(f"GET request successfull, payloads returned successfully for project id:{project_id}")
+        return jsonify({"payloads": data}), 200
     except Exception as err:
-        print(str(err))
+        logging.exception(f"GET request failed due to the following error:{err}")
         return jsonify({"error": "something went wrong"}), 400
 
 
@@ -39,23 +44,28 @@ def create_payloads():
         req_data = request.json
         req_data['name'] = create_slug(req_data.get('name'))
         req_data['project'] = get_project_id(req_data.get('project'))
+        logging.info(f"POST request to create payload by user:{user.id} with payload:{req_data}")
         user = get_current_user()
         req_data['created_by'] = user.id
         req_data['modified_by'] = user.id
         expected_outcome = req_data['expected_outcome']
         del req_data['expected_outcome']
         if not (type(expected_outcome) is list and len(expected_outcome) > 0):
+            logging.info(f"POST request failed as faulty expected outcome provided")
             return jsonify({"error": "You cannot insert an empty expected outcome"}), 400
         if not has_access_to_project(req_data['project'], user.id):
+            logging.info(f"POST request failed due to unauthorised access")
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
 
         try:
             data = payload_schema.load(req_data)
         except ValidationError as err:
+            logging.error(f"payload creation failed due to the following error {err}")
             return jsonify({"error": str(err)}), 400
 
         is_exist = PayloadModel.is_exist(data.get('name'), data.get('project'))
         if is_exist:
+            logging.info(f"payload creation failed due to duplicate entry")
             return jsonify({"error": "You already have a payload of the same name in this project."}), 400
 
         payload = PayloadModel(data)
@@ -73,12 +83,12 @@ def create_payloads():
                 exp_outcome.save()
         except Exception as err:
             payload.delete()
-            print(str(err))
+            logging.exception(f"POST request to create payload failed due to the following error:{err}")
             return jsonify({"error": "something went wrong"}), 400
-
+        logging.info(f"payload created successfully with its expected outcomes")
         return jsonify({"message": "Payload created Successfully!!"}), 201
     except Exception as err:
-        print(str(err))
+        logging.exception(f"POST request failed due to the following error:{err}")
         return jsonify({"error": "something went wrong"})
 
 
@@ -88,22 +98,26 @@ def delete_payload():
     try:
         req_data = request.json
         user = get_current_user()
+        logging.info(f"DELETE request to delete payload by user:{user.id} with payload:{req_data}")
         try:
             payload = PayloadModel.query.get(req_data.get('payload'))
         except Exception as err:
-            print(err)
+            logging.exception(f"DELETE request failed due to the following error:{err}")
             return jsonify({"error": "something went wrong"}), 400
 
         if not payload:
+            logging.info(f"DELETE request failed as no such payload exists for the project")
             return jsonify({"error": "No such payload exists"}), 404
 
         if not has_access_to_project(payload.project, user.id):
+            logging.info(f"DELETE request failed due to unauthorised access")
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make deletions in the project components"}), 401
 
         payload.delete()
+        logging.info(f"payload deleted sucessfully")
         return jsonify({"message": "payload deleted successfully"}), 200
     except Exception as err:
-        print(str(err))
+        logging.exception(f"DELETE request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
 
@@ -113,12 +127,15 @@ def update_payload():
     try:
         req_data = request.json
         user = get_current_user()
+        logging.info(f"PUT request to update payload by user:{user.id} with payload:{req_data}")
         payload = req_data.get('id')
         payload = PayloadModel.query.get(payload)
         if not payload:
+            logging.info(f"PUT request failed as no such payload exists for the project")
             return jsonify({"error": "No such Payload exists"}), 404
 
         if not has_access_to_project(payload.project, user.id):
+            logging.info(f"PUT request failed due to unauthorised access")
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to make updates in the project components"}), 401
 
         payload.name = req_data.get('name') if req_data.get('name') else payload.name
@@ -151,9 +168,10 @@ def update_payload():
         payload.parameters = req_data.get('parameters') if type(req_data.get('parameters')) is dict else payload.parameters
 
         payload.update({'modified_by': user.id})
+        logging.info(f"payload updated sucessfully")
         return jsonify({"message": "Payload updated successfully"}), 200
     except Exception as err:
-        print(str(err))
+        logging.exception(f"PUT request failed due to the following error:{err}")
         return jsonify({"error": "something went wrong"}), 400
 
 

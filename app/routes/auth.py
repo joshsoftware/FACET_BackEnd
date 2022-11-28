@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, create_refresh_token
 from marshmallow import ValidationError
-
+import logging
 from . import jwt
 from app.helpers.utils import get_current_user, get_project_members_id, is_super_admin
 from app.models.UserModel import UserModel, UserSchema
@@ -41,18 +41,22 @@ def signup():
             e.g. {error: string or array or dict}
     """
     req_data = request.json
-
+    # current_app.logger.info(f"User signup requested with name {req_data['name']} and email {req_data['email']}")
+    logging.info(f"user signup requested with payload {req_data}")
     try:
         data = user_schema.load(req_data)
     except ValidationError as err:
+        logging.error(f"user signup failed due to the following error {err}")
         return jsonify({"error": err.messages}), 400
 
     user_exist = UserModel.get_user_by_email(data.get('email'))
     if user_exist:
+        logging.info(f"user signup failed for {req_data['name']} as email already exists")
         return jsonify({"error": "User already exist, please supply another email address"}), 400
 
     user = UserModel(data)
     user.save()
+    logging.info(f"user signup successful for {user.name}")
     return jsonify({"message": "User Created Successfully!"}), 201
 
 
@@ -79,24 +83,30 @@ def login():
             e.g. {error: string or array or dict}
     """
     req_data = request.json
+    logging.info(f"user login requested with payload {req_data}")
     try:
         data = user_schema.load(req_data, partial=True)
     except ValidationError as err:
+        logging.info(f"login failed due to {err}")
         return jsonify({"error": err.messages}), 400
 
     if not req_data.get('email') or not req_data.get('password'):
+        logging.info(f"user login failed failed as email or password weren't supplied")
         return jsonify({"error": "Email and Password are required fields!"}), 400
 
     user = UserModel.get_user_by_email(data.get('email'))
 
     if not user:
+        logging.info(f"User login failed as user does not exists")
         return jsonify({"error": "Invalid Credentials!"}), 400
 
     if user and user.check_hash(data.get('password')):
         access_token = create_access_token(identity=user.id)
         resfresh_token = create_refresh_token(identity=user.id)
+        logging.info(f"user login successful for {user.name}")
         return jsonify({"access_token": access_token, "refresh_token": resfresh_token, "user": UserModel.get_user_profile(user)}), 200
 
+    logging.info("user login failed due to invalid credentials")
     return jsonify({"error": "Invalid Credentials!"}), 400
 
 
@@ -118,6 +128,7 @@ def refresh():
     """
     identity = get_jwt_identity()
     access_token = create_access_token(identity=identity)
+    logging.info(f"access token requested for user {identity}")
     return jsonify({"access_token": access_token}), 200
 
 
@@ -143,19 +154,23 @@ def delete_user():
     """
     req_data = request.json
     super_admin = get_current_user().id
+    logging.info(f"super admin request for deleting user with payload {req_data} and super_admin_id : {super_admin}")
     try:
         user = UserModel.get_one_user(req_data.get('user'))
     except Exception as err:
+        logging.exception(f"user deletion failed to the error:{err}")
         return jsonify({"error": str(err)}), 400
 
     if not user:
+        logging.info(f"user deletion failed as no such user exists")
         return jsonify({"error": "No such user exists"}), 404
 
     if not is_super_admin(super_admin):
+        logging.info(f"user deletion failed due to unauthorized access")
         return jsonify({"error": "Sorry you do not possess the super admin rights to delete a user"}), 401
 
     user.delete()
-
+    logging.info(f"user deleted successfully")
     return jsonify({"message": "User deleted sucessfully"}), 200
 
 
@@ -179,8 +194,9 @@ def add():
     """
     req_data = request.json
     user = get_current_user()
-
+    logging.info(f"request to add admins by user:{user} with req_data:{req_data}")
     if not is_super_admin(user.id):
+        logging.info(f"request to add admins failed due to unauthorised access")
         return jsonify({"error": "You do not possess the super admin rights to add modify a user status"}), 401
 
     try:
@@ -191,10 +207,10 @@ def add():
                 member = UserModel.get_one_user(admin_id)
                 member.is_admin = True
                 member.update()
+            logging.info(f"members added successfully")
             return jsonify({"message": "Members successfully updated to admin"}), 200
     except Exception as err:
-        # add logger
-        print(err)
+        logging.exception(f"request to add admins failed by user:{user} due to the following error:{err}")
         return jsonify({"error": "Something went wrong!"}), 400
 
 
@@ -220,12 +236,13 @@ def get_all_users():
     exclude = request.args.get('exclude')
     project = request.args.get('project')
     user = get_current_user()
-
+    logging.info(f"GET request to fetch all users by user:{user.id} with params:{dict(request.args)}")
     try:
         users = UserModel.get_all_members()
 
         if exclude == 'admins':
             if not is_super_admin(user.id):
+                logging.info(f"GET request failed due to unauthorised access")
                 return jsonify({
                     "error": "You do not possess the super admin rights to access all the users of the organization"
                 }), 401
@@ -234,9 +251,8 @@ def get_all_users():
             project_members = get_project_members_id(project)
             users = [user for user in users if user['id']
                      not in project_members]
-
+        logging.info(f"GET request succesfull, list of all users sent for project:{project}")
         return jsonify({"users": users}), 200
     except Exception as err:
-        # add logger
-        print(err)
+        logging.exception(f"GET request failed due to the following error:{err}")
         return jsonify({"error": "Something Went Wrong!"}), 400

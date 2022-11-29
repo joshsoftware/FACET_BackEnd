@@ -26,10 +26,10 @@ def getTestcases(id=0):
 
         if id != 0:
             data = TestcaseModel.get_one_testcase(id)
-            logging.info(f"GET request successfull, testcase returned successfully for testcase id:{id}")
+            logging.info(f"GET request successful, testcase returned successfully for testcase id:{id}")
             return jsonify(data), 200
         data = TestcaseModel.get_all_testcases(project)
-        logging.info(f"GET request successfull, testcases returned successfully for project id:{project}")
+        logging.info(f"GET request successful, testcases returned successfully for project id:{project}")
         return jsonify({"testcases": data}), 200
 
     except Exception as err:

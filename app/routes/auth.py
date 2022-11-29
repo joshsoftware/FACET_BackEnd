@@ -42,7 +42,7 @@ def signup():
     """
     req_data = request.json
     # current_app.logger.info(f"User signup requested with name {req_data['name']} and email {req_data['email']}")
-    logging.info(f"user signup requested with payload {req_data}")
+    logging.info(f"user signup requested with payload:{req_data}")
     try:
         data = user_schema.load(req_data)
     except ValidationError as err:

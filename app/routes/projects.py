@@ -25,10 +25,10 @@ def getProjects():
             if not data:
                 return jsonify({"error": 'Project Not Found'}), 404
             data['is_project_admin'] = data['project_admin']==user
-            logging.info(f"GET request successfull, project returned successfully for project id:{id}")
+            logging.info(f"GET request successful, project returned successfully for project id:{id}")
             return jsonify(data), 200
         data = ProjectModel.get_all_projects(get_current_user().id)
-        logging.info(f"GET request successfull, projects returned successfully for user:{user}")
+        logging.info(f"GET request successful, projects returned successfully for user:{user}")
         return jsonify({"projects": data}),200
     except Exception as err:
         logging.exception(f"GET request failed due to the following error:{err}")

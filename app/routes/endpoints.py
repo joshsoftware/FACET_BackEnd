@@ -23,11 +23,11 @@ def getEndpoints(id=0):
             return jsonify({"error": "You do not have access to this project, kindly connect to project admin to access the project components"}), 401
         if id != 0:
             data = EndpointModel.get_one_endpoint(id)
-            logging.info(f"GET request successfull, endpoint returned successfully for endpoint id:{id}")
+            logging.info(f"GET request successful, endpoint returned successfully for endpoint id:{id}")
             return jsonify(data), 200
 
         data = EndpointModel.get_all_endpoints(project_id)
-        logging.info(f"GET request successfull, endpoints returned successfully for project id:{project_id}")
+        logging.info(f"GET request successful, endpoints returned successfully for project id:{project_id}")
         return jsonify({"endpoints": data}), 200
     except Exception as err:
         logging.exception(f"GET request failed due to the following error:{err}")

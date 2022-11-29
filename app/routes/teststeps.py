@@ -24,11 +24,11 @@ def get_teststeps(id=0):
 
         if id != 0:
             data = TestStepModel.get_one_teststep(id)
-            logging.info(f"GET request successfull, teststep returned successfully for teststep id:{id}")
+            logging.info(f"GET request successful, teststep returned successfully for teststep id:{id}")
             return jsonify(data), 200
 
         data = TestStepModel.get_all_teststeps(project_id)
-        logging.info(f"GET request successfull, teststeps returned successfully for project id:{project_id}")
+        logging.info(f"GET request successful, teststeps returned successfully for project id:{project_id}")
         return jsonify({"teststeps": data}), 200
     except Exception as err:
         logging.exception(f"GET request failed due to the following error:{err}")

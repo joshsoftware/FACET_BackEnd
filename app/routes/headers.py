@@ -24,11 +24,11 @@ def getHeaders(id=0):
 
         if id == 0:
             data = HeaderModel.get_all_headers(project_id)
-            logging.info(f"GET request successfull, headers returned successfully for project id:{project_id}")
+            logging.info(f"GET request successful, headers returned successfully for project id:{project_id}")
             return jsonify({"headers": data}), 200
 
         data = HeaderModel.get_one_header(id)
-        logging.info(f"GET request successfull, header returned successfully for header id:{id}")
+        logging.info(f"GET request successful, header returned successfully for header id:{id}")
         return jsonify(data), 200
     except Exception as err:
         logging.exception(f"GET request failed due to the following error:{err}")

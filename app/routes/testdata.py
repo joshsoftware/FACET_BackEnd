@@ -20,11 +20,11 @@ def getTestdata(id=0):
         logging.info(f"GET request to fetch testdata by user:{get_current_user().id} with params:{dict(request.args)} and url:{request.url}")
         if id != 0:
             data = TestdataModel.get_one_testdata(id)
-            logging.info(f"GET request successfull, testdata returned successfully for testdata id:{id}")
+            logging.info(f"GET request successful, testdata returned successfully for testdata id:{id}")
             return jsonify(data), 200
 
         data = TestdataModel.get_all_testdatas(teststep_id)
-        logging.info(f"GET request successfull, testdatas returned successfully for teststep id:{teststep_id}")
+        logging.info(f"GET request successful, testdatas returned successfully for teststep id:{teststep_id}")
         return jsonify({"testdata": data}), 200
     except Exception as err:
         logging.exception(f"GET request failed due to the following error:{err}")

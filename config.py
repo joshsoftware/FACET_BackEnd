@@ -46,16 +46,19 @@ logger_config = {
     'handlers': {'development': {
         'class': 'logging.StreamHandler',
         'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'development'
+        'formatter': 'default'
     },
     'production':{
-        'class': 'logging.FileHandler',
+        'class': 'logging.handlers.RotatingFileHandler',
         'filename': 'records.log',
         'mode': 'a',
-        'formatter': 'default'
+        'maxBytes': 1024*1024*8,
+        'backupCount' : 5,
+        'formatter': 'default',
+        'level' : 'INFO'
     }},
     'root': {
-        'level': 'INFO',
+        'level' : 'DEBUG',
         'handlers': [os.getenv('FLASK_ENV')]
     }
 }

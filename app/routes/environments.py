@@ -24,7 +24,7 @@ def getEnvs(id=0):
 
         if id == 0:
             environments = EnvModel.get_all_envs(project_id)
-            logging.info(f"GET request successfull, environments returned successfully for project id:{project_id}")
+            logging.info(f"GET request successful, environments returned successfully for project id:{project_id}")
             return jsonify({"environments": environments}), 200
 
         environment = EnvModel.get_one_env(id)

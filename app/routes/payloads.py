@@ -26,11 +26,11 @@ def get_payloads(id=0):
 
         if id != 0:
             data = PayloadModel.get_one_payload(id)
-            logging.info(f"GET request successfull, payload returned successfully for payload id:{id}")
+            logging.info(f"GET request successful, payload returned successfully for payload id:{id}")
             return jsonify(data), 200
 
         data = PayloadModel.get_all_payloads(project_id)
-        logging.info(f"GET request successfull, payloads returned successfully for project id:{project_id}")
+        logging.info(f"GET request successful, payloads returned successfully for project id:{project_id}")
         return jsonify({"payloads": data}), 200
     except Exception as err:
         logging.exception(f"GET request failed due to the following error:{err}")

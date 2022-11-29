@@ -19,7 +19,7 @@ def getresults(id=0):
         logging.info(f"GET request to fetch result by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         if id != 0:
             data = ResultModel.get_one_result(id)
-            logging.info(f"GET request successfull, result returned successfully for result id:{id}")
+            logging.info(f"GET request successful, result returned successfully for result id:{id}")
             return jsonify(data), 200
 
         if not has_access_to_project(project, user.id):
@@ -32,7 +32,7 @@ def getresults(id=0):
         if type(data) is str:
             logging.info(f"GET request failed due to the following error:{err}")
             return jsonify({"error": data}), 404
-        logging.info(f"GET request successfull, results returned successfully for project id:{project}")
+        logging.info(f"GET request successful, results returned successfully for project id:{project}")
         return jsonify({"results": data, "total_results": total_results}), 200
 
     except Exception as err:

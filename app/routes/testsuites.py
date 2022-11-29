@@ -37,11 +37,11 @@ def getTestsuites(id=0):
 
         if id != 0:
             data = TestsuiteModel.get_one_testsuite(id=id)
-            logging.info(f"GET request successfull, testsuite returned successfully for testsuite id:{id}")
+            logging.info(f"GET request successful, testsuite returned successfully for testsuite id:{id}")
             return jsonify(data), 200
 
         data = TestsuiteModel.get_all_testsuites(project=project)
-        logging.info(f"GET request successfull, testsuites returned successfully for project id:{project}")
+        logging.info(f"GET request successful, testsuites returned successfully for project id:{project}")
         return jsonify({"testsuites": data}), 200
 
     except Exception as err:

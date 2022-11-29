@@ -27,7 +27,6 @@ def create_app():
     db.app = app
     migrate.init_app(app, db)
     logging.config.dictConfig(logger_config)
-    logging.getLogger('apscheduler').setLevel(logging.DEBUG)
     app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
     app.register_blueprint(projects_blueprint, url_prefix='/api/projects')
     app.register_blueprint(endpoints_blueprint, url_prefix='/api/endpoints')

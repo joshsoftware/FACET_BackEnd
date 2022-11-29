@@ -46,7 +46,7 @@ logger_config = {
     'handlers': {'development': {
         'class': 'logging.StreamHandler',
         'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'default'
+        'formatter': 'development'
     },
     'production':{
         'class': 'logging.handlers.RotatingFileHandler',

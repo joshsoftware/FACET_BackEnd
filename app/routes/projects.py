@@ -98,7 +98,7 @@ def updateName():
     try:
         req_data = request.json
         user = get_current_user().id
-        logging.info(f"POST request to update project name by user:{user.id} with payload:{req_data}")
+        logging.info(f"POST request to update project name by user:{user} with payload:{req_data}")
         project_name = req_data.get('project')
         new_project_name = req_data.get('newProjName')
         if not (project_name and new_project_name):

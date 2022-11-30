@@ -174,7 +174,7 @@ def engine():
                 logging.info(f"testcase execution successful")
                 return jsonify({"result": response['result_to_show'], "result_id": result.id}), 200
         else:
-            logging.info(f"POST request for executino failed due to faulty payload")
+            logging.info(f"POST request for execution failed due to faulty payload")
             return jsonify({"error" : "faulty request, kindly check the data you're sending"}), 400
     except Exception as err:
         logging.info(f"POST request for execution failed due to the following error:{err}")

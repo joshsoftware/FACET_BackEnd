@@ -128,7 +128,7 @@ def refresh():
     """
     identity = get_jwt_identity()
     access_token = create_access_token(identity=identity)
-    logging.info(f"access token requested for user {identity}")
+    logging.info(f"access token requested for user {dict(identity)}")
     return jsonify({"access_token": access_token}), 200
 
 
@@ -194,7 +194,7 @@ def add():
     """
     req_data = request.json
     user = get_current_user()
-    logging.info(f"request to add admins by user:{user} with req_data:{req_data}")
+    logging.info(f"request to add admins by user:{user.id} with req_data:{req_data}")
     if not is_super_admin(user.id):
         logging.info(f"request to add admins failed due to unauthorised access")
         return jsonify({"error": "You do not possess the super admin rights to add modify a user status"}), 401

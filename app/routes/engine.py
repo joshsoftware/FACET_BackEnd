@@ -325,19 +325,20 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
 
     res = fetch_from_api(teststep)
     if type(res) is str:
-        outcome = [
-            {
-                "res_value": "Not found",
-                "executed_status": "failed",
-                "status": "failed",
-                "error": res,
-                "is_status_manually_updated" : False
-            }
-        ]
+        outcome = []
+        for field in teststep['expected_outcome']:
+            outcome.append({
+                    **field,
+                    "res_value": "Not found",
+                    "executed_status": "failed",
+                    "status": "failed",
+                    "error": res,
+                    "is_status_manually_updated" : False
+                })
         return {
             "status": "failed",
             "outcome": outcome,
-            "response": {"Error": "Testdata does not exist hence execution aborted"},
+            "response": {"error": res},
             "no_of_passed_fields": 0,
             "no_of_failed_fields": 0
         }

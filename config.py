@@ -49,11 +49,11 @@ logger_config = {
         'formatter': 'development'
     },
     'production':{
-        'class': 'logging.handlers.RotatingFileHandler',
+        'class': 'logging.handlers.TimedRotatingFileHandler',
         'filename': 'records.log',
-        'mode': 'a',
-        'maxBytes': 1024*1024*8,
-        'backupCount' : 5,
+        'when' : 'D',
+        'interval' : 30,
+        'backupCount' : 12,
         'formatter': 'default',
         'level' : 'INFO'
     }},

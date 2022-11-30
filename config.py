@@ -38,7 +38,7 @@ app_config = {
 logger_config = {
     'version': 1,
     'formatters': {'default': {
-        'format' : '%(asctime)s | %(levelname)-8s | %(filename)s-%(funcName)s-%(lineno)04d | %(message)s',
+        'format' : '%(asctime)s | %(levelname)-8s | %(message)s',
     },
     'development': {
         'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
@@ -46,7 +46,8 @@ logger_config = {
     'handlers': {'development': {
         'class': 'logging.StreamHandler',
         'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'development'
+        'formatter': 'development',
+        'level': 'DEBUG'
     },
     'production':{
         'class': 'logging.handlers.TimedRotatingFileHandler',

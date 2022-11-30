@@ -44,8 +44,8 @@ def create_payloads():
         req_data = request.json
         req_data['name'] = create_slug(req_data.get('name'))
         req_data['project'] = get_project_id(req_data.get('project'))
-        logging.info(f"POST request to create payload by user:{user.id} with payload:{req_data}")
         user = get_current_user()
+        logging.info(f"POST request to create payload by user:{user.id} with payload:{req_data}")
         req_data['created_by'] = user.id
         req_data['modified_by'] = user.id
         expected_outcome = req_data['expected_outcome']

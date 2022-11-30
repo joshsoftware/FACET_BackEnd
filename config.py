@@ -34,3 +34,32 @@ app_config = {
     'development': Development,
     'production': Production,
 }
+
+logger_config = {
+    'version': 1,
+    'formatters': {'default': {
+        'format' : '%(asctime)s | %(levelname)-8s | %(message)s',
+    },
+    'development': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+    }},
+    'handlers': {'development': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'development',
+        'level': 'DEBUG'
+    },
+    'production':{
+        'class': 'logging.handlers.TimedRotatingFileHandler',
+        'filename': 'records.log',
+        'when' : 'D',
+        'interval' : 30,
+        'backupCount' : 12,
+        'formatter': 'default',
+        'level' : 'INFO'
+    }},
+    'root': {
+        'level' : 'DEBUG',
+        'handlers': [os.getenv('FLASK_ENV')]
+    }
+}

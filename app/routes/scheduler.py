@@ -9,6 +9,7 @@ from marshmallow import ValidationError
 from datetime import datetime
 from .scheduler_engine import tests
 from dotenv import load_dotenv
+import logging
 load_dotenv()
 
 scheduler_blueprint = Blueprint('scheduler', __name__)
@@ -40,6 +41,7 @@ monitor_scheduler.start()
 
 monitor_scheduler.add_job(func=job_monitor,trigger="interval",minutes=1)
 
+
 @scheduler_blueprint.route('/', methods=["GET"])
 @scheduler_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
@@ -47,15 +49,19 @@ def getScheduledJobs(id=0):
     try:
         user = get_current_user()
         project = get_project_id(request.args.get("project"))
+        logging.info(f"GET request to fetch scheduled jobs by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         if not has_access_to_project(project,user.id):
+            logging.info(f"GET request failed due to unauthorised access")
             return jsonify({"Error" : "You do not have access to this project, kindly connect to project admin to get access to scheduled jobs of the project"}),401
         if id!=0:
             data = SchedulerModel.get_one_schedule(id)
+            logging.info(f"GET request successful, scheduled jobs returned successfully for scheduled jobs id:{id}")
             return jsonify(data), 200
         data = SchedulerModel.get_all_schedules(project)
+        logging.info(f"GET request successful, scheduled jobs returned successfully for project id:{project}")
         return jsonify({"scheduled_jobs": data}), 200
     except Exception as err:
-        print(str(err))
+        logging.exception(f"GET request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
 @scheduler_blueprint.route('/new',methods=['POST'])
@@ -66,6 +72,7 @@ def addScheduledJob():
             req_data = request.json
             req_data['project'] = get_project_id(req_data.get('project'))
             user = get_current_user()
+            logging.info(f"POST request to create a scheduled job by user:{user.id} with payload:{req_data}")
             req_data['scheduled_by'] = user.id
             req_data['start_date_time'] = req_data['startDateTime']
             del req_data['startDateTime']
@@ -75,11 +82,13 @@ def addScheduledJob():
             req_data['frequency'] = to_frequency(req_data.get('frequency_type'),req_data.get('frequency'))
             
             if not has_access_to_project(req_data.get('project'),user.id):
+                logging.info(f"POST request failed due to unauthorised access")
                 return jsonify({"error": "You do not have access to project,kindly connect with project admin to get access to project components"}), 401
             
             try:
                 data = scheduler_schema.load(req_data)
             except ValidationError as err:
+                logging.error(f"POST request to create a scheduled job failed due to the following error:{err}")
                 return jsonify({"error": str(err)}), 400
             
             scheduled_job = SchedulerModel(data)
@@ -96,10 +105,11 @@ def addScheduledJob():
                     job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),end_date=str(datetime.fromtimestamp(scheduled_job.end_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
                 else:
                     job = scheduler.add_job(tests,start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)),trigger="interval",args=[job_data,user.id],id=str(scheduled_job.id),seconds=scheduled_job.frequency['seconds'],minutes=scheduled_job.frequency['minutes'],hours=scheduled_job.frequency['hours'],days=scheduled_job.frequency['days'],weeks=scheduled_job.frequency['weeks'])
+            logging.info(f"job scheduled successfully")
             return jsonify({"message": "Job scheduled successfully!"}), 201
         
         except Exception as err:
-            print(str(err))
+            logging.exception(f"POST request failed due to the following error:{err}")
             return jsonify({"error":"something went wrong"}),400
 
 @scheduler_blueprint.route('/Pause_a_job',methods=["PUT"])

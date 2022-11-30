@@ -1,11 +1,14 @@
 import os
 from flask import Flask
-from config import app_config
+from config import app_config, logger_config
+from flask.logging import default_handler
 from flask_migrate import Migrate
 from flask_cors import CORS
 from .models import db, bcrypt
 from .routes import *
 from dotenv import load_dotenv
+import logging.config
+import logging
 load_dotenv()
 
 migrate = Migrate()
@@ -24,6 +27,8 @@ def create_app():
     db.init_app(app)
     db.app = app
     migrate.init_app(app, db)
+    logging.config.dictConfig(logger_config)
+    logging.getLogger("werkzeug").setLevel('WARNING')
     app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
     app.register_blueprint(projects_blueprint, url_prefix='/api/projects')
     app.register_blueprint(endpoints_blueprint, url_prefix='/api/endpoints')

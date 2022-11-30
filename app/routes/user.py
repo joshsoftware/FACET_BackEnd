@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from app.models.UserModel import UserModel, UserSchema
 from flask_jwt_extended import jwt_required, get_current_user
+import logging
 
 user_blueprint = Blueprint('user', __name__)
 user_schema = UserSchema()
@@ -14,10 +15,11 @@ def profile():
     """
     try:
         user = get_current_user()
+        logging.info(f"GET request to fetch user details by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         user = UserModel.get_user_profile(user)
         return jsonify({ "user": user }), 200
     except Exception as err:
-        print(str(err))
+        logging.exception(f"GET request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
 @user_blueprint.route('/change-password', methods=['POST'])
@@ -42,25 +44,28 @@ def change_password():
     try:
         user = get_current_user()
         req_data = request.json
-
+        logging.info(f"POST request to change password by user:{user.id} with payload:{req_data}")
         curr_password = req_data.get('curr_password')
         new_password = req_data.get('new_password')
         con_new_password = req_data.get('con_new_password')
 
         if not curr_password or not new_password or not con_new_password:
+            logging.info(f"POST request to change password failed as all fields were not provided")
             return jsonify({ "error": "All fields are required!" }), 400
 
         if new_password != con_new_password:
+            logging.info(f"POST request to change password failed as new passwords did not match")
             return jsonify({ "error": "New Passwords not matched!" }), 400
 
         if user and user.check_hash(req_data.get('curr_password')):
             user.update(data={"password": new_password})
+            logging.info(f"password changed successfully")
             return jsonify({ "message": "Password changed successfully!" }), 200
         else:
+            logging.info(f"POST request to change password failed as invalid password provided")
             return jsonify({ "error": "Invalid password!" }), 400
-        pass
     except Exception as err:
-        print(str(err))
+        logging.exception(f"POST request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
 @user_blueprint.route('/profile/update', methods=['PATCH'])
@@ -84,14 +89,15 @@ def update_profile():
     try:
         user = get_current_user()
         req_data = request.json
-
+        logging.info(f"POST request to update profile by user:{user.id} with payload:{req_data}")
         # not update email
         if req_data.get('email'):
             del req_data['email']
 
         user.update(req_data)
         user = UserModel.get_user_info(user.id)
+        logging.info(f"profile updated successfully")
         return jsonify({ "message": "Profile updated successfully!", "user": user }), 200
     except Exception as err:
-        print(str(err))
+        logging.exception(f"PATCH request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400

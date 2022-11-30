@@ -8,6 +8,7 @@ from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestcaseModel import TestcaseModel
 from app.models.TestsuiteModel import TestsuiteModel
+import logging
 
 engine_blueprint = Blueprint('engine', __name__)
 
@@ -46,15 +47,18 @@ def engine():
     try:
         req_data = request.json
         user = get_current_user().id
+        logging.info(f"POST request to execute by user:{user} with payload:{req_data}")
         is_req_data_valid = ((req_data.get('testsuite') and req_data.get('level') == 'testsuite') or (req_data.get('testcase') and req_data.get('level') == 'testcase')) and req_data.get('environment')
 
         if not is_req_data_valid:
+            logging.info(f"POST request to execute failed due to faulty input")
             return jsonify({"error": "incomplete request, kindly send all required parameters"}), 400
 
         execution_data = {'user': user}
         environment = EnvModel.get_one_env(req_data['environment'])
         if req_data.get('level') == "testsuite":
             testsuite = TestsuiteModel.get_one_testsuite(id=req_data['testsuite'])
+            logging.debug(f"testsuite execute begins with testsuite={testsuite['id']} with environment:{environment['id']}")
             no_of_passed_testcases = 0
             no_of_failed_testcases = 0
             testcase_result_to_store = []
@@ -135,7 +139,7 @@ def engine():
             }
             result = ResultModel(data_to_store)
             result.save()
-
+            logging.info(f"testsuite execution successful")
             if no_of_failed_testcases > 0:
                 status = "failed"
 
@@ -147,6 +151,7 @@ def engine():
             response = tests(data=execution_data)
 
             if response.get('error'):
+                logging.info(f"POST request for testcase execution failed due to the following error:{response['error']}")
                 return jsonify({"error": response['error']}), 400
             else:
                 result_to_store = {
@@ -166,12 +171,13 @@ def engine():
                 
                 result = ResultModel(result_to_store)
                 result.save()
-
+                logging.info(f"testcase execution successful")
                 return jsonify({"result": response['result_to_show'], "result_id": result.id}), 200
         else:
+            logging.info(f"POST request for executino failed due to faulty payload")
             return jsonify({"error" : "faulty request, kindly check the data you're sending"}), 400
     except Exception as err:
-        print(str(err))
+        logging.info(f"POST request for execution failed due to the following error:{err}")
         return jsonify({"error": "something went wrong"}), 400
 
 def tests(data):

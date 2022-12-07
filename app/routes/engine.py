@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 import requests
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
@@ -180,6 +181,36 @@ def engine():
         logging.info(f"POST request for execution failed due to the following error:{err}")
         return jsonify({"error": "something went wrong"}), 400
 
+def scheduler_engine(job_data, user):
+    job_data['environment'] = EnvModel.get_one_env(job_data['environment'])
+    job_data['user'] = user
+    if job_data.get('testsuite'):
+        job_data['testsuite'] = TestsuiteModel.get_one_testsuite(id=job_data['testsuite'])
+        response = tests(data=job_data)
+        if response.get('error'):
+                logging.info(f"POST request for testcase execution failed due to the following error:{response['error']}")
+                return jsonify({"error": response['error']}), 400
+        else:
+            result_to_store = {
+                "project" : job_data['testcase']['project'],
+                "environment" : job_data['environment'],
+                "status" : response['result']['status'],
+                "level" : "testcase",
+                "executed_by" : user 
+            }
+            del response['result']['status']
+            result_to_store['result'] = response['result']
+            result_to_store['result']['testcase'] = job_data['testcase']
+            del result_to_store['result']['testcase']['project']
+            del result_to_store['result']['testcase']['teststeps']
+            del result_to_store['result']['testcase']['execution_sequence']
+            del result_to_store['result']['testcase']['testdatas']
+            
+            result = ResultModel(result_to_store)
+            result.save()
+    else:
+        job_data['testcase'] = TestcaseModel.get_one_testcase(id=job_data['testcase'])
+
 def tests(data):
     try:
         testcase = data['testcase']
@@ -301,7 +332,6 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
 
     if "$var=" in str(teststep):
         pattern = "\$var\=(.*?)\'"
-        import re
         variable = re.search(pattern, str(teststep)).group(1)
         tmp = variable.split('.')
         var_value = TempModel.get_one(

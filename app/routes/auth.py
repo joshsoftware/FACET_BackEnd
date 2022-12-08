@@ -40,24 +40,28 @@ def signup():
         - if fails JSON response containing error message with 400 code
             e.g. {error: string or array or dict}
     """
-    req_data = request.json
-    # current_app.logger.info(f"User signup requested with name {req_data['name']} and email {req_data['email']}")
-    logging.info(f"user signup requested with payload:{req_data}")
     try:
-        data = user_schema.load(req_data)
-    except ValidationError as err:
-        logging.error(f"user signup failed due to the following error {err}")
-        return jsonify({"error": err.messages}), 400
+        req_data = request.json
+        # current_app.logger.info(f"User signup requested with name {req_data['name']} and email {req_data['email']}")
+        logging.info(f"user signup requested with payload:{req_data}")
+        try:
+            data = user_schema.load(req_data)
+        except ValidationError as err:
+            logging.error(f"user signup failed due to the following error {err}")
+            return jsonify({"error": err.messages}), 400
 
-    user_exist = UserModel.get_user_by_email(data.get('email'))
-    if user_exist:
-        logging.info(f"user signup failed for {req_data['name']} as email already exists")
-        return jsonify({"error": "User already exist, please supply another email address"}), 400
+        user_exist = UserModel.get_user_by_email(data.get('email'))
+        if user_exist:
+            logging.info(f"user signup failed for {req_data['name']} as email already exists")
+            return jsonify({"error": "User already exist, please supply another email address"}), 400
 
-    user = UserModel(data)
-    user.save()
-    logging.info(f"user signup successful for {user.name}")
-    return jsonify({"message": "User Created Successfully!"}), 201
+        user = UserModel(data)
+        user.save()
+        logging.info(f"user signup successful for {user.name}")
+        return jsonify({"message": "User Created Successfully!"}), 201
+    except Exception as err:
+        logging.exception(f"POST request for signup failed due to the following error: {err}")
+        return jsonify({"error": "something went wrong"}), 400
 
 
 # Login Account
@@ -82,32 +86,36 @@ def login():
         - if fails JSON response containing error message with 400 code
             e.g. {error: string or array or dict}
     """
-    req_data = request.json
-    logging.info(f"user login requested with payload {req_data}")
     try:
-        data = user_schema.load(req_data, partial=True)
-    except ValidationError as err:
-        logging.info(f"login failed due to {err}")
-        return jsonify({"error": err.messages}), 400
+        req_data = request.json
+        logging.info(f"user login requested with payload {req_data}")
+        try:
+            data = user_schema.load(req_data, partial=True)
+        except ValidationError as err:
+            logging.info(f"login failed due to {err}")
+            return jsonify({"error": err.messages}), 400
 
-    if not req_data.get('email') or not req_data.get('password'):
-        logging.info(f"user login failed failed as email or password weren't supplied")
-        return jsonify({"error": "Email and Password are required fields!"}), 400
+        if not req_data.get('email') or not req_data.get('password'):
+            logging.info(f"user login failed failed as email or password weren't supplied")
+            return jsonify({"error": "Email and Password are required fields!"}), 400
 
-    user = UserModel.get_user_by_email(data.get('email'))
+        user = UserModel.get_user_by_email(data.get('email'))
 
-    if not user:
-        logging.info(f"User login failed as user does not exists")
+        if not user:
+            logging.info(f"User login failed as user does not exists")
+            return jsonify({"error": "Invalid Credentials!"}), 400
+
+        if user and user.check_hash(data.get('password')):
+            access_token = create_access_token(identity=user.id)
+            resfresh_token = create_refresh_token(identity=user.id)
+            logging.info(f"user login successful for {user.name}")
+            return jsonify({"access_token": access_token, "refresh_token": resfresh_token, "user": UserModel.get_user_profile(user)}), 200
+
+        logging.info("user login failed due to invalid credentials")
         return jsonify({"error": "Invalid Credentials!"}), 400
-
-    if user and user.check_hash(data.get('password')):
-        access_token = create_access_token(identity=user.id)
-        resfresh_token = create_refresh_token(identity=user.id)
-        logging.info(f"user login successful for {user.name}")
-        return jsonify({"access_token": access_token, "refresh_token": resfresh_token, "user": UserModel.get_user_profile(user)}), 200
-
-    logging.info("user login failed due to invalid credentials")
-    return jsonify({"error": "Invalid Credentials!"}), 400
+    except Exception as err:
+        logging.exception(f"POST request for signup failed due to the following error: {err}")
+        return jsonify({"error": "something went wrong"}), 400
 
 
 @auth_blueprint.route("/token/refresh/", methods=["POST"])
@@ -126,10 +134,14 @@ def refresh():
         422 UNPROCESSABLE ENTITY status code
             {"msg": "Signature verification failed"}
     """
-    identity = get_jwt_identity()
-    access_token = create_access_token(identity=identity)
-    logging.info(f"access token requested for user {identity}")
-    return jsonify({"access_token": access_token}), 200
+    try:
+        identity = get_jwt_identity()
+        access_token = create_access_token(identity=identity)
+        logging.info(f"access token requested for user {identity}")
+        return jsonify({"access_token": access_token}), 200
+    except Exception as err:
+        logging.exception(f"POST request for signup failed due to the following error: {err}")
+        return jsonify({"error": "something went wrong"}), 400
 
 
 @auth_blueprint.route('/delete/', methods=['DELETE'])
@@ -152,26 +164,30 @@ def delete_user():
         - if fails JSON response containing error message with 400 code
             e.g. {error: string}
     """
-    req_data = request.json
-    super_admin = get_current_user().id
-    logging.info(f"super admin request for deleting user with payload {req_data} and super_admin_id : {super_admin}")
     try:
-        user = UserModel.get_one_user(req_data.get('user'))
+        req_data = request.json
+        super_admin = get_current_user().id
+        logging.info(f"super admin request for deleting user with payload {req_data} and super_admin_id : {super_admin}")
+        try:
+            user = UserModel.get_one_user(req_data.get('user'))
+        except Exception as err:
+            logging.exception(f"user deletion failed to the error:{err}")
+            return jsonify({"error": str(err)}), 400
+
+        if not user:
+            logging.info(f"user deletion failed as no such user exists")
+            return jsonify({"error": "No such user exists"}), 404
+
+        if not is_super_admin(super_admin):
+            logging.info(f"user deletion failed due to unauthorized access")
+            return jsonify({"error": "Sorry you do not possess the super admin rights to delete a user"}), 401
+
+        user.delete()
+        logging.info(f"user deleted successfully")
+        return jsonify({"message": "User deleted sucessfully"}), 200
     except Exception as err:
-        logging.exception(f"user deletion failed to the error:{err}")
-        return jsonify({"error": str(err)}), 400
-
-    if not user:
-        logging.info(f"user deletion failed as no such user exists")
-        return jsonify({"error": "No such user exists"}), 404
-
-    if not is_super_admin(super_admin):
-        logging.info(f"user deletion failed due to unauthorized access")
-        return jsonify({"error": "Sorry you do not possess the super admin rights to delete a user"}), 401
-
-    user.delete()
-    logging.info(f"user deleted successfully")
-    return jsonify({"message": "User deleted sucessfully"}), 200
+        logging.exception(f"POST request for signup failed due to the following error: {err}")
+        return jsonify({"error": "something went wrong"}), 400
 
 
 @auth_blueprint.route('/add_admins', methods=['POST'])

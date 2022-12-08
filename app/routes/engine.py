@@ -185,11 +185,96 @@ def scheduler_engine(job_data, user):
     job_data['environment'] = EnvModel.get_one_env(job_data['environment'])
     job_data['user'] = user
     if job_data.get('testsuite'):
-        job_data['testsuite'] = TestsuiteModel.get_one_testsuite(id=job_data['testsuite'])
+        testsuite = TestsuiteModel.get_one_testsuite(id=int(job_data['testsuite']))
+        no_of_passed_testcases = 0
+        no_of_failed_testcases = 0
+        testcase_result_to_store = []
+        status = "passed"
+        testcase_status = "passed"
+        execution_data = {'user': user}
+        for testcase in testsuite['testcases']:
+            execution_data['environment'] = job_data['environment']
+            execution_data['testcase'] = testcase
+            resp = tests(data=execution_data)
+
+            del testcase['project']
+            del testcase['teststeps']
+            del testcase['execution_sequence']
+            del testcase['testdatas']
+
+            #Error handling condition for testcase, in case the testcase has missing components or the function blows up due to any other error
+            if resp.get('error'):
+                no_of_failed_testcases += 1
+                testcase_result_to_store.append({
+                    "status": "aborted",
+                    "no_of_passed_teststeps": 0,
+                    "no_of_failed_teststeps": 0,
+                    "testcase" : testcase,
+                    "teststeps" : {
+                        "error": resp['error']
+                    }
+                })
+            else:
+                if resp['result']['status'] == "failed":
+                    no_of_failed_testcases += 1
+                    status = "failed"
+                    testcase_status = "failed"
+                else:
+                    no_of_passed_testcases += 1
+                    testcase_status = "passed"
+                
+                testcase_result_to_store.append({
+                    "status" : testcase_status,
+                    "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
+                    "no_of_failed_teststeps": resp['result']['no_of_failed_teststeps'],
+                    "testcase" : testcase,
+                    "teststeps": resp['result']['teststeps']
+                })
+
+        project = testsuite['project']
+        del testsuite['project']
+        del testsuite['testcases']
+
+        testsuite_execution_result = {
+            "no_of_passed_testcases" : no_of_passed_testcases,
+            "no_of_failed_testcases" : no_of_failed_testcases,
+            "testsuite" : testsuite,
+            "testsuite_execution" : testcase_result_to_store
+        }
+
+        data_to_store = {
+            "project" : project,
+            "environment" : job_data['environment'],
+            "level" : "testsuite",
+            "result" : testsuite_execution_result,
+            "executed_by": user,
+            "status" : status
+        }
+        result = ResultModel(data_to_store)
+        result.save()
+    else:
+        job_data['testcase'] = TestcaseModel.get_one_testcase(id=job_data['testcase'])
         response = tests(data=job_data)
+
         if response.get('error'):
-                logging.info(f"POST request for testcase execution failed due to the following error:{response['error']}")
-                return jsonify({"error": response['error']}), 400
+            resp = {
+                "no_of_passed_teststeps" : 0,
+                "no_of_failed_teststeps" : 0,
+                "testcase": job_data['testcase'],
+                "teststeps": {"error": response['error']}
+            }
+            result_to_store = {
+                "project" : job_data['testcase']['project'],
+                "environment" : job_data['environment'],
+                "status" : "aborted",
+                "level" : "testcase",
+                "executed_by" : user 
+            }
+            result_to_store['result'] = resp
+            del result_to_store['result']['testcase']['project']
+            del result_to_store['result']['testcase']['teststeps']
+            del result_to_store['result']['testcase']['execution_sequence']
+            del result_to_store['result']['testcase']['testdatas']
         else:
             result_to_store = {
                 "project" : job_data['testcase']['project'],
@@ -206,10 +291,8 @@ def scheduler_engine(job_data, user):
             del result_to_store['result']['testcase']['execution_sequence']
             del result_to_store['result']['testcase']['testdatas']
             
-            result = ResultModel(result_to_store)
-            result.save()
-    else:
-        job_data['testcase'] = TestcaseModel.get_one_testcase(id=job_data['testcase'])
+        result = ResultModel(result_to_store)
+        result.save()
 
 def tests(data):
     try:
@@ -302,8 +385,7 @@ def tests(data):
         else:
             return {"error": missing_components}
     except Exception as err:
-        print(str(err))
-        return {"error": "something went wrong"}
+        return {"error": str(err)}
 
 
 def fetch_from_api(teststep):

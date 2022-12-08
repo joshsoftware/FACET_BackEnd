@@ -7,7 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask import current_app as app
 from marshmallow import ValidationError
 from datetime import datetime
-from .scheduler_engine import tests
+from .engine import scheduler_engine
 from dotenv import load_dotenv
 import logging
 load_dotenv()
@@ -79,14 +79,19 @@ def addScheduledJob():
     POST request route to create scheduled executions
     Requires:
         -project : project_name
-        -job_data : {"testsuite": id or "testcase":id , "environment": id}
+        -level : string in -> ["testsuite","testcase"]
+        -testsuite : id (optional)
+        -testcase : id (optional)
         -frequency_type: string from -> ["oneTime","interval"]
         -frequency : {"years": 0,"months": 0,"weeks": 0,"days": 0,"hours": 0,"minutes": 0,"seconds": 0}
         -startDateTime : Epoch time value (necessary)
         -endDateTime : Epoch time value (optional)
+        Note either testsuite or testcase must be provided and should match the string in level.
     Response:
         - message: job scheduled successfully with status code 200
         - Error message "something went wrong" with status code 400 if anything goes wrong due to data inconsistency or server issue. 
+        - Error message "invalid payload provided, level does not match the sent execution field" with status code 400 due to faulty payload
+        - Error message of unauthorized access with status code 401 if the user does not have access
     """
     with app.app_context():
         try:
@@ -103,13 +108,16 @@ def addScheduledJob():
             del req_data['endDateTime']
             req_data['frequency'] = to_frequency(req_data.get(
                 'frequency_type'), req_data.get('frequency'))
-            
-            if not req_data['job_data'].get('testsuite') or req_data['job_data'].get('testcase'):
-                return jsonify({"error": "invalid job data sent"}), 400
 
             if not has_access_to_project(req_data.get('project'), user.id):
                 logging.info(f"POST request failed due to unauthorised access")
                 return jsonify({"error": "You do not have access to project,kindly connect with project admin to get access to project components"}), 401
+
+            is_req_data_valid = ((req_data.get('testsuite') and req_data['level'] == 'testsuite') or (
+                req_data.get('testcase') and req_data['level'] == 'testcase'))
+
+            if not is_req_data_valid:
+                return jsonify({"error": "invalid payload provided, level does not match the sent execution field"}), 400
 
             try:
                 data = scheduler_schema.load(req_data)
@@ -121,37 +129,24 @@ def addScheduledJob():
             scheduled_job = SchedulerModel(data)
             scheduled_job.status = "to be executed"
             scheduled_job.save()
+
+            job_data = {'environment': scheduled_job.environment}
+            if req_data['level'] == "testcase":
+                job_data['testcase'] = scheduled_job.testcase
+            else:
+                job_data['testsuite'] = scheduled_job.testsuite
             # trigger type date
             if scheduled_job.frequency_type == 'oneTime':
-                job = scheduler.add_job(tests, 
-                                        run_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)), 
-                                        trigger="date", 
-                                        args=[scheduled_job.job_data, user.id], 
-                                        id=str(scheduled_job.id))
+                job = scheduler.add_job(scheduler_engine, run_date=str(datetime.fromtimestamp(
+                    scheduled_job.start_date_time)), trigger="date", args=[job_data, user.id], id=str(scheduled_job.id))
             # trigger type interval
             else:
                 if scheduled_job.end_date_time:
-                    job = scheduler.add_job(tests, 
-                                            start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)), 
-                                            end_date=str(datetime.fromtimestamp(scheduled_job.end_date_time)), 
-                                            trigger="interval", args=[scheduled_job.job_data, user.id], id=str(scheduled_job.id), 
-                                            seconds=scheduled_job.frequency['seconds'], 
-                                            minutes=scheduled_job.frequency['minutes'], 
-                                            hours=scheduled_job.frequency['hours'], 
-                                            days=scheduled_job.frequency['days'], 
-                                            weeks=scheduled_job.frequency['weeks'])
+                    job = scheduler.add_job(scheduler_engine, start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)), end_date=str(datetime.fromtimestamp(scheduled_job.end_date_time)), trigger="interval", args=[job_data, user.id], id=str(
+                        scheduled_job.id), seconds=scheduled_job.frequency['seconds'], minutes=scheduled_job.frequency['minutes'], hours=scheduled_job.frequency['hours'], days=scheduled_job.frequency['days'], weeks=scheduled_job.frequency['weeks'])
                 else:
-                    job = scheduler.add_job(tests, 
-                                            start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)), 
-                                            trigger="interval", 
-                                            args=[scheduled_job.job_data, user.id], 
-                                            id=str(scheduled_job.id), 
-                                            seconds=scheduled_job.frequency['seconds'], 
-                                            minutes=scheduled_job.frequency['minutes'], 
-                                            hours=scheduled_job.frequency['hours'], 
-                                            days=scheduled_job.frequency['days'], 
-                                            weeks=scheduled_job.frequency['weeks'])
-
+                    job = scheduler.add_job(scheduler_engine, start_date=str(datetime.fromtimestamp(scheduled_job.start_date_time)), trigger="interval", args=[job_data, user.id], id=str(
+                        scheduled_job.id), seconds=scheduled_job.frequency['seconds'], minutes=scheduled_job.frequency['minutes'], hours=scheduled_job.frequency['hours'], days=scheduled_job.frequency['days'], weeks=scheduled_job.frequency['weeks'])
             logging.info(f"job scheduled successfully")
             return jsonify({"message": "Job scheduled successfully!"}), 201
 

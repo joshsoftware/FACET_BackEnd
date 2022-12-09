@@ -74,7 +74,7 @@ def create_payloads():
             for exp_outcome in expected_outcome:
                 if not (exp_outcome['expected_outcome'] is not None and is_expected_outcome_valid(exp_outcome['expected_outcome'])):
                     logging.info(f"POST request to create payload failed as empty expected outcome was provided in the payload")
-                    return jsonify({"error": "You cannot pass empty expected outcome in the payload"})
+                    return jsonify({"error": "You cannot pass empty expected outcome in the payload"}), 400
                 exp_outcome['payload'] = payload.id
                 exp_outcome['created_by'] = user.id
                 exp_outcome['modified_by'] = user.id

@@ -108,8 +108,9 @@ def login():
         if user and user.check_hash(data.get('password')):
             access_token = create_access_token(identity=user.id)
             resfresh_token = create_refresh_token(identity=user.id)
+            user_profile = UserModel.get_user_profile(user)
             logging.info(f"user login successful for {user.name}")
-            return jsonify({"access_token": access_token, "refresh_token": resfresh_token, "user": UserModel.get_user_profile(user)}), 200
+            return jsonify({"access_token": access_token, "refresh_token": resfresh_token, "user": user_profile}), 200
 
         logging.info("user login failed due to invalid credentials")
         return jsonify({"error": "Invalid Credentials!"}), 400

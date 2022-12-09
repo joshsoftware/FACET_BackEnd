@@ -88,6 +88,8 @@ def update_Testdata():
 
         testdata.expected_outcome = req_data.get('expected_outcome') if req_data.get('expected_outcome') else testdata.expected_outcome
 
+        testdata.parameters = req_data.get('parameters') if req_data.get('parameters') else testdata.parameters
+
         testdata.update({'modified_by': user.id})
         logging.info(f"testdata updated sucessfully")
         return jsonify({"message": "Testdata Updated successfully"}), 200

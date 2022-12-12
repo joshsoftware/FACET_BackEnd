@@ -146,6 +146,9 @@ def update_testcase():
                 testcase.teststeps.clear()
                 testcase.testdatas.clear()
                 for test_step in teststeps:
+                    if not ((type(test_step.get('teststep')) is int) and (type(test_step.get('testdata') is list) and len(test_step.get('testdata')) > 0)):
+                        logging.info(f"PUT request to update testcases failed due as zero testdata provided for testcase")
+                        return jsonify({"error" : "Zero testdata provided for testcase"}), 400
                     teststep = TestStepModel.query.get(
                         test_step["teststep"])
                     execution_sequence = execution_sequence + \

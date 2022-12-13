@@ -127,11 +127,11 @@ def update_teststep():
         
         teststep.method  = req_data.get('method') if req_data.get('method') else teststep.method
 
-        teststep.endpoint_id = req_data.get('endpoint_id') if req_data.get('endpoint_id') else teststep.endpoint
+        teststep.endpoint_id = req_data.get('endpoint_id') if req_data.get('endpoint_id') else teststep.endpoint_id
 
-        teststep.header_id = req_data.get('header_id') if req_data.get('header_id') else teststep.header
+        teststep.header_id = req_data.get('header_id') if req_data.get('header_id') else teststep.header_id
         
-        teststep.payload_id = req_data.get('payload_id') if req_data.get('payload_id') else teststep.payload
+        teststep.payload_id = req_data.get('payload_id') if req_data.get('payload_id') else teststep.payload_id
 
         teststep.update({'modified_by': user.id})
         logging.info(f"teststep updated sucessfully")

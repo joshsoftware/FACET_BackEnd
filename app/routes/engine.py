@@ -161,6 +161,7 @@ def engine():
                     "level" : "testcase",
                     "executed_by" : user 
                 }
+                print("overall->",result_to_store['status'])
                 del response['result']['status']
                 result_to_store['result'] = response['result']
                 result_to_store['result']['testcase'] = execution_data['testcase']
@@ -192,6 +193,7 @@ def tests(data):
             teststep_results_to_store = []
             no_of_passed_teststeps = 0
             no_of_failed_teststeps = 0
+            is_testcase_passed = True
             unique_run_time_id = str(testcase['name']) + str(datetime.now())
             for teststep in testcase['teststeps']:
                 teststep_resp = []
@@ -220,6 +222,7 @@ def tests(data):
                     td['name'] = td['name'].strip("[]")
                     if resp['status'] == 'failed':
                         is_teststep_passed = False
+                        is_testcase_passed = False
                         no_of_failed_testdata_combinations += 1
                     else:
                         no_of_passed_testdata_combinations += 1
@@ -250,7 +253,6 @@ def tests(data):
                     "no_of_passed_fields": no_of_passed_testdata_combinations,
                     "no_of_failed_fields": no_of_failed_testdata_combinations
                 })
-
                 teststep_results_to_store.append({
                     "name": teststep.get('name'),
                     "method": teststep.get('method'),
@@ -262,6 +264,7 @@ def tests(data):
                     "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
                     "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations,
                 })
+            status = "passed" if is_testcase_passed else "failed"
             data_to_store = {
                 "teststeps": teststep_results_to_store,
                 "status": status,

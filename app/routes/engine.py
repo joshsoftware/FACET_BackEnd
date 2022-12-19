@@ -67,7 +67,7 @@ def engine():
             testcase_status = "passed"
             for testcase in testsuite['testcases']:
                 execution_data['environment'] = environment
-                execution_data['testcase'] = testcase
+                execution_data['testcase'] = TestcaseModel.get_one_testcase(id=testcase['id'])
                 resp = tests(data=execution_data)
 
                 del testcase['project']
@@ -102,7 +102,7 @@ def engine():
                     else:
                         no_of_passed_testcases += 1
                         testcase_status = "passed"
-                    
+
                     testcase_result_to_store.append({
                         "status" : testcase_status,
                         "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
@@ -111,12 +111,12 @@ def engine():
                         "teststeps": resp['result']['teststeps']
                     })
                     data_to_send.append({
-                    "status" : testcase_status,
-                    "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
-                    "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
-                    "name" : testcase['name'],
-                    "testcase_id" : testcase['id']
-                })
+                        "status": testcase_status,
+                        "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
+                        "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
+                        "name": testcase['name'],
+                        "testcase_id": testcase['id']
+                    })
 
             project = testsuite['project']
             del testsuite['project']
@@ -180,6 +180,7 @@ def engine():
         logging.info(f"POST request for execution failed due to the following error:{err}")
         return jsonify({"error": "something went wrong"}), 400
 
+
 def tests(data):
     try:
         testcase = data['testcase']
@@ -204,6 +205,7 @@ def tests(data):
                 teststep['header'] = teststep['header']['header']
                 
                 testdata = [test_data for test_data in teststep['testdata'] if test_data in testcase['testdatas']]
+                del teststep['testdata']
                 for td in testdata:
                     td['name'] = "[" + td['name'] + "]"
                     teststep['payload'] = td['payload']
@@ -347,8 +349,11 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
             "no_of_passed_fields": 0,
             "no_of_failed_fields": 0
         }
-    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": res.json(
-    ), "run_time_id": unique_run_time_id})
+    try:
+        resp = res.json()
+    except Exception as err:
+        resp = {}
+    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": resp, "run_time_id": unique_run_time_id})
     temp.save()
 
     status, outcome, no_of_passed_fields, no_of_failed_fields = validate_expected_outcome(
@@ -357,7 +362,7 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
     return {
         "status": "passed" if status == "passed" else "failed",
         "outcome": outcome,
-        "response": res.json(),
+        "response": resp,
         "no_of_passed_fields": no_of_passed_fields,
         "no_of_failed_fields": no_of_failed_fields
     }
@@ -371,7 +376,10 @@ def validate_expected_outcome(teststep, response):
     no_of_passed_fields = 0
     no_of_failed_fields = 0
     outcome = []
-    res = response.json()
+    try:
+        res = response.json()
+    except Exception as err:
+        res = {}
     for field in teststep['expected_outcome']:
         field_name = field.get('name')
         # field_type = field.get('type')

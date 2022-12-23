@@ -328,6 +328,7 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
 
         for i in tmp[1:len(tmp)]:
             var_value = var_value.get(i)
+        var_value = "None" if var_value is None else var_value
         teststep = eval(str(teststep).replace(f"$var={variable}", var_value))
 
     res = fetch_from_api(teststep)

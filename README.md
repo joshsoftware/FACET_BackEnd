@@ -46,12 +46,19 @@ GRANT ALL PRIVILEGES ON DATABASE facetdb TO username;
 
 Step 3: Add environment variables
 
-Open .env.local and add DATABASE_URL in form of:
+Create a .env file in the directory.
+
+Copy all the fields from .env.local as it is provided as a template for .env file.
+
+Open .env file, paste all the fields from .env.local. 
+
+Add DATABASE_URL to .env file in form of:
 ```
 postgresql://username:password@localhost:5432/facetdb
 ```
 
 Note: If your password have special character then uri must be in encode form. For ex. If password is 'pass@123' then it should be 'pass%40123'.
+
 
 step 4: Migrate db
 

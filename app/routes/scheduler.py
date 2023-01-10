@@ -36,10 +36,10 @@ def job_monitor():
             job.status = "executed"
             job.save()
 
-monitor_scheduler = BackgroundScheduler({'apscheduler.timezone' : 'Asia/Calcutta'})
-monitor_scheduler.start()
+# monitor_scheduler = BackgroundScheduler({'apscheduler.timezone' : 'Asia/Calcutta'})
+# monitor_scheduler.start()
 
-monitor_scheduler.add_job(func=job_monitor,trigger="interval",minutes=1)
+# monitor_scheduler.add_job(func=job_monitor,trigger="interval",minutes=1)
 
 
 @scheduler_blueprint.route('/', methods=["GET"])

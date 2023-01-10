@@ -4,7 +4,7 @@ from marshmallow import ValidationError
 import logging
 from . import jwt
 from app.helpers.utils import get_current_user, get_project_members_id, is_super_admin
-from app.models.UserModel import UserModel, UserSchema
+from app.models.user_model import UserModel, UserSchema
 
 auth_blueprint = Blueprint('auth', __name__)
 user_schema = UserSchema()

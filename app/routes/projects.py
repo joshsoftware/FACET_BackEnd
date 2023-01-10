@@ -1,10 +1,10 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 from app.helpers.utils import get_project_id, is_user_admin
-from app.models.UserModel import UserModel
+from app.models.user_model import UserModel
 from app.helpers import create_slug
 from marshmallow import ValidationError
-from app.models.ProjectModel import ProjectModel, ProjectSchema
+from app.models.project_model import ProjectModel, ProjectSchema
 import logging
 
 projects_blueprint = Blueprint('projects', __name__)

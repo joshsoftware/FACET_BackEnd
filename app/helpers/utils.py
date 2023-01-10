@@ -4,8 +4,8 @@ from slugify import slugify
 from flask_jwt_extended import get_current_user
 from marshmallow import ValidationError
 from app.models.ResultModel import ResultModel,ResultSchema
-from app.models.ProjectModel import ProjectModel
-from app.models.UserModel import UserModel
+from app.models.project_model import ProjectModel
+from app.models.user_model import UserModel
 
 result_schema = ResultSchema()
 

@@ -91,14 +91,14 @@ class OrganizationModel(db.Model):
         return organization
 
     @staticmethod
-    def get_one_organization(organization_name):
+    def get_one_organization(organization_id):
         """
         returns details of an organization,
         based on the organization name
         as per the organization schema
         """
         organization = OrganizationSchema().dump(
-            OrganizationModel.query.filter_by(name=organization_name).first()
+            OrganizationModel.query.filter_by(id=organization_id).first()
         )
         return organization
 

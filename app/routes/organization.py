@@ -10,6 +10,7 @@ from marshmallow import ValidationError
 from app.helpers import create_slug
 from app.helpers.utils import has_access_to_organization
 from app.models.organization_model import OrganizationModel, OrganizationSchema
+from app.models.user_model import UserModel, UserSchema
 
 organization_blueprint = Blueprint("organizations", __name__)
 organization_schema = OrganizationSchema()
@@ -212,11 +213,11 @@ def delete_organization():
     DELETE route to delete an organization
     Request Requiers:
     - method: DELETE
-        - JWT Bearer token in Authorization header
-        - body data:
-            {
-                "organization" : organization_id (integer)
-            }
+    - JWT Bearer token in Authorization header
+    - body data:
+        {
+            "organization" : organization_id (integer)
+        }
     Response:
         - success message with status code 200 if everything is successful
         - error message with status code 400 and
@@ -259,4 +260,103 @@ def delete_organization():
         return jsonify({"message": "organization deleted successfully"}), 200
     except Exception as err:
         logging.exception("DELETE request failed due to the following error:%s", err)
+        return jsonify({"error": "something went wrong"}), 400
+
+
+@organization_blueprint.route("/regsiter_members", methods=["POST"])
+def add_members_to_organization():
+    """
+    POST route for adding members to organization
+    Request Requirements:
+        -email
+        -password
+        -name
+        -username
+        -org_id
+    Response:
+    """
+    try:
+        request_data = request.json
+        logging.info(
+            "POST request for user signup and registration along with \
+                addition to organization with payload:%s",
+            request_data,
+        )
+        organization_id = request_data.pop("org_id", None)
+        if organization_id is None:
+            return (
+                jsonify({"error": "invalid request, kindly send all the parameters"}),
+                400,
+            )
+        organization = OrganizationModel.get_one_organization(
+            organization_id=organization_id
+        )
+        if organization is None:
+            return (
+                jsonify({"error": "invalid request,organization does not exist"}),
+                400,
+            )
+        try:
+            request_data = UserSchema().load(request_data)
+        except ValidationError as err:
+            logging.error(
+                "organization created failed due to the following error: %s", err
+            )
+            return jsonify({"error": str(err)}), 400
+        user = UserModel(data=request_data)
+        user.user_organization = organization.id
+        user.save()
+        return jsonify({"message": "user onboarded successfully"}), 200
+    except Exception as err:
+        logging.info("POST request failed due to the following error:%s", err)
+        return jsonify({"error": "something went wrong"}), 400
+
+
+@organization_blueprint.route("/remove_members", methods=["DELETE"])
+@jwt_required()
+def remove_members():
+    """
+    DELETE request to remove members permanently
+    Request requires:
+        - method: DELETE
+        - JWT Bearer token in Authorization header
+        - body data:
+            {
+                "organization_id" : integer,
+                "user_id" : integer
+            }
+    """
+    try:
+        request_data = request.json
+        user = get_current_user()
+        logging.info(
+            "DELETE request to remove user from organization by user:%s, with payload:%s",
+            user.id,
+            request_data,
+        )
+        if not (
+            has_access_to_organization(
+                organization_id=request_data.get("organization_id"), user=user
+            )
+            and user.is_super_admin
+        ):
+            logging.info("DELETE request failed due to unauthorised access")
+            return (
+                jsonify({"error": "Unauthorized access to organization functions"}),
+                401,
+            )
+        user_to_be_removed = UserModel.query.get(request_data.get("user_id"))
+        organization = OrganizationModel.query.get(request_data.get("organization_id"))
+        organization.org_users.remove(user_to_be_removed)
+        organization.save()
+        user_to_be_removed.user_organization = 1
+        user_to_be_removed.save()
+        logging.info(
+            "DELETE to remove user from organization by user:%s successfull", user.id
+        )
+        return jsonify({"message": "user removed from organization successfully"}), 200
+    except Exception as err:
+        logging.info(
+            "DELETE request to remove user failed due to the following error:%s", err
+        )
         return jsonify({"error": "something went wrong"}), 400

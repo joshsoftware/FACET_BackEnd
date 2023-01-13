@@ -27,9 +27,6 @@ class OrganizationModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=True)
-    org_super_admin = db.Column(
-        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL")
-    )
     contact_email_id = db.Column(db.String(50), nullable=False)
     org_projects = db.relationship("ProjectModel", backref="organizations")
     org_users = db.relationship(
@@ -38,8 +35,6 @@ class OrganizationModel(db.Model):
         primaryjoin="and_(OrganizationModel.id==UserModel.user_organization)",
     )
     created_at = db.Column(db.DateTime)
-    created_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    modified_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     modified_at = db.Column(db.DateTime)
 
     def __init__(self, data):
@@ -48,11 +43,8 @@ class OrganizationModel(db.Model):
         """
         self.name = data.get("name")
         self.description = data.get("description")
-        self.org_super_admin = data.get("org_super_admin")
         self.contact_email_id = data.get("contact_email_id")
         self.created_at = datetime.utcnow()
-        self.created_by = data.get("org_super_admin")
-        self.modified_by = data.get("org_super_admin")
         self.modified_at = datetime.utcnow()
 
     def save(self):
@@ -97,7 +89,7 @@ class OrganizationModel(db.Model):
         based on the organization name
         as per the organization schema
         """
-        organization = OrganizationSchema().dump(
+        organization = OrganizationSchema(exclude=['org_users']).dump(
             OrganizationModel.query.filter_by(id=organization_id).first()
         )
         return organization
@@ -149,10 +141,7 @@ class OrganizationSchema(Schema):
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True)
     description = fields.Str()
-    org_super_admin = fields.Int(required=True)
     contact_email_id = fields.Str(required=True)
     org_users = fields.List(fields.Nested(UserSchema(exclude=["password"])))
     created_at = fields.DateTime(dump_only=True)
-    created_by = fields.Int()
-    modified_by = fields.Int()
     modified_at = fields.DateTime(dump_only=True)

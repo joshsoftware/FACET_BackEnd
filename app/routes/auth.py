@@ -1,12 +1,17 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, create_refresh_token
+from flask_jwt_extended import (
+    create_access_token,
+    jwt_required,
+    get_jwt_identity,
+    create_refresh_token,
+)
 from marshmallow import ValidationError
 import logging
 from . import jwt
-from app.helpers.utils import get_current_user, get_project_members_id, is_super_admin
+from app.helpers.utils import get_current_user, get_project_members_id, is_super_admin, has_access_to_organization
 from app.models.user_model import UserModel, UserSchema
 
-auth_blueprint = Blueprint('auth', __name__)
+auth_blueprint = Blueprint("auth", __name__)
 user_schema = UserSchema()
 
 
@@ -22,7 +27,7 @@ def _user_lookup_callback(_jwt_header, jwt_data):
 
 
 # create account
-@auth_blueprint.route('/signup', methods=['POST'])
+@auth_blueprint.route("/signup", methods=["POST"])
 def signup():
     """
     Route to register user
@@ -32,7 +37,9 @@ def signup():
             {
                 name: email,
                 email: string,
-                password: string
+                username: string,
+                password: string,
+                account_type: string
             }
     Response:
         - if success JSON response containing message with 201 code
@@ -50,22 +57,46 @@ def signup():
             logging.error(f"user signup failed due to the following error {err}")
             return jsonify({"error": err.messages}), 400
 
-        user_exist = UserModel.get_user_by_email(data.get('email'))
+        user_exist = UserModel.get_user_by_email(data.get("email"))
         if user_exist:
-            logging.info(f"user signup failed for {req_data['name']} as email already exists")
-            return jsonify({"error": "User already exist, please supply another email address"}), 400
-
+            logging.info(
+                f"user signup failed for {req_data['name']} as email already exists"
+            )
+            return (
+                jsonify(
+                    {"error": "User already exist, please supply another email address"}
+                ),
+                400,
+            )
+        does_username_exist = UserModel.does_username_exist(
+            username=data.get("username")
+        )
+        if does_username_exist:
+            logging.info(
+                "user signup failed for %s as username already exists", req_data["name"]
+            )
+            return jsonify(
+                {"error": "username is already taken, please supply another username"}
+            )
         user = UserModel(data)
         user.save()
-        logging.info(f"user signup successful for {user.name}")
-        return jsonify({"message": "User Created Successfully!"}), 201
+        if req_data.get('account_type') is "personal":
+            user.user_organization = 1
+            user.save()
+            logging.info(f"user signup successful for {user.name}")
+            return jsonify({"message": "User Created Successfully!"}), 201
+        else:
+            access_token = create_access_token(identity=user.id)
+            return jsonify({"access token": access_token}), 200
     except Exception as err:
-        logging.exception(f"POST request for signup failed due to the following error: {err}")
+        logging.exception(
+            f"POST request for signup failed due to the following error: {err}"
+        )
         return jsonify({"error": "something went wrong"}), 400
 
 
 # Login Account
-@auth_blueprint.route('/login', methods=['POST'])
+@auth_blueprint.route("/login", methods=["POST"])
 def login():
     """
     Route to authenticate user with his credentials
@@ -78,9 +109,9 @@ def login():
             }
     Response:
         - if success JSON response with 200 code
-            e.g. { 
-                    user: { ...user_data }, 
-                    token: string, 
+            e.g. {
+                    user: { ...user_data },
+                    token: string,
                     refresh_token: string
                 }
         - if fails JSON response containing error message with 400 code
@@ -95,27 +126,40 @@ def login():
             logging.info(f"login failed due to {err}")
             return jsonify({"error": err.messages}), 400
 
-        if not req_data.get('email') or not req_data.get('password'):
-            logging.info(f"user login failed failed as email or password weren't supplied")
+        if not req_data.get("email") or not req_data.get("password"):
+            logging.info(
+                f"user login failed failed as email or password weren't supplied"
+            )
             return jsonify({"error": "Email and Password are required fields!"}), 400
 
-        user = UserModel.get_user_by_email(data.get('email'))
+        user = UserModel.get_user_by_email(data.get("email"))
 
         if not user:
             logging.info(f"User login failed as user does not exists")
             return jsonify({"error": "Invalid Credentials!"}), 400
 
-        if user and user.check_hash(data.get('password')):
+        if user and user.check_hash(data.get("password")):
             access_token = create_access_token(identity=user.id)
             resfresh_token = create_refresh_token(identity=user.id)
             user_profile = UserModel.get_user_profile(user)
             logging.info(f"user login successful for {user.name}")
-            return jsonify({"access_token": access_token, "refresh_token": resfresh_token, "user": user_profile}), 200
+            return (
+                jsonify(
+                    {
+                        "access_token": access_token,
+                        "refresh_token": resfresh_token,
+                        "user": user_profile,
+                    }
+                ),
+                200,
+            )
 
         logging.info("user login failed due to invalid credentials")
         return jsonify({"error": "Invalid Credentials!"}), 400
     except Exception as err:
-        logging.exception(f"POST request for signup failed due to the following error: {err}")
+        logging.exception(
+            f"POST request for signup failed due to the following error: {err}"
+        )
         return jsonify({"error": "something went wrong"}), 400
 
 
@@ -131,7 +175,7 @@ def refresh():
             e.g. {"access_token": "token value"}
         - if token expires JSON response containing message with 401UNAUTHORIZED status code
             {"msg": "Token has expired"}
-        - if signature verification fails JSON response containing message with 
+        - if signature verification fails JSON response containing message with
         422 UNPROCESSABLE ENTITY status code
             {"msg": "Signature verification failed"}
     """
@@ -141,11 +185,13 @@ def refresh():
         logging.info(f"access token requested for user {identity}")
         return jsonify({"access_token": access_token}), 200
     except Exception as err:
-        logging.exception(f"POST request for signup failed due to the following error: {err}")
+        logging.exception(
+            f"POST request for signup failed due to the following error: {err}"
+        )
         return jsonify({"error": "something went wrong"}), 400
 
 
-@auth_blueprint.route('/delete/', methods=['DELETE'])
+@auth_blueprint.route("/delete/", methods=["DELETE"])
 @jwt_required()
 def delete_user():
     """
@@ -168,9 +214,11 @@ def delete_user():
     try:
         req_data = request.json
         super_admin = get_current_user().id
-        logging.info(f"super admin request for deleting user with payload {req_data} and super_admin_id : {super_admin}")
+        logging.info(
+            f"super admin request for deleting user with payload {req_data} and super_admin_id : {super_admin}"
+        )
         try:
-            user = UserModel.get_one_user(req_data.get('user'))
+            user = UserModel.get_one_user(req_data.get("user"))
         except Exception as err:
             logging.exception(f"user deletion failed to the error:{err}")
             return jsonify({"error": str(err)}), 400
@@ -181,17 +229,26 @@ def delete_user():
 
         if not is_super_admin(super_admin):
             logging.info(f"user deletion failed due to unauthorized access")
-            return jsonify({"error": "Sorry you do not possess the super admin rights to delete a user"}), 401
+            return (
+                jsonify(
+                    {
+                        "error": "Sorry you do not possess the super admin rights to delete a user"
+                    }
+                ),
+                401,
+            )
 
         user.delete()
         logging.info(f"user deleted successfully")
         return jsonify({"message": "User deleted sucessfully"}), 200
     except Exception as err:
-        logging.exception(f"POST request for signup failed due to the following error: {err}")
+        logging.exception(
+            f"POST request for signup failed due to the following error: {err}"
+        )
         return jsonify({"error": "something went wrong"}), 400
 
 
-@auth_blueprint.route('/add_admins', methods=['POST'])
+@auth_blueprint.route("/add_admins", methods=["POST"])
 @jwt_required()
 def add():
     """
@@ -201,7 +258,8 @@ def add():
         - JWT Bearer token in Authorization header
         - body data:
             {
-                admin: array of users id
+                admin: array of users id,
+                organization: organization_id(int)
             }
     Response:
         - if success JSON response containing message with 200 code
@@ -212,13 +270,19 @@ def add():
     req_data = request.json
     user = get_current_user()
     logging.info(f"request to add admins by user:{user.id} with req_data:{req_data}")
-    if not is_super_admin(user.id):
+    if not(has_access_to_organization(organization_id=req_data.get('organization'),user=user) and user.is_super_admin):
         logging.info(f"request to add admins failed due to unauthorised access")
-        return jsonify({"error": "You do not possess the super admin rights to add modify a user status"}), 401
-
+        return (
+            jsonify(
+                {
+                    "error": "Unauthorised access"
+                }
+            ),
+            401,
+        )
     try:
-        admins = req_data['admin']
-        del req_data['admin']
+        admins = req_data["admin"]
+        del req_data["admin"]
         if admins:
             for admin_id in admins:
                 member = UserModel.get_one_user(admin_id)
@@ -227,49 +291,59 @@ def add():
             logging.info(f"members added successfully")
             return jsonify({"message": "Members successfully updated to admin"}), 200
     except Exception as err:
-        logging.exception(f"request to add admins failed by user:{user} due to the following error:{err}")
+        logging.exception(
+            f"request to add admins failed by user:{user} due to the following error:{err}"
+        )
         return jsonify({"error": "Something went wrong!"}), 400
 
 
-@auth_blueprint.route('/get_all_users', methods=['GET'])
-@jwt_required()
-def get_all_users():
-    """
-    Route which gives users list
-    Requires:
-        - method: GET
-        - JWT Bearer token in Authorization header
-        - params: 
-            {
-                exclude: 'admins' or 'projectMembers' or None,
-                project: "string, required if exclude == 'projectMembers'"
-            }
-    Response:
-        - if success JSON response containing message with 200 code
-            e.g. { users: array of users data e.g. [{ ...user_data }] }
-        - if fails JSON response containing error message with 400 code
-            e.g. {error: string}
-    """
-    exclude = request.args.get('exclude')
-    project = request.args.get('project')
-    user = get_current_user()
-    logging.info(f"GET request to fetch all users by user:{user.id} with params:{dict(request.args)}")
-    try:
-        users = UserModel.get_all_members()
+# @auth_blueprint.route("/get_all_users", methods=["GET"])
+# @jwt_required()
+# def get_all_users():
+#     """
+#     Route which gives users list
+#     Requires:
+#         - method: GET
+#         - JWT Bearer token in Authorization header
+#         - params:
+#             {
+#                 exclude: 'admins' or 'projectMembers' or None,
+#                 project: "string, required if exclude == 'projectMembers'"
+#             }
+#     Response:
+#         - if success JSON response containing message with 200 code
+#             e.g. { users: array of users data e.g. [{ ...user_data }] }
+#         - if fails JSON response containing error message with 400 code
+#             e.g. {error: string}
+#     """
+#     exclude = request.args.get("exclude")
+#     project = request.args.get("project")
+#     user = get_current_user()
+#     logging.info(
+#         f"GET request to fetch all users by user:{user.id} with params:{dict(request.args)}"
+#     )
+#     try:
+#         users = UserModel.get_all_members()
 
-        if exclude == 'admins':
-            if not is_super_admin(user.id):
-                logging.info(f"GET request failed due to unauthorised access")
-                return jsonify({
-                    "error": "You do not possess the super admin rights to access all the users of the organization"
-                }), 401
-            users = [user for user in users if not user['is_admin']]
-        elif exclude == 'projectMembers':
-            project_members = get_project_members_id(project)
-            users = [user for user in users if user['id']
-                     not in project_members]
-        logging.info(f"GET request succesfull, list of all users sent for project:{project}")
-        return jsonify({"users": users}), 200
-    except Exception as err:
-        logging.exception(f"GET request failed due to the following error:{err}")
-        return jsonify({"error": "Something Went Wrong!"}), 400
+#         if exclude == "admins":
+#             if not is_super_admin(user.id):
+#                 logging.info(f"GET request failed due to unauthorised access")
+#                 return (
+#                     jsonify(
+#                         {
+#                             "error": "You do not possess the super admin rights to access all the users of the organization"
+#                         }
+#                     ),
+#                     401,
+#                 )
+#             users = [user for user in users if not user["is_admin"]]
+#         elif exclude == "projectMembers":
+#             project_members = get_project_members_id(project)
+#             users = [user for user in users if user["id"] not in project_members]
+#         logging.info(
+#             f"GET request succesfull, list of all users sent for project:{project}"
+#         )
+#         return jsonify({"users": users}), 200
+#     except Exception as err:
+#         logging.exception(f"GET request failed due to the following error:{err}")
+#         return jsonify({"error": "Something Went Wrong!"}), 400

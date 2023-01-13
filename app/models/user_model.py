@@ -17,12 +17,14 @@ class UserModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean)
     is_super_admin = db.Column(db.Boolean)
     user_organization = db.Column(
         db.Integer, db.ForeignKey("organizations.id", ondelete="CASCADE")
     )
+    account_type = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime)
     modified_at = db.Column(db.DateTime)
 
@@ -36,9 +38,11 @@ class UserModel(db.Model):
         """
         self.name = data.get("name")
         self.email = data.get("email")
+        self.username = data.get("username")
         self.password = self.__generate_hash(data.get("password"))
         self.is_super_admin = False
         self.is_admin = False
+        self.account_type = data.get("account_type")
         self.created_at = datetime.utcnow()
         self.modified_at = datetime.utcnow()
 
@@ -102,6 +106,14 @@ class UserModel(db.Model):
         else return None
         """
         return UserModel.query.filter_by(email=email).first()
+    
+    @staticmethod
+    def does_username_exist(username):
+        """
+        class method to check if the given
+        username exists in the database or not
+        """
+        return UserModel.query.filter_by(username=username).first()
 
     @staticmethod
     def is_super_user(user_id):
@@ -172,8 +184,11 @@ class UserSchema(Schema):
 
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True)
+    username = fields.Str(required=True)
     email = fields.Email(required=True)
     password = fields.Str(required=True)
+    account_type = fields.Str()
+    user_organization = fields.Int()
     created_at = fields.DateTime(dump_only=True)
     is_admin = fields.Bool()
     is_super_admin = fields.Bool()

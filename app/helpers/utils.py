@@ -41,7 +41,7 @@ def has_access_to_organization(organization_id, user):
     """
     Util function to check if the user currently belongs to the organization or not
     """
-    return user.organizations == organization_id
+    return user.user_organization == organization_id
 
 def is_super_admin(user):
     return UserModel.is_super_user(user)

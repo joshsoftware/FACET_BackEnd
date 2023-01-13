@@ -17,7 +17,7 @@ organization_schema = OrganizationSchema()
 
 
 @organization_blueprint.route("/", methods=["GET"])
-@organization_blueprint.route("/<string:id>", methods=["GET"])
+@organization_blueprint.route("/<int:org_id>", methods=["GET"])
 @jwt_required()
 def get_organization_data(org_id=None):
     """
@@ -48,13 +48,15 @@ def get_organization_data(org_id=None):
             return (
                 jsonify(
                     {
-                        "error": "Unauthorised access,you do not \
+                        "error": "Unauthorised access,you do not\
                         possess access to this organization"
                     }
                 ),
                 401,
             )
         organization = OrganizationModel.get_one_organization(organization_id=org_id)
+        organization["is_org_superadmin"] = user.is_super_admin
+        organization["is_admin"] = user.is_admin
         logging.info(
             "GET request to fetch details for organization:%d successfull by user:%s",
             org_id,
@@ -63,6 +65,54 @@ def get_organization_data(org_id=None):
         return jsonify({"organization": organization}), 200
     except Exception as err:
         logging.exception("GET request failed due to the following error:%s", err)
+        return jsonify({"error": "something went wrong"}), 400
+
+
+@organization_blueprint.route("/members")
+@jwt_required()
+def get_org_members():
+    """
+    GET request module to fetch organization
+    Request Requires-
+        -method GET
+        -JWT Bearer token
+        -Params:{
+            organization: int,
+            exclude : "admins" [optional field]
+        }
+    Response:
+        -status 200, with a list of all members of the organization
+            if "exclude param is not provided"
+        -status 200 with a list of all members of the oganization,
+            excluding admins, if "exclude" param is provided
+    """
+    try:
+        organization_id = int(request.args.get("organization"))
+        user = get_current_user()
+        if not has_access_to_organization(organization_id=organization_id, user=user):
+            logging.info("GET request failed due to unauthorised access")
+            return (
+                jsonify(
+                    {
+                        "error": "Unauthorised access,you do not\
+                        possess access to this organization"
+                    }
+                ),
+                401,
+            )
+        org_users = OrganizationModel.get_org_members(organization_id=organization_id)
+        if request.args.get("exclude") == "admins":
+            if not user.is_super_admin:
+                return jsonify({"error": "unauthorised access"}), 401
+            org_users = [user for user in org_users if not user["is_admin"]]
+        logging.info(
+            "GET request to fetch organization members for organization:%d successfull by user:%s",
+            organization_id,
+            user.name,
+        )
+        return jsonify({"members": org_users}), 200
+    except Exception as err:
+        logging.info("GET request failed due to the following error: %s", err)
         return jsonify({"error": "something went wrong"}), 400
 
 
@@ -88,14 +138,13 @@ def create_organization():
             if faulty input of any sort is provided
     """
     try:
-        request_data = request.json()
-        user = get_current_user().id
+        request_data = request.json
+        user = get_current_user()
         logging.info(
             "POST request to create organization by user:%d with payload:%s",
-            user,
+            user.id,
             request.url,
         )
-        request_data["org_super_admin"] = user
         request_data["name"] = create_slug(request_data["name"])
         # Validating if the request data is valid as per organization Schema
         try:
@@ -104,6 +153,7 @@ def create_organization():
             logging.error(
                 "organization created failed due to the following error: %s", err
             )
+            user.delete()
             return jsonify({"error": str(err)}), 400
 
         organization_exists = OrganizationModel.does_organization_exist(
@@ -112,6 +162,7 @@ def create_organization():
 
         if organization_exists:
             logging.info("organization creation failed due to duplicate entry")
+            user.delete()
             return (
                 jsonify({"error": "An organization of the same name already exists"}),
                 400,
@@ -119,6 +170,10 @@ def create_organization():
         # creating organization post all the validations
         organization = OrganizationModel(request_data)
         organization.save()
+        user.user_organization = organization.id
+        user.is_super_admin = True
+        user.is_admin = True
+        user.save()
         return jsonify({"message": "organization created successfully"}), 200
 
     except Exception as err:
@@ -126,6 +181,7 @@ def create_organization():
             "POST request to create organization failed due to the following error:%s",
             err,
         )
+        user.delete()
         return jsonify({"error": "something went wrong"}), 400
 
 
@@ -263,7 +319,7 @@ def delete_organization():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@organization_blueprint.route("/regsiter_members", methods=["POST"])
+@organization_blueprint.route("/members/register", methods=["POST"])
 def add_members_to_organization():
     """
     POST route for adding members to organization
@@ -296,6 +352,7 @@ def add_members_to_organization():
                 jsonify({"error": "invalid request,organization does not exist"}),
                 400,
             )
+        request_data['account_type'] = "organization"
         try:
             request_data = UserSchema().load(request_data)
         except ValidationError as err:
@@ -312,7 +369,7 @@ def add_members_to_organization():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@organization_blueprint.route("/remove_members", methods=["DELETE"])
+@organization_blueprint.route("/members/remove", methods=["DELETE"])
 @jwt_required()
 def remove_members():
     """
@@ -358,5 +415,62 @@ def remove_members():
     except Exception as err:
         logging.info(
             "DELETE request to remove user failed due to the following error:%s", err
+        )
+        return jsonify({"error": "something went wrong"}), 400
+
+
+@organization_blueprint.route("/members/update", methods=["PUT"])
+@jwt_required()
+def update_member_role():
+    """
+    PUT API to update the roles existing members of the organization
+    Request Requires:
+        - method: PUT
+        - JWT Bearer token in Authorization header
+        - body data:
+            {
+                organization: “id”,
+                member: “id”,
+                updatedRole: “string”
+            }
+
+    """
+    try:
+        request_data = request.json
+        user = get_current_user()
+        logging.info(
+            "PUT request to update user roles by user: %s with payload:%s",
+            user.id,
+            request_data,
+        )
+        organization = OrganizationModel.get_one_organization(
+            organization_id=request_data.get("organization")
+        )
+        if not organization:
+            logging.info("PUT request faield as organization does not exist")
+            return (
+                jsonify({"error": "invalid request,organization does not exist"}),
+                400,
+            )
+        if not (
+            has_access_to_organization(organization_id=organization.id, user=user)
+            and user.is_super_admin
+        ):
+            logging.info("PUT request failed due to unauthorised access")
+            return jsonify({"error": "unauthorised access"}), 401
+        member_to_update = UserModel.get_one_user(user_id=request_data.get("member"))
+        new_role = request_data.get("updatedRole")
+        if new_role == "admin":
+            member_to_update.is_admin = True
+            member_to_update.is_super_admin = False
+        elif new_role == "member":
+            member_to_update.is_admin = False
+            member_to_update.is_super_admin = False
+        member_to_update.save()
+        logging.info("Role updated successfully for user: %s", member_to_update.id)
+        return jsonify({"message": "role updated successfully"}), 200
+    except Exception as err:
+        logging.info(
+            "PUT request to update user role failed due to the following error:%s", err
         )
         return jsonify({"error": "something went wrong"}), 400

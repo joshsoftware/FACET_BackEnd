@@ -48,7 +48,7 @@ def job_monitor():
 def getScheduledJobs(id=0):
     try:
         user = get_current_user()
-        project = get_project_id(request.args.get("project"))
+        project = get_project_id(request.args.get("project"),user.user_organization)
         logging.info(f"GET request to fetch scheduled jobs by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         if not has_access_to_project(project,user.id):
             logging.info(f"GET request failed due to unauthorised access")
@@ -69,9 +69,9 @@ def getScheduledJobs(id=0):
 def addScheduledJob():
     with app.app_context():
         try:
-            req_data = request.json
-            req_data['project'] = get_project_id(req_data.get('project'))
             user = get_current_user()
+            req_data = request.json
+            req_data['project'] = get_project_id(req_data.get('project'),user.user_organization)
             logging.info(f"POST request to create a scheduled job by user:{user.id} with payload:{req_data}")
             req_data['scheduled_by'] = user.id
             req_data['start_date_time'] = req_data['startDateTime']

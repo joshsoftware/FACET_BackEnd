@@ -453,7 +453,7 @@ def update_member_role():
                 400,
             )
         if not (
-            has_access_to_organization(organization_id=organization.id, user=user)
+            has_access_to_organization(organization_id=organization['id'], user=user)
             and user.is_super_admin
         ):
             logging.info("PUT request failed due to unauthorised access")

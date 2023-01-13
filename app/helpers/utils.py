@@ -17,8 +17,8 @@ def create_id():
     return str(uuid.uuid4())
 
 
-def get_project_id(slug):
-    project = ProjectModel.query.filter_by(name=slug).first() or None
+def get_project_id(slug,organization):
+    project = ProjectModel.query.filter_by(name=slug,project_organization=organization).first() or None
     if project:
         return project.id
     return None
@@ -52,13 +52,6 @@ def is_user_admin(user):
 
 def get_user_name(id):
     return UserModel.get_user_name(id)
-
-def get_project_members_id(project):
-    project = get_project_id(project)
-    members = ProjectModel.get_project_members(project)
-
-    members_id = [i['id'] for i in members]
-    return members_id
 
 def is_fit_to_run(testcase):
     is_fit = True

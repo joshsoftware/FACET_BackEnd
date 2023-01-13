@@ -8,7 +8,7 @@ from flask_jwt_extended import (
 from marshmallow import ValidationError
 import logging
 from . import jwt
-from app.helpers.utils import get_current_user, get_project_members_id, is_super_admin, has_access_to_organization
+from app.helpers.utils import get_current_user, is_super_admin, has_access_to_organization
 from app.models.user_model import UserModel, UserSchema
 
 auth_blueprint = Blueprint("auth", __name__)
@@ -80,7 +80,7 @@ def signup():
             )
         user = UserModel(data)
         user.save()
-        if req_data.get('account_type') is "personal":
+        if req_data.get('account_type') == "personal":
             user.user_organization = 1
             user.save()
             logging.info(f"user signup successful for {user.name}")
@@ -259,7 +259,7 @@ def add():
         - body data:
             {
                 admin: array of users id,
-                organization: organization_id(int)
+                organization : organization_id
             }
     Response:
         - if success JSON response containing message with 200 code
@@ -287,7 +287,7 @@ def add():
             for admin_id in admins:
                 member = UserModel.get_one_user(admin_id)
                 member.is_admin = True
-                member.update()
+                member.save()
             logging.info(f"members added successfully")
             return jsonify({"message": "Members successfully updated to admin"}), 200
     except Exception as err:

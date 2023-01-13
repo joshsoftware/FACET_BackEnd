@@ -44,7 +44,7 @@ class ProjectModel(db.Model):
     __tablename__ = "projects"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False, unique=True)
+    name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=True)
     project_admin = db.Column(
         db.Integer, db.ForeignKey("users.id", ondelete="SET NULL")
@@ -67,6 +67,7 @@ class ProjectModel(db.Model):
         self.name = data.get("name")
         self.description = data.get("description")
         self.project_admin = data.get("project_admin")
+        self.project_organization = data.get('project_organization')
         self.created_at = datetime.utcnow()
         self.created_by = data.get("project_admin")
         self.modified_by = data.get("project_admin")
@@ -138,13 +139,13 @@ class ProjectModel(db.Model):
         return data
 
     @staticmethod
-    def is_project_exist(name):
+    def is_project_exist(name,organization):
         """
         Class method for checking if a project exists
         by the given name. If yes, then an object of
         ProjectModel is returned else None is returned
         """
-        return ProjectModel.query.filter_by(name=name).first()
+        return ProjectModel.query.filter_by(name=name,project_organization=organization).first()
 
     @staticmethod
     def is_a_member_of_project(project_id, user_id):
@@ -173,6 +174,7 @@ class ProjectSchema(Schema):
     description = fields.Str()
     project_admin = fields.Int(required=True)
     project_members = fields.List(fields.Nested(UserSchema(exclude=["password"])))
+    project_organization = fields.Int(required=True)
     created_at = fields.DateTime(dump_only=True)
     created_by = fields.Int()
     modified_by = fields.Int()

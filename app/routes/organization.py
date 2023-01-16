@@ -4,11 +4,16 @@ performing CRUD operations, adding and removing
 both admins and members within an organization
 """
 import logging
+import smtplib, ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from flask import current_app
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_current_user, jwt_required
 from marshmallow import ValidationError
 from app.helpers import create_slug
 from app.helpers.utils import has_access_to_organization
+from app.helpers.email_contents import mail_html_content
 from app.models.organization_model import OrganizationModel, OrganizationSchema
 from app.models.user_model import UserModel, UserSchema
 
@@ -352,7 +357,7 @@ def add_members_to_organization():
                 jsonify({"error": "invalid request,organization does not exist"}),
                 400,
             )
-        request_data['account_type'] = "organization"
+        request_data["account_type"] = "organization"
         try:
             request_data = UserSchema().load(request_data)
         except ValidationError as err:
@@ -453,7 +458,7 @@ def update_member_role():
                 400,
             )
         if not (
-            has_access_to_organization(organization_id=organization['id'], user=user)
+            has_access_to_organization(organization_id=organization["id"], user=user)
             and user.is_super_admin
         ):
             logging.info("PUT request failed due to unauthorised access")
@@ -474,3 +479,77 @@ def update_member_role():
             "PUT request to update user role failed due to the following error:%s", err
         )
         return jsonify({"error": "something went wrong"}), 400
+
+
+@organization_blueprint.route("/members/invite", methods=["POST"])
+@jwt_required()
+def invite_members():
+    """
+    org id
+    email
+    POST request route to bulk invite users for organization
+        - method : POST
+        - JWT Bearer authentication token in the header
+        - Request body:{
+            invited_members: [list of emails of members to be invited]
+        }
+    """
+    try:
+        request_data = request.json
+        user = get_current_user()
+        organization = request_data.get("organization")
+        invited_members = request_data.get("invited_members")
+        logging.info(
+            "POST request to invite members via email by user:%s with payload:%s",
+            user.id,
+            request_data,
+        )
+        sender_email = current_app.config["MAIL_USERNAME"]
+        password = current_app.config["MAIL_PASSWORD"]
+        if not (
+            has_access_to_organization(organization_id=organization, user=user)
+            and user.is_super_admin
+        ):
+            return (
+                jsonify(
+                    {
+                        "unauthorised access": "you do not have access to this organization"
+                    }
+                ),
+                401,
+            )
+        #JSON for organization details
+        organization_detailed_json = OrganizationModel.get_one_organization(organization_id=organization)
+        for invited_member in invited_members:
+            receiver_email = invited_member
+            message = MIMEMultipart("alternative")
+            message["Subject"] = "multipart test"
+            message["From"] = sender_email
+            message["To"] = receiver_email
+            # html content recieved
+            html_content = mail_html_content
+            part1 = MIMEText(html_content, "html")
+            # html content injected in the mail
+            message.attach(part1)
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+                server.login(sender_email, password)
+                server.sendmail(
+                    sender_email,
+                    receiver_email,
+                    message.as_string(),
+                )
+            logging.info(
+                "invite user sent to the email:%s for organization:%s by sender:%s",
+                receiver_email,
+            )
+        return jsonify({"success": "mails sent"}), 200
+    except Exception as err:
+        logging.info(
+            "POST request to send mails failed due to the following err:%s", err
+        )
+        return jsonify({"error": "something went wrong"})
+    
+"""
+REFERENCE LINK FOR EMAIL CONTENTS: https://realpython.com/python-send-email/#sending-multiple-personalized-emails
+"""

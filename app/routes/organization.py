@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import current_app
 from flask import Blueprint, request, jsonify
+from jinja2 import Environment
 from flask_jwt_extended import get_current_user, jwt_required
 from marshmallow import ValidationError
 from app.helpers import create_slug
@@ -518,38 +519,69 @@ def invite_members():
                 ),
                 401,
             )
-        #JSON for organization details
-        organization_detailed_json = OrganizationModel.get_one_organization(organization_id=organization)
+        # JSON for organization details
+        organization_detailed_json = OrganizationModel.get_one_organization(
+            organization_id=organization
+        )
+        uninvited_members = []
         for invited_member in invited_members:
             receiver_email = invited_member
-            message = MIMEMultipart("alternative")
-            message["Subject"] = "multipart test"
-            message["From"] = sender_email
-            message["To"] = receiver_email
-            # html content recieved
-            html_content = mail_html_content
-            part1 = MIMEText(html_content, "html")
-            # html content injected in the mail
-            message.attach(part1)
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-                server.login(sender_email, password)
-                server.sendmail(
-                    sender_email,
+            if UserModel.get_user_by_email(email=receiver_email):
+                uninvited_members.append(receiver_email)
+                logging.info(
+                    "email inviation for user email:%s aborted as the user already exists",
                     receiver_email,
-                    message.as_string(),
                 )
-            logging.info(
-                "invite user sent to the email:%s for organization:%s by sender:%s",
-                receiver_email,
-            )
-        return jsonify({"success": "mails sent"}), 200
+            else:
+                message = MIMEMultipart("alternative")
+                message["Subject"] = "multipart test"
+                message["From"] = sender_email
+                message["To"] = receiver_email
+                # html content recieved
+                html_content = mail_html_content
+                part1 = MIMEText(
+                    Environment()
+                    .from_string(html_content)
+                    .render(
+                        name="tanmay",
+                        invite_sender_name=user.name,
+                        invite_sender_organization=organization_detailed_json["name"],
+                    ),
+                    "html",
+                )
+                # html content injected in the mail
+                message.attach(part1)
+                context = ssl.create_default_context()
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+                    server.login(sender_email, password)
+                    server.sendmail(
+                        sender_email,
+                        receiver_email,
+                        message.as_string(),
+                    )
+                logging.info(
+                    "invite user sent to the email:%s for organization:%s by sender:%s",
+                    receiver_email,
+                    organization_detailed_json["id"],
+                    sender_email,
+                )
+        return (
+            jsonify(
+                {
+                    "success": "mails sent",
+                    "uninvited members": uninvited_members,
+                    "uninvited_members": len(uninvited_members),
+                }
+            ),
+            200,
+        )
     except Exception as err:
         logging.info(
             "POST request to send mails failed due to the following err:%s", err
         )
         return jsonify({"error": "something went wrong"})
-    
+
+
 """
 REFERENCE LINK FOR EMAIL CONTENTS: https://realpython.com/python-send-email/#sending-multiple-personalized-emails
 """

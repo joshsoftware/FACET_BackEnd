@@ -489,7 +489,7 @@ def invite_members():
     try:
         request_data = request.json
         user = get_current_user()
-        organization = request_data.get("organization")
+        organization = user.user_organization
         invited_members = request_data.get("invited_members")
         logging.info(
             "POST request to invite members via email by user:%s with payload:%s",
@@ -498,18 +498,9 @@ def invite_members():
         )
         sender_email = current_app.config["MAIL_USERNAME"]
         password = current_app.config["MAIL_PASSWORD"]
-        if not (
-            has_access_to_organization(organization_id=organization, user=user)
-            and user.is_super_admin
-        ):
-            return (
-                jsonify(
-                    {
-                        "unauthorised access": "you do not have access to this organization"
-                    }
-                ),
-                401,
-            )
+        if not organization:
+            return jsonify({"error": "something went wrong"}), 400
+
         # JSON for organization details
         organization_detailed_json = OrganizationModel.get_one_organization(
             organization_id=organization

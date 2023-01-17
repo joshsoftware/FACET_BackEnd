@@ -89,7 +89,7 @@ class OrganizationModel(db.Model):
         based on the organization name
         as per the organization schema
         """
-        organization = OrganizationSchema(exclude=['org_users']).dump(
+        organization = OrganizationSchema().dump(
             OrganizationModel.query.filter_by(id=organization_id).first()
         )
         return organization
@@ -142,6 +142,5 @@ class OrganizationSchema(Schema):
     name = fields.Str(required=True)
     description = fields.Str()
     contact_email_id = fields.Str(required=True)
-    org_users = fields.List(fields.Nested(UserSchema(exclude=["password"])))
     created_at = fields.DateTime(dump_only=True)
     modified_at = fields.DateTime(dump_only=True)

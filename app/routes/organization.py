@@ -176,11 +176,20 @@ def create_organization():
         # creating organization post all the validations
         organization = OrganizationModel(request_data)
         organization.save()
+        organization_data = organization_schema.dump(organization)
         user.user_organization = organization.id
         user.is_super_admin = True
         user.is_admin = True
         user.save()
-        return jsonify({"message": "organization created successfully"}), 200
+        return (
+            jsonify(
+                {
+                    "message": "organization created successfully",
+                    "orgaization": organization_data,
+                }
+            ),
+            200,
+        )
 
     except Exception as err:
         logging.exception(
@@ -243,10 +252,13 @@ def update_organization():
             if OrganizationModel.does_organization_exist(
                 organization_name=request_data.get("name")
             ):
-                return jsonify(
-                    {
-                        "error": "an organization of the same name exists,use another name"
-                    }
+                return (
+                    jsonify(
+                        {
+                            "error": "an organization of the same name exists,use another name"
+                        }
+                    ),
+                    400,
                 )
             organization.name = request_data.get("name")
 
@@ -261,8 +273,17 @@ def update_organization():
             else organization.contact_email_id
         )
         organization.update({"modified_by": user.id})
+        organization_data = organization_schema.dump(organization)
         logging.info("organization updated sucessfully")
-        return jsonify({"message": "organization updated successfully!"}), 200
+        return (
+            jsonify(
+                {
+                    "message": "organization updated successfully!",
+                    "organization": organization_data,
+                }
+            ),
+            200,
+        )
     except Exception as err:
         logging.exception("PUT request failed due to the following error:%s", err)
         return jsonify({"error": "something went wrong"}), 400
@@ -569,8 +590,8 @@ def invite_members():
             jsonify(
                 {
                     "success": "mails sent",
-                    "uninvited members": uninvited_members,
-                    "uninvited_members": len(uninvited_members),
+                    "uninvited_members": uninvited_members,
+                    "uninvited_members_lenght ": len(uninvited_members),
                 }
             ),
             200,
@@ -579,7 +600,7 @@ def invite_members():
         logging.info(
             "POST request to send mails failed due to the following err:%s", err
         )
-        return jsonify({"error": "something went wrong"})
+        return jsonify({"error": "something went wrong"}), 400
 
 
 """

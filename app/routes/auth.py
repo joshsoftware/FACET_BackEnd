@@ -82,6 +82,7 @@ def signup():
         user.save()
         if req_data.get('account_type') == "personal":
             user.user_organization = 1
+            user.is_admin = True
             user.save()
             logging.info(f"user signup successful for {user.name}")
             return jsonify({"message": "User Created Successfully!"}), 201

@@ -288,10 +288,6 @@ def delete_organization():
     Request Requiers:
     - method: DELETE
     - JWT Bearer token in Authorization header
-    - body data:
-        {
-            "organization" : organization_id (integer)
-        }
     Response:
         - success message with status code 200 if everything is successful
         - error message with status code 400 and
@@ -308,17 +304,12 @@ def delete_organization():
             user.id,
             request_data,
         )
-        organization_id = request_data.get("organization_id")
-        if not isinstance(organization_id, int):
-            logging.exception("DELETE request failed due to faulty input")
-            return jsonify({"error": "faulty input"}), 400
-
-        organization = OrganizationModel.query.get(organization_id) or None
+        organization = OrganizationModel.query.get(user.user_organization) or None
         if not organization:
             logging.info("DELETE request failed as no such organization exists")
             return jsonify({"error": "organization not found"}), 404
 
-        if not has_access_to_organization(organization_id=organization_id, user=user):
+        if not user.is_super_admin:
             logging.info("DELETE request failed due to unauthorised access")
             return (
                 jsonify(
@@ -395,7 +386,6 @@ def remove_members():
         - JWT Bearer token in Authorization header
         - body data:
             {
-                "organization_id" : integer,
                 "user_id" : integer
             }
     """
@@ -407,19 +397,14 @@ def remove_members():
             user.id,
             request_data,
         )
-        if not (
-            has_access_to_organization(
-                organization_id=request_data.get("organization_id"), user=user
-            )
-            and user.is_super_admin
-        ):
+        if not user.is_super_admin:
             logging.info("DELETE request failed due to unauthorised access")
             return (
                 jsonify({"error": "Unauthorized access to organization functions"}),
                 401,
             )
         user_to_be_removed = UserModel.query.get(request_data.get("user_id"))
-        organization = OrganizationModel.query.get(request_data.get("organization_id"))
+        organization = OrganizationModel.query.get(user.user_organization)
         organization.org_users.remove(user_to_be_removed)
         organization.save()
         user_to_be_removed.user_organization = 1
@@ -445,7 +430,6 @@ def update_member_role():
         - JWT Bearer token in Authorization header
         - body data:
             {
-                organization: “id”,
                 member: “id”,
                 updatedRole: “string”
             }
@@ -460,7 +444,7 @@ def update_member_role():
             request_data,
         )
         organization = OrganizationModel.get_one_organization(
-            organization_id=request_data.get("organization")
+            organization_id=user.user_organization
         )
         if not organization:
             logging.info("PUT request faield as organization does not exist")
@@ -468,10 +452,7 @@ def update_member_role():
                 jsonify({"error": "invalid request,organization does not exist"}),
                 400,
             )
-        if not (
-            has_access_to_organization(organization_id=organization["id"], user=user)
-            and user.is_super_admin
-        ):
+        if not user.is_super_admin:
             logging.info("PUT request failed due to unauthorised access")
             return jsonify({"error": "unauthorised access"}), 401
         member_to_update = UserModel.get_one_user(user_id=request_data.get("member"))
@@ -580,7 +561,7 @@ def invite_members():
                 {
                     "success": "mails sent",
                     "uninvited_members": uninvited_members,
-                    "uninvited_members_lenght ": len(uninvited_members),
+                    "uninvited_members_length": len(uninvited_members),
                 }
             ),
             200,

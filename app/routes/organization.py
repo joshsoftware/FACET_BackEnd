@@ -54,8 +54,7 @@ def get_organization_data(org_id=None):
             return (
                 jsonify(
                     {
-                        "error": "Unauthorised access,you do not\
-                        possess access to this organization"
+                        "error": "Unauthorised access,you do not possess access to this organization"
                     }
                 ),
                 401,
@@ -100,8 +99,7 @@ def get_org_members():
             return (
                 jsonify(
                     {
-                        "error": "Unauthorised access,you do not\
-                        possess access to this organization"
+                        "error": "Unauthorised access,you do not possess access to this organization"
                     }
                 ),
                 401,
@@ -249,19 +247,23 @@ def update_organization():
                 401,
             )
         if request_data.get("name"):
-            if OrganizationModel.does_organization_exist(
-                organization_name=request_data.get("name")
-            ):
-                return (
-                    jsonify(
-                        {
-                            "error": "an organization of the same name exists,use another name"
-                        }
-                    ),
-                    400,
-                )
-            organization.name = request_data.get("name")
-
+            # checking if the name is changed or not
+            if not (create_slug(request_data.get("name")) == organization.name):
+                # checking if the new name is available or not
+                if OrganizationModel.does_organization_exist(
+                    organization_name=request_data.get("name")
+                ):
+                    return (
+                        jsonify(
+                            {
+                                "error": "an organization of the same name exists, use another name"
+                            }
+                        ),
+                        400,
+                    )
+                else:
+                    # since name is not taken, it gets updated
+                    organization.name = request_data.get("name")
         organization.description = (
             request_data.get("description")
             if request_data.get("description")
@@ -332,8 +334,7 @@ def delete_organization():
             return (
                 jsonify(
                     {
-                        "error": "Unauthorized access, you do not have the \
-                            rights to delete this organization"
+                        "error": "Unauthorized access, you do not have the rights to delete this organization"
                     }
                 ),
                 401,
@@ -361,8 +362,7 @@ def add_members_to_organization():
     try:
         request_data = request.json
         logging.info(
-            "POST request for user signup and registration along with \
-                addition to organization with payload:%s",
+            "POST request for user signup and registration along with addition to organization with payload:%s",
             request_data,
         )
         organization_id = request_data.pop("org_id", None)

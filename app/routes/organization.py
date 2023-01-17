@@ -92,26 +92,15 @@ def get_org_members():
             excluding admins, if "exclude" param is provided
     """
     try:
-        organization_id = int(request.args.get("organization"))
         user = get_current_user()
-        if not has_access_to_organization(organization_id=organization_id, user=user):
-            logging.info("GET request failed due to unauthorised access")
-            return (
-                jsonify(
-                    {
-                        "error": "Unauthorised access,you do not possess access to this organization"
-                    }
-                ),
-                401,
-            )
-        org_users = OrganizationModel.get_org_members(organization_id=organization_id)
+        org_users = OrganizationModel.get_org_members(organization_id=user.user_organization)
         if request.args.get("exclude") == "admins":
             if not user.is_super_admin:
                 return jsonify({"error": "unauthorised access"}), 401
             org_users = [user for user in org_users if not user["is_admin"]]
         logging.info(
             "GET request to fetch organization members for organization:%d successfull by user:%s",
-            organization_id,
+            user.user_organization,
             user.name,
         )
         return jsonify({"members": org_users}), 200

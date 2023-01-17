@@ -408,6 +408,7 @@ def remove_members():
         organization.org_users.remove(user_to_be_removed)
         organization.save()
         user_to_be_removed.user_organization = 1
+        user_to_be_removed.account_type = "personal"
         user_to_be_removed.save()
         logging.info(
             "DELETE to remove user from organization by user:%s successfull", user.id

@@ -88,7 +88,7 @@ mail_html_content = """
                                                                     margin-bottom: 16px;
                                                                     margin-left: 0;
                                                                     ">
-                                                                    Hi, {{name}}!
+                                                                    Hi!!!
                                                                 </p>
                                                                 <p style="
                                                                     font-size: 16px;
@@ -108,7 +108,7 @@ mail_html_content = """
                                                                 </p>
                                                                 <div
                                                                     style="text-align: center; padding-top: 32px; padding-bottom: 32px;">
-                                                                    <a href=""
+                                                                    <a href="{{signup_url}}"
                                                                         style="display: inline-block; background-color: #002D62; font-size: 14px; line-height: 21px; font-weight: 700; color: #ffffff; padding-top: 8px; padding-right: 16px; padding-bottom: 8px; padding-left: 16px; text-decoration: none; border-radius: 4px;">View
                                                                         Invitation</a>
                                                                 </div>
@@ -177,7 +177,7 @@ mail_html_content = """
                                                                 margin-bottom: 0;
                                                                 margin-left: 0;
                                                                 ">
-                                                                    I you're having trouble with the button above, copy
+                                                                    If you're having trouble with the button above, copy
                                                                     and paste the URL below into your web
                                                                     browser.
                                                                 </p>
@@ -191,7 +191,7 @@ mail_html_content = """
                                                                 margin-bottom: 0;
                                                                 margin-left: 0;
                                                                 "><a href="/" target="_blank"
-                                                                        style=" color: #007FFF;">{{action_ur}}</a></p>
+                                                                        style=" color: #007FFF;">{{action_url}}</a></p>
                                                             </td>
                                                         </tr>
                                                     </table>

@@ -10,7 +10,7 @@ from email.mime.multipart import MIMEMultipart
 from flask import current_app
 from flask import Blueprint, request, jsonify
 from jinja2 import Environment
-from flask_jwt_extended import get_current_user, jwt_required
+from flask_jwt_extended import get_current_user, jwt_required, create_access_token
 from marshmallow import ValidationError
 from app.helpers import create_slug
 from app.helpers.utils import has_access_to_organization
@@ -93,7 +93,9 @@ def get_org_members():
     """
     try:
         user = get_current_user()
-        org_users = OrganizationModel.get_org_members(organization_id=user.user_organization)
+        org_users = OrganizationModel.get_org_members(
+            organization_id=user.user_organization
+        )
         if request.args.get("exclude") == "admins":
             if not user.is_super_admin:
                 return jsonify({"error": "unauthorised access"}), 401
@@ -524,8 +526,14 @@ def invite_members():
                     receiver_email,
                 )
             else:
+                token = create_access_token(
+                    identity={
+                        "organization_id": organization_detailed_json["id"],
+                        "email_address": receiver_email,
+                    }
+                )
                 message = MIMEMultipart("alternative")
-                message["Subject"] = "multipart test"
+                message["Subject"] = "FACET Invitation"
                 message["From"] = sender_email
                 message["To"] = receiver_email
                 # html content recieved
@@ -534,9 +542,10 @@ def invite_members():
                     Environment()
                     .from_string(html_content)
                     .render(
-                        name="tanmay",
                         invite_sender_name=user.name,
                         invite_sender_organization=organization_detailed_json["name"],
+                        signup_url=f"{current_app.config['FRONTEND_URL']}/organization/{organization_detailed_json['name']}/invitation?token={token}",
+                        action_url=f"{current_app.config['FRONTEND_URL']}/organization/{organization_detailed_json['name']}/invitation?token={token}",
                     ),
                     "html",
                 )

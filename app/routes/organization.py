@@ -353,9 +353,10 @@ def add_members_to_organization():
                 jsonify({"error": "invalid request, kindly send all the parameters"}),
                 400,
             )
-        organization = OrganizationModel.get_one_organization(
-            organization_id=organization_id
-        ) or None
+        organization = (
+            OrganizationModel.get_one_organization(organization_id=organization_id)
+            or None
+        )
         if organization is None:
             return (
                 jsonify({"error": "invalid request,organization does not exist"}),
@@ -385,13 +386,19 @@ def add_members_to_organization():
         )
         if does_username_exist:
             logging.info(
-                "user signup failed for %s as username already exists", request_data["name"]
+                "user signup failed for %s as username already exists",
+                request_data["name"],
             )
-            return jsonify(
-                {"error": "username is already taken, please supply another username"}
+            return (
+                jsonify(
+                    {
+                        "error": "username is already taken, please supply another username"
+                    }
+                ),
+                400,
             )
         user = UserModel(data=request_data)
-        user.user_organization = organization['id']
+        user.user_organization = organization["id"]
         user.save()
         return jsonify({"message": "user onboarded successfully"}), 200
     except Exception as err:

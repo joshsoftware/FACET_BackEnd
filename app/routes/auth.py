@@ -8,7 +8,11 @@ from flask_jwt_extended import (
 from marshmallow import ValidationError
 import logging
 from . import jwt
-from app.helpers.utils import get_current_user, is_super_admin, has_access_to_organization
+from app.helpers.utils import (
+    get_current_user,
+    is_super_admin,
+    has_access_to_organization,
+)
 from app.models.user_model import UserModel, UserSchema
 
 auth_blueprint = Blueprint("auth", __name__)
@@ -75,12 +79,17 @@ def signup():
             logging.info(
                 "user signup failed for %s as username already exists", req_data["name"]
             )
-            return jsonify(
-                {"error": "username is already taken, please supply another username"}
+            return (
+                jsonify(
+                    {
+                        "error": "username is already taken, please supply another username"
+                    }
+                ),
+                400,
             )
         user = UserModel(data)
         user.save()
-        if req_data.get('account_type') == "personal":
+        if req_data.get("account_type") == "personal":
             user.user_organization = 1
             user.is_admin = True
             user.save()
@@ -271,14 +280,15 @@ def add():
     req_data = request.json
     user = get_current_user()
     logging.info(f"request to add admins by user:{user.id} with req_data:{req_data}")
-    if not(has_access_to_organization(organization_id=req_data.get('organization'),user=user) and user.is_super_admin):
+    if not (
+        has_access_to_organization(
+            organization_id=req_data.get("organization"), user=user
+        )
+        and user.is_super_admin
+    ):
         logging.info(f"request to add admins failed due to unauthorised access")
         return (
-            jsonify(
-                {
-                    "error": "Unauthorised access"
-                }
-            ),
+            jsonify({"error": "Unauthorised access"}),
             401,
         )
     try:

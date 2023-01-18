@@ -369,8 +369,29 @@ def add_members_to_organization():
                 "organization created failed due to the following error: %s", err
             )
             return jsonify({"error": str(err)}), 400
+        user_exist = UserModel.get_user_by_email(request_data.get("email"))
+        if user_exist:
+            logging.info(
+                f"user signup failed for {request_data['name']} as email already exists"
+            )
+            return (
+                jsonify(
+                    {"error": "User already exist, please supply another email address"}
+                ),
+                400,
+            )
+        does_username_exist = UserModel.does_username_exist(
+            username=request_data.get("username")
+        )
+        if does_username_exist:
+            logging.info(
+                "user signup failed for %s as username already exists", request_data["name"]
+            )
+            return jsonify(
+                {"error": "username is already taken, please supply another username"}
+            )
         user = UserModel(data=request_data)
-        user.user_organization = organization.id
+        user.user_organization = organization['id']
         user.save()
         return jsonify({"message": "user onboarded successfully"}), 200
     except Exception as err:

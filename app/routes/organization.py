@@ -355,7 +355,7 @@ def add_members_to_organization():
             )
         organization = OrganizationModel.get_one_organization(
             organization_id=organization_id
-        )
+        ) or None
         if organization is None:
             return (
                 jsonify({"error": "invalid request,organization does not exist"}),

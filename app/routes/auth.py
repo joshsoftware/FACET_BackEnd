@@ -153,12 +153,14 @@ def login():
             resfresh_token = create_refresh_token(identity=user.id)
             user_profile = UserModel.get_user_profile(user)
             logging.info(f"user login successful for {user.name}")
+            is_facet_super_admin = True if user.user_organization==1 and user.is_super_admin else False
             return (
                 jsonify(
                     {
                         "access_token": access_token,
                         "refresh_token": resfresh_token,
                         "user": user_profile,
+                        "is_facet_super_admin": is_facet_super_admin
                     }
                 ),
                 200,

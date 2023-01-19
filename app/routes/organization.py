@@ -4,7 +4,8 @@ performing CRUD operations, adding and removing
 both admins and members within an organization
 """
 import logging
-import smtplib, ssl
+import smtplib
+import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import current_app
@@ -54,7 +55,7 @@ def get_organization_data(org_id=None):
             return (
                 jsonify(
                     {
-                        "error": "Unauthorised access,you do not possess access to this organization"
+                        "error": "Unauthorised access,you do not have access to this organization"
                     }
                 ),
                 401,
@@ -72,8 +73,7 @@ def get_organization_data(org_id=None):
         logging.exception("GET request failed due to the following error:%s", err)
         return jsonify({"error": "something went wrong"}), 400
 
-
-@organization_blueprint.route("/members")
+@organization_blueprint.route("/members", methods=["GET"])
 @jwt_required()
 def get_org_members():
     """
@@ -239,7 +239,7 @@ def update_organization():
             )
         if request_data.get("name"):
             # checking if the name is changed or not
-            if not (create_slug(request_data.get("name")) == organization.name):
+            if not create_slug(request_data.get("name")) == organization.name:
                 # checking if the new name is available or not
                 if OrganizationModel.does_organization_exist(
                     organization_name=request_data.get("name")
@@ -252,9 +252,8 @@ def update_organization():
                         ),
                         400,
                     )
-                else:
-                    # since name is not taken, it gets updated
-                    organization.name = request_data.get("name")
+                # since name is not taken, it gets updated
+                organization.name = request_data.get("name")
         organization.description = (
             request_data.get("description")
             if request_data.get("description")
@@ -316,7 +315,10 @@ def delete_organization():
             return (
                 jsonify(
                     {
-                        "error": "Unauthorized access, you do not have the rights to delete this organization"
+                        "error": (
+                            "Unauthorized access,you do not have the rights to delete this"
+                            " organization"
+                        )
                     }
                 ),
                 401,
@@ -344,20 +346,17 @@ def add_members_to_organization():
     try:
         request_data = request.json
         logging.info(
-            "POST request for user signup and registration along with addition to organization with payload:%s",
+            "POST request for user signup and registration along with addition to organization with"
+            " payload:%s",
             request_data,
         )
         organization_id = request_data.pop("org_id", None)
-        if organization_id is None:
-            return (
-                jsonify({"error": "invalid request, kindly send all the parameters"}),
-                400,
-            )
         organization = (
             OrganizationModel.get_one_organization(organization_id=organization_id)
             or None
         )
         if organization is None:
+            logging.error("organization created failed as organization does not exist")
             return (
                 jsonify({"error": "invalid request,organization does not exist"}),
                 400,
@@ -373,7 +372,8 @@ def add_members_to_organization():
         user_exist = UserModel.get_user_by_email(request_data.get("email"))
         if user_exist:
             logging.info(
-                f"user signup failed for {request_data['name']} as email already exists"
+                "user signup failed for %s as email already exists",
+                request_data["name"],
             )
             return (
                 jsonify(
@@ -533,29 +533,28 @@ def invite_members():
             return jsonify({"error": "something went wrong"}), 400
 
         # JSON for organization details
-        organization_detailed_json = OrganizationModel.get_one_organization(
+        organization = OrganizationModel.get_one_organization(
             organization_id=organization
         )
         uninvited_members = []
         for invited_member in invited_members:
-            receiver_email = invited_member
-            if UserModel.get_user_by_email(email=receiver_email):
-                uninvited_members.append(receiver_email)
+            if UserModel.get_user_by_email(email=invited_member):
+                uninvited_members.append(invited_member)
                 logging.info(
                     "email inviation for user email:%s aborted as the user already exists",
-                    receiver_email,
+                    invited_member,
                 )
             else:
                 token = create_access_token(
                     identity={
-                        "organization_id": organization_detailed_json["id"],
-                        "email_address": receiver_email,
+                        "organization_id": organization["id"],
+                        "email_address": invited_member,
                     }
                 )
                 message = MIMEMultipart("alternative")
                 message["Subject"] = "FACET Invitation"
                 message["From"] = sender_email
-                message["To"] = receiver_email
+                message["To"] = invited_member
                 # html content recieved
                 html_content = mail_html_content
                 part1 = MIMEText(
@@ -563,9 +562,9 @@ def invite_members():
                     .from_string(html_content)
                     .render(
                         invite_sender_name=user.name,
-                        invite_sender_organization=organization_detailed_json["name"],
-                        signup_url=f"{current_app.config['FRONTEND_URL']}/organization/{organization_detailed_json['name']}/invitation?token={token}",
-                        action_url=f"{current_app.config['FRONTEND_URL']}/organization/{organization_detailed_json['name']}/invitation?token={token}",
+                        invite_sender_organization=organization["name"],
+                        signup_url=f"{current_app.config['FRONTEND_URL']}/organization/{organization['name']}/invitation?token={token}",
+                        action_url=f"{current_app.config['FRONTEND_URL']}/organization/{organization['name']}/invitation?token={token}",
                     ),
                     "html",
                 )
@@ -576,13 +575,13 @@ def invite_members():
                     server.login(sender_email, password)
                     server.sendmail(
                         sender_email,
-                        receiver_email,
+                        invited_member,
                         message.as_string(),
                     )
                 logging.info(
                     "invite user sent to the email:%s for organization:%s by sender:%s",
-                    receiver_email,
-                    organization_detailed_json["id"],
+                    invited_member,
+                    organization["id"],
                     sender_email,
                 )
         return (
@@ -600,8 +599,3 @@ def invite_members():
             "POST request to send mails failed due to the following err:%s", err
         )
         return jsonify({"error": "something went wrong"}), 400
-
-
-"""
-REFERENCE LINK FOR EMAIL CONTENTS: https://realpython.com/python-send-email/#sending-multiple-personalized-emails
-"""

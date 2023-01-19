@@ -18,3 +18,4 @@ from .scheduler import scheduler_blueprint
 from .user import user_blueprint
 from .testsuites import testsuite_blueprint
 from .organization import organization_blueprint
+from .superadmin import super_admin_blueprint

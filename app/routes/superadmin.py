@@ -26,6 +26,8 @@ def get_all_organizations():
                 401,
             )
         organizations = OrganizationModel.get_all_organizations()
+        #Make sure that the default organization is always having the id 1
+        organizations.remove(OrganizationModel.get_one_organization(organization_id=1))
         return jsonify({"organizations": organizations}), 200
     except Exception as err:
         logging.exception("GET request failed due to the following error: %s", err)

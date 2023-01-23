@@ -190,7 +190,7 @@ mail_html_content = """
                                                                 margin-right: 0;
                                                                 margin-bottom: 0;
                                                                 margin-left: 0;
-                                                                "><a href="/" target="_blank"
+                                                                "><a href={{action_url}} target="_blank"
                                                                         style=" color: #007FFF;">{{action_url}}</a></p>
                                                             </td>
                                                         </tr>

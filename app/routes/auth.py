@@ -153,14 +153,16 @@ def login():
             resfresh_token = create_refresh_token(identity=user.id)
             user_profile = UserModel.get_user_profile(user)
             logging.info(f"user login successful for {user.name}")
-            is_facet_super_admin = True if user.user_organization==1 and user.is_super_admin else False
+            is_facet_super_admin = (
+                True if user.user_organization == 1 and user.is_super_admin else False
+            )
             return (
                 jsonify(
                     {
                         "access_token": access_token,
                         "refresh_token": resfresh_token,
                         "user": user_profile,
-                        "is_facet_super_admin": is_facet_super_admin
+                        "is_facet_super_admin": is_facet_super_admin,
                     }
                 ),
                 200,
@@ -308,55 +310,3 @@ def add():
             f"request to add admins failed by user:{user} due to the following error:{err}"
         )
         return jsonify({"error": "Something went wrong!"}), 400
-
-
-# @auth_blueprint.route("/get_all_users", methods=["GET"])
-# @jwt_required()
-# def get_all_users():
-#     """
-#     Route which gives users list
-#     Requires:
-#         - method: GET
-#         - JWT Bearer token in Authorization header
-#         - params:
-#             {
-#                 exclude: 'admins' or 'projectMembers' or None,
-#                 project: "string, required if exclude == 'projectMembers'"
-#             }
-#     Response:
-#         - if success JSON response containing message with 200 code
-#             e.g. { users: array of users data e.g. [{ ...user_data }] }
-#         - if fails JSON response containing error message with 400 code
-#             e.g. {error: string}
-#     """
-#     exclude = request.args.get("exclude")
-#     project = request.args.get("project")
-#     user = get_current_user()
-#     logging.info(
-#         f"GET request to fetch all users by user:{user.id} with params:{dict(request.args)}"
-#     )
-#     try:
-#         users = UserModel.get_all_members()
-
-#         if exclude == "admins":
-#             if not is_super_admin(user.id):
-#                 logging.info(f"GET request failed due to unauthorised access")
-#                 return (
-#                     jsonify(
-#                         {
-#                             "error": "You do not possess the super admin rights to access all the users of the organization"
-#                         }
-#                     ),
-#                     401,
-#                 )
-#             users = [user for user in users if not user["is_admin"]]
-#         elif exclude == "projectMembers":
-#             project_members = get_project_members_id(project)
-#             users = [user for user in users if user["id"] not in project_members]
-#         logging.info(
-#             f"GET request succesfull, list of all users sent for project:{project}"
-#         )
-#         return jsonify({"users": users}), 200
-#     except Exception as err:
-#         logging.exception(f"GET request failed due to the following error:{err}")
-#         return jsonify({"error": "Something Went Wrong!"}), 400

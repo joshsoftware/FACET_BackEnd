@@ -44,6 +44,7 @@ def get_organization_data(org_id=None):
     """
     try:
         user = get_current_user()
+        logging.info("GET request to fetch organization details by user: %s", user.id)
         if org_id is None:
             logging.info(
                 "Invalid request to fetch organization data as org_id was not provided"
@@ -73,6 +74,7 @@ def get_organization_data(org_id=None):
         logging.exception("GET request failed due to the following error:%s", err)
         return jsonify({"error": "something went wrong"}), 400
 
+
 @organization_blueprint.route("/members", methods=["GET"])
 @jwt_required()
 def get_org_members():
@@ -96,8 +98,16 @@ def get_org_members():
         org_users = OrganizationModel.get_org_members(
             organization_id=user.user_organization
         )
+        logging.info(
+            "GET request to fetch organization members by user:%s with params:%s",
+            user.id,
+            request.args,
+        )
         if request.args.get("exclude") == "admins":
             if not user.is_super_admin:
+                logging.info(
+                    "GET request to fetch organization members failed due to unauthorised access"
+                )
                 return jsonify({"error": "unauthorised access"}), 401
             org_users = [user for user in org_users if not user["is_admin"]]
         logging.info(
@@ -170,6 +180,11 @@ def create_organization():
         user.is_super_admin = True
         user.is_admin = True
         user.save()
+        logging.info(
+            "Organization creation successfull org_id:%s by user: %s",
+            organization.id,
+            user.id,
+        )
         return (
             jsonify(
                 {
@@ -244,6 +259,9 @@ def update_organization():
                 if OrganizationModel.does_organization_exist(
                     organization_name=request_data.get("name")
                 ):
+                    logging.info(
+                        "PUT request to update the organization failed as the new name already exists"
+                    )
                     return (
                         jsonify(
                             {
@@ -400,6 +418,9 @@ def add_members_to_organization():
         user = UserModel(data=request_data)
         user.user_organization = organization["id"]
         user.save()
+        logging.info(
+            "POST request to onboard user successful, onboarded user_id: %s", user.id
+        )
         return jsonify({"message": "user onboarded successfully"}), 200
     except Exception as err:
         logging.info("POST request failed due to the following error:%s", err)
@@ -530,6 +551,9 @@ def invite_members():
         sender_email = current_app.config["MAIL_USERNAME"]
         password = current_app.config["MAIL_PASSWORD"]
         if not organization:
+            logging.info(
+                "POST request to send emails failed as organization does not exist"
+            )
             return jsonify({"error": "something went wrong"}), 400
 
         # JSON for organization details
@@ -563,8 +587,10 @@ def invite_members():
                     .render(
                         invite_sender_name=user.name,
                         invite_sender_organization=organization["name"],
-                        signup_url=f"{current_app.config['FRONTEND_URL']}/organization/{organization['name']}/invitation?token={token}",
-                        action_url=f"{current_app.config['FRONTEND_URL']}/organization/{organization['name']}/invitation?token={token}",
+                        signup_url=f"{current_app.config['FRONTEND_URL']}/organization/\
+                            {organization['name']}/invitation?token={token}",
+                        action_url=f"{current_app.config['FRONTEND_URL']}/organization/\
+                            {organization['name']}/invitation?token={token}",
                     ),
                     "html",
                 )
@@ -584,6 +610,7 @@ def invite_members():
                     organization["id"],
                     sender_email,
                 )
+        logging.info("Email invites completed")
         return (
             jsonify(
                 {

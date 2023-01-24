@@ -161,7 +161,6 @@ def engine():
                     "level" : "testcase",
                     "executed_by" : user 
                 }
-                print("overall->",result_to_store['status'])
                 del response['result']['status']
                 result_to_store['result'] = response['result']
                 result_to_store['result']['testcase'] = execution_data['testcase']

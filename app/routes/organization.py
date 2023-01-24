@@ -3,11 +3,13 @@ organization API module for
 performing CRUD operations, adding and removing
 both admins and members within an organization
 """
+import base64
 import logging
 import smtplib
 import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from flask import current_app
 from flask import Blueprint, request, jsonify
 from jinja2 import Environment
@@ -596,6 +598,11 @@ def invite_members():
                 )
                 # html content injected in the mail
                 message.attach(part1)
+                fp = open('media/images/logo.png', 'rb')
+                msgImage = MIMEImage(fp.read())
+                fp.close()
+                msgImage.add_header('Content-ID', '<image1>')
+                message.attach(msgImage)
                 context = ssl.create_default_context()
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
                     server.login(sender_email, password)

@@ -33,7 +33,7 @@ mail_html_content = """
                     ">
                     <tr>
                         <td align="center" valign="top" style="text-align: center;">
-                            <img src="./images/logo.png" alt="Facet" height="46px" />
+                            <img src="cid:image1" alt="Facet logo" height="46px" />
                         </td>
                     </tr>
                     <tr>
@@ -78,18 +78,6 @@ mail_html_content = """
                                                         ">
                                                         <tr>
                                                             <td align="left" valign="top" style="padding-top: 24px">
-                                                                <p style="
-                                                                    font-size: 18px;
-                                                                    line-height: 24px;
-                                                                    font-weight: bold;
-                                                                    color: #312f2d;
-                                                                    margin-top: 0;
-                                                                    margin-right: 0;
-                                                                    margin-bottom: 16px;
-                                                                    margin-left: 0;
-                                                                    ">
-                                                                    Hi!!!
-                                                                </p>
                                                                 <p style="
                                                                     font-size: 16px;
                                                                     line-height: 22px;

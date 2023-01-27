@@ -73,6 +73,11 @@ def getMembers():
         data = ProjectModel.get_one_project(
             get_project_id(project, user.user_organization), user.id
         )
+        #Instance where the data is None
+        #as the user may have had its access revoked but is still trying
+        #to access the project
+        if not data:
+            return jsonify({"error": "unauthorized access"}), 401
         project_admin_id = data["project_admin"]
         data = data["project_members"]
         if request.args.get("exclude") == "members":

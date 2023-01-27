@@ -3,7 +3,6 @@ organization API module for
 performing CRUD operations, adding and removing
 both admins and members within an organization
 """
-import base64
 import logging
 import smtplib
 import ssl
@@ -596,6 +595,8 @@ def invite_members():
                     ),
                     "html",
                 )
+                print(f"{current_app.config['FRONTEND_URL']}/organization/\
+                            {organization['name']}/invitation?token={token}")
                 # html content injected in the mail
                 message.attach(part1)
                 fp = open('media/images/logo.png', 'rb')

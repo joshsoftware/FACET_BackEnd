@@ -283,12 +283,7 @@ def add():
     req_data = request.json
     user = get_current_user()
     logging.info(f"request to add admins by user:{user.id} with req_data:{req_data}")
-    if not (
-        has_access_to_organization(
-            organization_id=user.user_organization, user=user
-        )
-        and user.is_super_admin
-    ):
+    if not user.is_super_admin:
         logging.info(f"request to add admins failed due to unauthorized access")
         return (
             jsonify({"error": "Unauthorized access"}),

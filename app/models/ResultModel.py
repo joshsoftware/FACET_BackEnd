@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSON
 from marshmallow import Schema, fields
 from app.models import db
-from app.models.UserModel import UserModel, UserSchema
+from app.models.user_model import UserModel
 
 class ResultModel(db.Model):
     """
@@ -60,7 +60,7 @@ class ResultModel(db.Model):
             data = ResultModel.query.filter_by(project=project_id).order_by(ResultModel.id.desc()).paginate(page=int(page_no), per_page=int(row_size))
             data = ResultSchema().dump(data.items, many=True)
             for item in data:
-                item['executed_by'] = UserModel.get_user_info(id=item['executed_by'])
+                item['executed_by'] = UserModel.get_user_info(item['executed_by'])
             total_results = ResultModel.query.filter_by(project=project_id).count()
             return data, total_results
         except Exception as err:

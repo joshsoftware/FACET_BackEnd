@@ -3,7 +3,7 @@ from app.models import db
 from marshmallow import Schema,fields
 from datetime import datetime
 
-from app.models.UserModel import UserModel
+from app.models.user_model import UserModel
 from app.models.TestcaseModel import TestcaseModel
 from app.models.EnvModel import EnvModel
 

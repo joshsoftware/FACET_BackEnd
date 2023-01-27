@@ -116,26 +116,6 @@ class UserModel(db.Model):
         return UserModel.query.filter_by(username=username).first()
 
     @staticmethod
-    def is_super_user(user_id):
-        """
-        Class method for checking if a user
-        is a super admin or not.
-        return Boolean type
-        """
-        user = UserModel.query.get(user_id)
-        return user.is_super_admin
-
-    @staticmethod
-    def is_user_admin(user_id):
-        """
-        Class method for checking if a user
-        is an admin or not.
-        return Boolean type
-        """
-        user = UserModel.query.get(user_id)
-        return user.is_admin
-
-    @staticmethod
     def get_user_name(user_id):
         """
         Class method for fetching

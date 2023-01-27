@@ -43,13 +43,6 @@ def has_access_to_organization(organization_id, user):
     """
     return user.user_organization == organization_id
 
-def is_super_admin(user):
-    return UserModel.is_super_user(user)
-
-def is_user_admin(user):
-    return UserModel.is_user_admin(user)
-
-
 def get_user_name(id):
     return UserModel.get_user_name(id)
 

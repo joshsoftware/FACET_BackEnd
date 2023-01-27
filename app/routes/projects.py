@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
-from app.helpers.utils import get_project_id, is_user_admin
+from app.helpers.utils import get_project_id
 from app.models.user_model import UserModel
 from app.helpers import create_slug
 from marshmallow import ValidationError
@@ -126,7 +126,7 @@ def createProjects():
         logging.info(
             f"POST request to create project by user:{user.id} with payload:{req_data}"
         )
-        if not is_user_admin(user.id):
+        if not user.is_admin:
             logging.info(f"POST request failed due to unauthorised access")
             return (
                 jsonify(

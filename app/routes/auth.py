@@ -10,7 +10,6 @@ import logging
 from . import jwt
 from app.helpers.utils import (
     get_current_user,
-    is_super_admin,
     has_access_to_organization,
 )
 from app.models.user_model import UserModel, UserSchema
@@ -227,9 +226,9 @@ def delete_user():
     """
     try:
         req_data = request.json
-        super_admin = get_current_user().id
+        super_admin = get_current_user()
         logging.info(
-            f"super admin request for deleting user with payload {req_data} and super_admin_id : {super_admin}"
+            f"super admin request for deleting user with payload {req_data} and super_admin_id : {super_admin.id}"
         )
         try:
             user = UserModel.get_one_user(req_data.get("user"))
@@ -241,7 +240,7 @@ def delete_user():
             logging.info(f"user deletion failed as no such user exists")
             return jsonify({"error": "No such user exists"}), 404
 
-        if not is_super_admin(super_admin):
+        if not super_admin.is_super_admin:
             logging.info(f"user deletion failed due to unauthorized access")
             return (
                 jsonify(

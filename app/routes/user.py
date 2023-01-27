@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from app.models.UserModel import UserModel, UserSchema
+from app.models.user_model import UserModel, UserSchema
 from flask_jwt_extended import jwt_required, get_current_user
 import logging
 

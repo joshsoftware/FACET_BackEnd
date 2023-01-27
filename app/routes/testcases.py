@@ -18,7 +18,7 @@ testcase_schema = TestcaseSchema()
 def getTestcases(id=0):
     try:
         user = get_current_user()
-        project = get_project_id(request.args.get("project"))
+        project = get_project_id(request.args.get("project"),user.user_organization)
         logging.info(
             f"GET request to fetch testcase by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         if not has_access_to_project(project, user.id):
@@ -45,10 +45,10 @@ def getTestcases(id=0):
 @jwt_required()
 def createTestcases():
     try:
-        req_data = request.json
-        req_data['project'] = get_project_id(req_data.get("project"))
-        req_data['name'] = create_slug(req_data.get("name"))
         user = get_current_user()
+        req_data = request.json
+        req_data['project'] = get_project_id(req_data.get("project"),user.user_organization)
+        req_data['name'] = create_slug(req_data.get("name"))
         logging.info(
             f"POST request to create testcase by user:{user.id} with payload:{req_data}")
         req_data['created_by'] = user.id

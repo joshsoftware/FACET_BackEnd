@@ -12,6 +12,7 @@ from app.helpers.utils import (
     get_current_user,
     has_access_to_organization,
 )
+from app.helpers.emails import signup_notification_email
 from app.models.user_model import UserModel, UserSchema
 
 auth_blueprint = Blueprint("auth", __name__)
@@ -93,6 +94,7 @@ def signup():
             user.is_admin = True
             user.save()
             logging.info(f"user signup successful for {user.name}")
+            signup_notification_email(username= user.username, email=user.email)
             return jsonify({"message": "User Created Successfully!"}), 201
         else:
             access_token = create_access_token(identity=user.id)

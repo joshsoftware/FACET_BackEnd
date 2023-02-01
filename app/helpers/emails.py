@@ -6,9 +6,13 @@ import smtplib
 import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from celery import Celery
 from flask import current_app
 
+# celery = Celery(__name__)
+# celery.conf.update(current_app.config)
 
+# @celery.task
 def signup_notification_email(username, email):
     """
     helper function to notify

@@ -1,4 +1,6 @@
+import os
 from flask import Blueprint, jsonify, request
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask_jwt_extended import (
     create_access_token,
     jwt_required,
@@ -9,14 +11,18 @@ from marshmallow import ValidationError
 import logging
 from . import jwt
 from app.helpers.utils import (
-    get_current_user,
-    has_access_to_organization,
+    get_current_user
 )
+from flask import current_app
 from app.helpers.emails import signup_notification_email
 from app.models.user_model import UserModel, UserSchema
 
 auth_blueprint = Blueprint("auth", __name__)
 user_schema = UserSchema()
+
+scheduler = BackgroundScheduler({"apscheduler.timezone": "Asia/Calcutta"})
+scheduler.add_jobstore("sqlalchemy", url=os.getenv("DATABASE_URL"))
+scheduler.start()
 
 
 @jwt.user_lookup_loader
@@ -94,7 +100,13 @@ def signup():
             user.is_admin = True
             user.save()
             logging.info(f"user signup successful for {user.name}")
-            signup_notification_email(username= user.username, email=user.email)
+            sender_mail = current_app.config["MAIL_USERNAME"]
+            password = current_app.config["MAIL_PASSWORD"]
+            email_job = scheduler.add_job(
+                func=signup_notification_email,
+                trigger="date",
+                args=[user.username, user.email, sender_mail, password]
+            )
             return jsonify({"message": "User Created Successfully!"}), 201
         else:
             access_token = create_access_token(identity=user.id)

@@ -13,15 +13,15 @@ from flask import current_app
 # celery.conf.update(current_app.config)
 
 # @celery.task
-def signup_notification_email(username, email):
+def signup_notification_email(username, email, sender_email, password):
     """
     helper function to notify
     facet-superadmin that a new user has
     signed up to the system
     """
-    sender_email = current_app.config["MAIL_USERNAME"]
-    password = current_app.config["MAIL_PASSWORD"]
-    reciever_email = current_app.config["MAIL_USERNAME"]
+    sender_email = sender_email
+    password = password
+    reciever_email = sender_email
     message = f"""\
     Subject: New User Sign-Up Notification
 
@@ -46,4 +46,3 @@ def signup_notification_email(username, email):
             reciever_email,
             message
         )
-    return "email sent successfully"

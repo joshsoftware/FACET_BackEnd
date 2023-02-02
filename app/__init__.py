@@ -29,7 +29,8 @@ def create_app():
     db.app = app
     migrate.init_app(app, db)
     logging.config.dictConfig(logger_config)
-    logging.getLogger("werkzeug").setLevel('WARNING')
+    logging.getLogger('apscheduler').setLevel(logging.DEBUG)
+    # logging.getLogger("werkzeug").setLevel('WARNING')
     # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
     # celery.conf.update(app.config)
     app.register_blueprint(organization_blueprint, url_prefix='/api/organization')

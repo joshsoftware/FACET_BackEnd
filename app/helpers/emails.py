@@ -4,15 +4,7 @@ for different purposes
 """
 import smtplib
 import ssl
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from celery import Celery
-from flask import current_app
 
-# celery = Celery(__name__)
-# celery.conf.update(current_app.config)
-
-# @celery.task
 def signup_notification_email(username, email, sender_email, password):
     """
     helper function to notify
@@ -41,8 +33,4 @@ def signup_notification_email(username, email, sender_email, password):
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
         server.login(sender_email, password)
-        server.sendmail(
-            sender_email,
-            reciever_email,
-            message
-        )
+        server.sendmail(sender_email, reciever_email, message)

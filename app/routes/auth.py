@@ -10,9 +10,7 @@ from flask_jwt_extended import (
 from marshmallow import ValidationError
 import logging
 from . import jwt
-from app.helpers.utils import (
-    get_current_user
-)
+from app.helpers.utils import get_current_user
 from flask import current_app
 from app.helpers.emails import signup_notification_email
 from app.models.user_model import UserModel, UserSchema
@@ -105,7 +103,7 @@ def signup():
             email_job = scheduler.add_job(
                 func=signup_notification_email,
                 trigger="date",
-                args=[user.username, user.email, sender_mail, password]
+                args=[user.username, user.email, sender_mail, password],
             )
             return jsonify({"message": "User Created Successfully!"}), 201
         else:

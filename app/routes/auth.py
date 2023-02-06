@@ -103,7 +103,7 @@ def signup():
             email_job = scheduler.add_job(
                 func=signup_notification_email,
                 trigger="date",
-                args=[user.username, user.email, sender_mail, password],
+                args=[user.username, user.email, sender_mail, password, "personal"],
             )
             return jsonify({"message": "User Created Successfully!"}), 201
         else:

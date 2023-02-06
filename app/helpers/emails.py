@@ -5,7 +5,7 @@ for different purposes
 import smtplib
 import ssl
 
-def signup_notification_email(username, email, sender_email, password):
+def signup_notification_email(username, email, sender_email, password, organization):
     """
     helper function to notify
     facet-superadmin that a new user has
@@ -24,6 +24,7 @@ def signup_notification_email(username, email, sender_email, password):
 
     Name: {username}
     Email: {email}
+    Organization : {organization}
 
     Please take the necessary actions to verify the new user and activate their account.
 

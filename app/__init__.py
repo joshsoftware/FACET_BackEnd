@@ -1,8 +1,6 @@
 import os
 from flask import Flask
-from celery import Celery
 from config import app_config, logger_config
-from flask.logging import default_handler
 from flask_migrate import Migrate
 from flask_cors import CORS
 from .models import db, bcrypt
@@ -30,9 +28,7 @@ def create_app():
     migrate.init_app(app, db)
     logging.config.dictConfig(logger_config)
     logging.getLogger('apscheduler').setLevel(logging.DEBUG)
-    # logging.getLogger("werkzeug").setLevel('WARNING')
-    # celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
-    # celery.conf.update(app.config)
+    logging.getLogger("werkzeug").setLevel('WARNING')
     app.register_blueprint(organization_blueprint, url_prefix='/api/organization')
     app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
     app.register_blueprint(projects_blueprint, url_prefix='/api/projects')

@@ -29,7 +29,7 @@ def getProjects():
                 return jsonify({"error": "Project Not Found"}), 404
             data["is_project_admin"] = data["project_admin"] == user.id
             logging.info(
-                f"GET request successful, project returned successfully for project id:{id}"
+                f"GET request successful, project returned successfully for project id:{project}"
             )
             return jsonify(data), 200
         data = ProjectModel.get_all_projects(get_current_user().id)
@@ -73,9 +73,9 @@ def getMembers():
         data = ProjectModel.get_one_project(
             get_project_id(project, user.user_organization), user.id
         )
-        #Instance where the data is None
-        #as the user may have had its access revoked but is still trying
-        #to access the project
+        # Instance where the data is None
+        # as the user may have had its access revoked but is still trying
+        # to access the project
         if not data:
             return jsonify({"error": "unauthorized access"}), 401
         project_admin_id = data["project_admin"]
@@ -178,14 +178,13 @@ def updateName():
             f"POST request to update project name by user:{user.id} with payload:{req_data}"
         )
         project_name = req_data.get("project")
-        new_project_name = req_data.get("newProjName")
+        new_project_name = create_slug(req_data.get("newProjName"))
         if not (project_name and new_project_name):
             return jsonify({"error": "Something Went Wrong!"}), 400
 
         project = ProjectModel.query.get(
-            get_project_id(project_name), user.user_organization
+            get_project_id(project_name, user.user_organization)
         )
-
         if not project:
             logging.info(
                 f"POST request to update project name failed as project does not exist"
@@ -210,8 +209,6 @@ def updateName():
                 401,
             )
             # backend stores data only in slug format, hence converting new name to slug for proper verification
-
-        new_project_name = create_slug(new_project_name)
         if ProjectModel.is_project_exist(new_project_name, user.user_organization):
             logging.info(
                 f"POST request failed to update project name as another project exists with the newly suggested name"
@@ -219,7 +216,7 @@ def updateName():
             return jsonify({"error": "Project name already exist!"}), 400
 
         project.name = new_project_name
-        project.update()
+        project.save()
         logging.info(f"project name updated successfully")
         return jsonify({"message": "Project name updated successfully!"}), 200
     except Exception as err:
@@ -266,7 +263,6 @@ def delete_project():
 def add_members():
     try:
         req_data = request.json
-        print(req_data.get("project"))
         req_data["project"] = create_slug(req_data.get("project"))
         admin = get_current_user()
         logging.info(

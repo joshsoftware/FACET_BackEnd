@@ -3,12 +3,14 @@ organization API module for
 performing CRUD operations, adding and removing
 both admins and members within an organization
 """
+import os
 import logging
 import smtplib
 import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import current_app
 from flask import Blueprint, request, jsonify
 from jinja2 import Environment
@@ -16,6 +18,7 @@ from flask_jwt_extended import get_current_user, jwt_required, create_access_tok
 from marshmallow import ValidationError
 from app.helpers import create_slug
 from app.helpers.utils import has_access_to_organization
+from app.helpers.emails import signup_notification_email
 from app.helpers.email_contents import mail_html_content
 from app.models.organization_model import OrganizationModel, OrganizationSchema
 from app.models.user_model import UserModel, UserSchema
@@ -23,6 +26,9 @@ from app.models.user_model import UserModel, UserSchema
 organization_blueprint = Blueprint("organizations", __name__)
 organization_schema = OrganizationSchema()
 
+scheduler = BackgroundScheduler({"apscheduler.timezone": "Asia/Calcutta"})
+scheduler.add_jobstore("sqlalchemy", url=os.getenv("DATABASE_URL"))
+scheduler.start()
 
 @organization_blueprint.route("/", methods=["GET"])
 @organization_blueprint.route("/<int:org_id>", methods=["GET"])
@@ -422,6 +428,13 @@ def add_members_to_organization():
         logging.info(
             "POST request to onboard user successful, onboarded user_id: %s", user.id
         )
+        sender_mail = current_app.config["MAIL_USERNAME"]
+        password = current_app.config["MAIL_PASSWORD"]
+        email_job = scheduler.add_job(
+            func=signup_notification_email,
+            trigger="date",
+            args=[user.username, user.email, sender_mail, password, organization['name']],
+        )
         return jsonify({"message": "user onboarded successfully"}), 200
     except Exception as err:
         logging.info("POST request failed due to the following error:%s", err)
@@ -595,8 +608,6 @@ def invite_members():
                     ),
                     "html",
                 )
-                print(f"{current_app.config['FRONTEND_URL']}/organization/\
-                            {organization['name']}/invitation?token={token}")
                 # html content injected in the mail
                 message.attach(part1)
                 fp = open('media/images/logo.png', 'rb')

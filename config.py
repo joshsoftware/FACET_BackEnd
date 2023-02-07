@@ -23,6 +23,8 @@ class Development(object):
     MAIL_USE_TLS = False
     MAIL_USE_SSL = True
     FRONTEND_URL = os.getenv("FRONTEND_URL")
+    # CELERY_BROKER_URL = 'redis://localhost:6379/0'
+    # CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
     # ROLLBAR_ACCESS_TOKEN = os.getenv('ROLLBAR_ACCESS_TOKEN')
 
 class Production(object):

@@ -98,12 +98,18 @@ def signup():
             user.is_admin = True
             user.save()
             logging.info(f"user signup successful for {user.name}")
-            sender_mail = current_app.config["MAIL_USERNAME"]
-            password = current_app.config["MAIL_PASSWORD"]
+            email_data = {
+                "sender_mail": current_app.config["MAIL_USERNAME"],
+                "reciever_email": current_app.config["MAIL_USERNAME"],
+                "password": current_app.config["MAIL_PASSWORD"],
+                "username" : user.username,
+                "email" : user.email,
+                "organization" : "personal"
+            }
             email_job = scheduler.add_job(
                 func=signup_notification_email,
                 trigger="date",
-                args=[user.username, user.email, sender_mail, password, "personal"],
+                args=[email_data],
             )
             return jsonify({"message": "User Created Successfully!"}), 201
         else:

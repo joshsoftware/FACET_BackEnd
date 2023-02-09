@@ -428,12 +428,19 @@ def add_members_to_organization():
         logging.info(
             "POST request to onboard user successful, onboarded user_id: %s", user.id
         )
-        sender_mail = current_app.config["MAIL_USERNAME"]
-        password = current_app.config["MAIL_PASSWORD"]
+        organization_admin = UserModel.query.filter_by(user_organization=organization['id'], is_super_admin= True).first()
+        email_data = {
+                "sender_mail": current_app.config["MAIL_USERNAME"],
+                "reciever_email": organization_admin.email,
+                "password": current_app.config["MAIL_PASSWORD"],
+                "username" : user.username,
+                "email" : user.email,
+                "organization" : organization['name']
+            }
         email_job = scheduler.add_job(
             func=signup_notification_email,
             trigger="date",
-            args=[user.username, user.email, sender_mail, password, organization['name']],
+            args=[email_data],
         )
         return jsonify({"message": "user onboarded successfully"}), 200
     except Exception as err:

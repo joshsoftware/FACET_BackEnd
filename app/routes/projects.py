@@ -1,15 +1,22 @@
-from flask import Blueprint, jsonify, request
+import os
+import logging
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import get_current_user, jwt_required
 from app.helpers.utils import get_project_id
+from app.helpers.emails import project_notifications
 from app.models.user_model import UserModel
 from app.helpers import create_slug
 from marshmallow import ValidationError
 from app.models.project_model import ProjectModel, ProjectSchema
 from app.models.organization_model import OrganizationModel
-import logging
 
 projects_blueprint = Blueprint("projects", __name__)
 project_schema = ProjectSchema()
+
+scheduler = BackgroundScheduler({"apscheduler.timezone": "Asia/Calcutta"})
+scheduler.add_jobstore("sqlalchemy", url=os.getenv("DATABASE_URL"))
+scheduler.start()
 
 
 @projects_blueprint.route("/", methods=["GET"])
@@ -284,9 +291,21 @@ def add_members():
 
         members = req_data["members"]
         del req_data["members"]
+        email_content_data = {
+            "project": project.name, 
+            "project_admin" : admin.name, 
+            "sender_email" : current_app.config['MAIL_USERNAME'], 
+            "password" : current_app.config['MAIL_PASSWORD']
+        }
         for member in members:
-            id = UserModel.get_one_user(member)
-            project.project_members.append(id)
+            user = UserModel.query.get(member)
+            email_content_data['reciever_email'] = user.email
+            email_job = scheduler.add_job(
+                func=project_notifications,
+                trigger="date",
+                args=[email_content_data, 1],
+            )
+            project.project_members.append(user)
         project.update({"modified_by": admin.id})
         logging.info(f"new members added successfully to the project")
         return jsonify({"message": "New members added successfully"}), 200
@@ -323,9 +342,21 @@ def remove_members():
 
         members = req_data["members"]
         del req_data["members"]
+        email_content_data = {
+            "project": project.name, 
+            "project_admin" : admin.name, 
+            "sender_email" : current_app.config['MAIL_USERNAME'], 
+            "password" : current_app.config['MAIL_PASSWORD']
+        }
         for member in members:
-            id = UserModel.get_one_user(member)
-            project.project_members.remove(id)
+            user = UserModel.get_one_user(member)
+            email_content_data['reciever_email'] = user.email
+            email_job = scheduler.add_job(
+                func=project_notifications,
+                trigger="date",
+                args=[email_content_data, 0],
+            )
+            project.project_members.remove(user)
         project.update({"modified_by": admin.id})
         logging.info(f"project members removed sucessfully")
         return jsonify({"message": "Members removed successfully"}), 200

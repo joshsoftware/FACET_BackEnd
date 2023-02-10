@@ -1,3 +1,5 @@
+import re
+import logging
 from datetime import datetime
 import requests
 from flask import Blueprint, request, jsonify
@@ -8,7 +10,6 @@ from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestcaseModel import TestcaseModel
 from app.models.TestsuiteModel import TestsuiteModel
-import logging
 
 engine_blueprint = Blueprint('engine', __name__)
 
@@ -301,38 +302,45 @@ def fetch_from_api(teststep):
 
 
 def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id):
-
+    """
+    validates testdata and perform execution of teststeps
+    """
     if "$var=" in str(teststep):
-        pattern = "\$var\=(.*?)\'"
-        import re
-        variable = re.search(pattern, str(teststep)).group(1)
-        tmp = variable.split('.')
-        var_value = TempModel.get_one(
-            testcase=testcase['id'], teststeps=tmp[0], run_time_id=unique_run_time_id)
-
-        if var_value is None:
-            outcome = [
-                {
-                    "res_value": "Not found",
-                    "executed_status": "failed",
+        pattern = r"\$var=(\S+)\'"
+        # get all variables present in the teststep
+        variables = [var.rstrip("'").rstrip('"') for var in re.findall(pattern, str(teststep))]
+        for variable in variables:
+            tmp = variable.split('.')
+            # get the response of the previous executed testcase with given testcase
+            var_value = TempModel.get_one(
+                testcase=testcase['id'], teststeps=tmp[0], run_time_id=unique_run_time_id)
+            
+            if var_value is None:
+                outcome = [
+                    {
+                        "res_value": "Not found",
+                        "executed_status": "failed",
+                        "status": "failed",
+                        "error": "Incorrect Testdata, Testdata does not exist, hence execution failed",
+                        "is_status_manually_updated" : False
+                    }
+                ]
+                return {
                     "status": "failed",
-                    "error": "Incorrect Testdata, Testdata does not exist, hence execution failed",
-                    "is_status_manually_updated" : False
+                    "outcome": outcome,
+                    "response": {"error": "Testdata does not exist hence execution aborted"},
+                    "no_of_passed_fields": 0,
+                    "no_of_failed_fields": 0
                 }
-            ]
-            return {
-                "status": "failed",
-                "outcome": outcome,
-                "response": {"Error": "Testdata does not exist hence execution aborted"},
-                "no_of_passed_fields": 0,
-                "no_of_failed_fields": 0
-            }
 
-        for i in tmp[1:len(tmp)]:
-            var_value = var_value.get(i)
-        var_value = "None" if var_value is None else var_value
-        teststep = eval(str(teststep).replace(f"$var={variable}", var_value))
-
+            for i in tmp[1:len(tmp)]:
+                if not var_value:
+                    break
+                var_value = var_value.get(i)
+            # if variable value is None then set it as "None" in string format
+            var_value = var_value if var_value else "None"
+            teststep = eval(str(teststep).replace(f"$var={variable}", var_value))
+    
     res = fetch_from_api(teststep)
     if type(res) is str:
         outcome = []

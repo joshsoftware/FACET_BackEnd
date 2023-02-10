@@ -328,7 +328,7 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
                 return {
                     "status": "failed",
                     "outcome": outcome,
-                    "response": {"Error": "Testdata does not exist hence execution aborted"},
+                    "response": {"error": "Testdata does not exist hence execution aborted"},
                     "no_of_passed_fields": 0,
                     "no_of_failed_fields": 0
                 }

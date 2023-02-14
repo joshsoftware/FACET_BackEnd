@@ -75,16 +75,19 @@ def create_payloads():
                 if not (exp_outcome['expected_outcome'] is not None and is_expected_outcome_valid(exp_outcome['expected_outcome'])):
                     logging.info(f"POST request to create payload failed as empty expected outcome was provided in the payload")
                     return jsonify({"error": "You cannot pass empty expected outcome in the payload"}), 400
+                #expected outcome validations for duplicate entry
                 exp_outcome['payload'] = payload.id
                 exp_outcome['created_by'] = user.id
                 exp_outcome['modified_by'] = user.id
                 data = ExpectedOutcomeSchema().load(exp_outcome)
+                if ExpectedOutcomeModel.is_exist(name=data['name'],payload_id=payload.id):
+                    raise Exception(f"Duplicate entry provided for expected outcome:{data['name']}")
                 exp_outcome = ExpectedOutcomeModel(data)
                 exp_outcome.save()
         except Exception as err:
             payload.delete()
             logging.exception(f"POST request to create payload failed due to the following error:{err}")
-            return jsonify({"error": "something went wrong"}), 400
+            return jsonify({"error": str(err)}), 400
         logging.info(f"payload created successfully with its expected outcomes")
         return jsonify({"message": "Payload created Successfully!!"}), 201
     except Exception as err:

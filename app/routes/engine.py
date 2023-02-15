@@ -339,7 +339,7 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
                 var_value = var_value.get(i)
             # if variable value is None then set it as "None" in string format
             var_value = var_value if var_value else "None"
-            teststep = eval(str(teststep).replace(f"$var={variable}", var_value))
+            teststep = eval(str(teststep).replace(f"$var={variable}", str(var_value)))
     
     res = fetch_from_api(teststep)
     if type(res) is str:

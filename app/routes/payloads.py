@@ -333,7 +333,7 @@ def update_payload():
                     exp_outcome["created_by"] = user.id
                     exp_outcome["modified_by"] = user.id
                     is_exist = ExpectedOutcomeModel.is_exist(
-                        name=exp_outcome["name"], payload_id=payload.id
+                        name=create_slug(exp_outcome["name"]), payload_id=payload.id
                     )
                     if is_exist:
                         logging.info(
@@ -348,6 +348,7 @@ def update_payload():
                             400,
                         )
                     try:
+                        exp_outcome['name'] = create_slug(exp_outcome['name'])
                         data = ExpectedOutcomeSchema().dump(exp_outcome)
                         new_exp_outcome = ExpectedOutcomeModel(data)
                         new_exp_outcome.save()

@@ -22,7 +22,7 @@ def profile():
         logging.exception(f"GET request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
-@user_blueprint.route('/change-password', methods=['POST'])
+@user_blueprint.route('/password', methods=['PUT'])
 @jwt_required()
 def change_password():
     """
@@ -68,7 +68,7 @@ def change_password():
         logging.exception(f"POST request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
-@user_blueprint.route('/profile/update', methods=['PATCH'])
+@user_blueprint.route('/profile', methods=['PATCH'])
 @jwt_required()
 def update_profile():
     """

@@ -222,7 +222,7 @@ def refresh():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@auth_blueprint.route("/delete/", methods=["DELETE"])
+@auth_blueprint.route("", methods=["DELETE"])
 @jwt_required()
 def delete_user():
     """
@@ -279,7 +279,7 @@ def delete_user():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@auth_blueprint.route("/add_admins", methods=["POST"])
+@auth_blueprint.route("/admins/add", methods=["POST"])
 @jwt_required()
 def add():
     """

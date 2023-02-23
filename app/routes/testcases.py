@@ -12,7 +12,7 @@ testcase_blueprint = Blueprint('testcases', __name__)
 testcase_schema = TestcaseSchema()
 
 
-@testcase_blueprint.route('/', methods=["GET"])
+@testcase_blueprint.route('', methods=["GET"])
 @testcase_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
 def getTestcases(id=0):
@@ -41,7 +41,7 @@ def getTestcases(id=0):
         return jsonify({"error": "something went wrong"}), 400
 
 
-@testcase_blueprint.route('/new', methods=["POST"])
+@testcase_blueprint.route('', methods=["POST"])
 @jwt_required()
 def createTestcases():
     try:
@@ -92,7 +92,7 @@ def createTestcases():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@testcase_blueprint.route('/delete/', methods=["DELETE"])
+@testcase_blueprint.route('', methods=["DELETE"])
 @jwt_required()
 def delete_testcase():
     try:
@@ -125,7 +125,7 @@ def delete_testcase():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@testcase_blueprint.route('/update', methods=["PUT"])
+@testcase_blueprint.route('', methods=["PUT"])
 @jwt_required()
 def update_testcase():
     try:

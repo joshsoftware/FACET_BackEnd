@@ -7,7 +7,7 @@ import logging
 results_blueprint = Blueprint('results', __name__)
 
 
-@results_blueprint.route('/', methods=["GET"])
+@results_blueprint.route('', methods=["GET"])
 @results_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
 def getresults(id=0):
@@ -40,7 +40,7 @@ def getresults(id=0):
         return jsonify({"error": "something went wrong"}), 400
 
 
-@results_blueprint.route('/addcomment', methods=['POST'])
+@results_blueprint.route('/comment', methods=['PATCH'])
 @jwt_required()
 def add_comment():
     req_data = request.json

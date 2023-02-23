@@ -11,7 +11,7 @@ testdata_blueprint = Blueprint("testdata", __name__)
 testdata_schema = TestdataSchema()
 
 
-@testdata_blueprint.route("/", methods=["GET"])
+@testdata_blueprint.route("", methods=["GET"])
 @testdata_blueprint.route("/<string:id>", methods=["GET"])
 @jwt_required()
 def getTestdata(id=0):
@@ -37,7 +37,7 @@ def getTestdata(id=0):
         return jsonify({"error": "something went wrong"}), 400
 
 
-@testdata_blueprint.route("/new", methods=["POST"])
+@testdata_blueprint.route("", methods=["POST"])
 @jwt_required()
 def createTestdata():
     try:
@@ -77,7 +77,7 @@ def createTestdata():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@testdata_blueprint.route("/update", methods=["PUT"])
+@testdata_blueprint.route("", methods=["PUT"])
 @jwt_required()
 def update_Testdata():
     try:
@@ -144,7 +144,7 @@ API payload format:
 """
 
 
-@testdata_blueprint.route("/delete/", methods=["DELETE"])
+@testdata_blueprint.route("", methods=["DELETE"])
 @jwt_required()
 def delete_testdata():
     try:

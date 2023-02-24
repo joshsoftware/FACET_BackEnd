@@ -279,7 +279,7 @@ def delete_user():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@auth_blueprint.route("/admins/add", methods=["POST"])
+@auth_blueprint.route("/admins", methods=["POST"])
 @jwt_required()
 def add():
     """

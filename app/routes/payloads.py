@@ -299,7 +299,16 @@ def update_payload():
         )
 
         if req_data.get("expected_outcome"):
-            expected_outcome = req_data.get("expected_outcome")
+            expected_outcome = req_data["expected_outcome"]
+            is_input_expected_outcome_valid, message = is_expected_outcome_valid(
+                expected_outcome
+            )
+            if not is_input_expected_outcome_valid:
+                logging.info(
+                    "PUT request to update payload failed due to the following error:%s",
+                    message,
+                )
+                return jsonify({"error": message}), 400
             for exp_outcome in expected_outcome:
                 if exp_outcome.get("id"):
                     updated_exp_outcome = ExpectedOutcomeModel.query.get(
@@ -314,21 +323,6 @@ def update_payload():
                     exp_outcome["payload"] = payload.id
                     exp_outcome["created_by"] = user.id
                     exp_outcome["modified_by"] = user.id
-                    is_exist = ExpectedOutcomeModel.is_exist(
-                        name=create_slug(exp_outcome["name"]), payload_id=payload.id
-                    )
-                    if is_exist:
-                        logging.info(
-                            "PUT request failed due to duplicate expected outcome"
-                        )
-                        return (
-                            jsonify(
-                                {
-                                    "error": f"Duplicate entry provided for expected outcome:{exp_outcome['name']}"
-                                }
-                            ),
-                            400,
-                        )
                     try:
                         exp_outcome["name"] = create_slug(exp_outcome["name"])
                         data = ExpectedOutcomeSchema().dump(exp_outcome)
@@ -363,17 +357,18 @@ def is_expected_outcome_valid(expected_outcome):
     does not contain duplicate entries
     """
     outcome = False
-    print(isinstance(expected_outcome,list))
-    if not isinstance(expected_outcome,list):
+    if not isinstance(expected_outcome, list):
         return outcome, "Invalid expected outcome provided"
-    
+
     set_of_expected_outcome = list(set(map(lambda d: d["name"], expected_outcome)))
-    print(len(set_of_expected_outcome),len(expected_outcome))
     if len(set_of_expected_outcome) != len(expected_outcome):
         return outcome, "Duplicate expected outcome provided"
-    
+
     for exp_outcome in expected_outcome:
-        if isinstance(exp_outcome['expected_outcome'],list) and len(exp_outcome['expected_outcome']) > 0:
+        if (
+            isinstance(exp_outcome["expected_outcome"], list)
+            and len(exp_outcome["expected_outcome"]) > 0
+        ):
             continue
         else:
             return outcome, "Invalid expected outcome provided"

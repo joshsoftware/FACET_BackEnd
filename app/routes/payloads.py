@@ -18,7 +18,7 @@ payload_schema = PayloadSchema()
 def get_payloads(id=0):
     try:
         user = get_current_user()
-        project_id = get_project_id(request.args.get("project"))
+        project_id = get_project_id(request.args.get("project"),user.user_organization)
         logging.info(f"GET request to fetch payload by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         if not has_access_to_project(project_id, user.id):
             logging.info(f"GET request failed due to unauthorised access")
@@ -42,9 +42,9 @@ def get_payloads(id=0):
 def create_payloads():
     try:
         req_data = request.json
-        req_data['name'] = create_slug(req_data.get('name'))
-        req_data['project'] = get_project_id(req_data.get('project'))
         user = get_current_user()
+        req_data['name'] = create_slug(req_data.get('name'))
+        req_data['project'] = get_project_id(req_data.get('project'),user.user_organization)
         logging.info(f"POST request to create payload by user:{user.id} with payload:{req_data}")
         req_data['created_by'] = user.id
         req_data['modified_by'] = user.id
@@ -73,8 +73,8 @@ def create_payloads():
         try:
             for exp_outcome in expected_outcome:
                 if not (exp_outcome['expected_outcome'] is not None and is_expected_outcome_valid(exp_outcome['expected_outcome'])):
-                    raise Exception(
-                        'You cannot pass empty expected outcome in the payload')
+                    logging.info(f"POST request to create payload failed as empty expected outcome was provided in the payload")
+                    return jsonify({"error": "You cannot pass empty expected outcome in the payload"}), 400
                 exp_outcome['payload'] = payload.id
                 exp_outcome['created_by'] = user.id
                 exp_outcome['modified_by'] = user.id

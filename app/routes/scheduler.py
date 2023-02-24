@@ -51,7 +51,7 @@ monitor_scheduler.add_job(func=job_monitor, trigger="interval", minutes=1)
 def getScheduledJobs(id=0):
     try:
         user = get_current_user()
-        project = get_project_id(request.args.get("project"))
+        project = get_project_id(request.args.get("project"),user.user_organization)
         logging.info(
             f"GET request to fetch scheduled jobs by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         if not has_access_to_project(project, user.id):
@@ -95,9 +95,9 @@ def addScheduledJob():
     """
     with app.app_context():
         try:
-            req_data = request.json
-            req_data['project'] = get_project_id(req_data.get('project'))
             user = get_current_user()
+            req_data = request.json
+            req_data['project'] = get_project_id(req_data.get('project'),user.user_organization)
             logging.info(
                 f"POST request to create a scheduled job by user:{user.id} with payload:{req_data}")
             req_data['scheduled_by'] = user.id

@@ -1,3 +1,5 @@
+import re
+import logging
 from datetime import datetime
 import re
 import requests
@@ -9,7 +11,6 @@ from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestcaseModel import TestcaseModel
 from app.models.TestsuiteModel import TestsuiteModel
-import logging
 
 engine_blueprint = Blueprint('engine', __name__)
 
@@ -68,7 +69,7 @@ def engine():
             testcase_status = "passed"
             for testcase in testsuite['testcases']:
                 execution_data['environment'] = environment
-                execution_data['testcase'] = testcase
+                execution_data['testcase'] = TestcaseModel.get_one_testcase(id=testcase['id'])
                 resp = tests(data=execution_data)
 
                 del testcase['project']
@@ -103,7 +104,7 @@ def engine():
                     else:
                         no_of_passed_testcases += 1
                         testcase_status = "passed"
-                    
+
                     testcase_result_to_store.append({
                         "status" : testcase_status,
                         "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
@@ -112,12 +113,12 @@ def engine():
                         "teststeps": resp['result']['teststeps']
                     })
                     data_to_send.append({
-                    "status" : testcase_status,
-                    "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
-                    "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
-                    "name" : testcase['name'],
-                    "testcase_id" : testcase['id']
-                })
+                        "status": testcase_status,
+                        "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
+                        "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
+                        "name": testcase['name'],
+                        "testcase_id": testcase['id']
+                    })
 
             project = testsuite['project']
             del testsuite['project']
@@ -305,6 +306,7 @@ def tests(data):
             teststep_results_to_store = []
             no_of_passed_teststeps = 0
             no_of_failed_teststeps = 0
+            is_testcase_passed = True
             unique_run_time_id = str(testcase['name']) + str(datetime.now())
             for teststep in testcase['teststeps']:
                 teststep_resp = []
@@ -318,6 +320,7 @@ def tests(data):
                 teststep['header'] = teststep['header']['header']
                 
                 testdata = [test_data for test_data in teststep['testdata'] if test_data in testcase['testdatas']]
+                del teststep['testdata']
                 for td in testdata:
                     td['name'] = "[" + td['name'] + "]"
                     teststep['payload'] = td['payload']
@@ -332,6 +335,7 @@ def tests(data):
                     td['name'] = td['name'].strip("[]")
                     if resp['status'] == 'failed':
                         is_teststep_passed = False
+                        is_testcase_passed = False
                         no_of_failed_testdata_combinations += 1
                     else:
                         no_of_passed_testdata_combinations += 1
@@ -362,7 +366,6 @@ def tests(data):
                     "no_of_passed_fields": no_of_passed_testdata_combinations,
                     "no_of_failed_fields": no_of_failed_testdata_combinations
                 })
-
                 teststep_results_to_store.append({
                     "name": teststep.get('name'),
                     "method": teststep.get('method'),
@@ -374,6 +377,7 @@ def tests(data):
                     "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
                     "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations,
                 })
+            status = "passed" if is_testcase_passed else "failed"
             data_to_store = {
                 "teststeps": teststep_results_to_store,
                 "status": status,
@@ -411,36 +415,45 @@ def fetch_from_api(teststep):
 
 
 def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id):
-
+    """
+    validates testdata and perform execution of teststeps
+    """
     if "$var=" in str(teststep):
-        pattern = "\$var\=(.*?)\'"
-        variable = re.search(pattern, str(teststep)).group(1)
-        tmp = variable.split('.')
-        var_value = TempModel.get_one(
-            testcase=testcase['id'], teststeps=tmp[0], run_time_id=unique_run_time_id)
-
-        if var_value is None:
-            outcome = [
-                {
-                    "res_value": "Not found",
-                    "executed_status": "failed",
+        pattern = r"\$var=(\S+)\'"
+        # get all variables present in the teststep
+        variables = [var.rstrip("'").rstrip('"') for var in re.findall(pattern, str(teststep))]
+        for variable in variables:
+            tmp = variable.split('.')
+            # get the response of the previous executed testcase with given testcase
+            var_value = TempModel.get_one(
+                testcase=testcase['id'], teststeps=tmp[0], run_time_id=unique_run_time_id)
+            
+            if var_value is None:
+                outcome = [
+                    {
+                        "res_value": "Not found",
+                        "executed_status": "failed",
+                        "status": "failed",
+                        "error": "Incorrect Testdata, Testdata does not exist, hence execution failed",
+                        "is_status_manually_updated" : False
+                    }
+                ]
+                return {
                     "status": "failed",
-                    "error": "Incorrect Testdata, Testdata does not exist, hence execution failed",
-                    "is_status_manually_updated" : False
+                    "outcome": outcome,
+                    "response": {"error": "Testdata does not exist hence execution aborted"},
+                    "no_of_passed_fields": 0,
+                    "no_of_failed_fields": 0
                 }
-            ]
-            return {
-                "status": "failed",
-                "outcome": outcome,
-                "response": {"Error": "Testdata does not exist hence execution aborted"},
-                "no_of_passed_fields": 0,
-                "no_of_failed_fields": 0
-            }
 
-        for i in tmp[1:len(tmp)]:
-            var_value = var_value.get(i)
-        teststep = eval(str(teststep).replace(f"$var={variable}", var_value))
-
+            for i in tmp[1:len(tmp)]:
+                if not var_value:
+                    break
+                var_value = var_value.get(i)
+            # if variable value is None then set it as "None" in string format
+            var_value = var_value if var_value else "None"
+            teststep = eval(str(teststep).replace(f"$var={variable}", str(var_value)))
+    
     res = fetch_from_api(teststep)
     if type(res) is str:
         outcome = []
@@ -460,8 +473,11 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
             "no_of_passed_fields": 0,
             "no_of_failed_fields": 0
         }
-    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": res.json(
-    ), "run_time_id": unique_run_time_id})
+    try:
+        resp = res.json()
+    except Exception as err:
+        resp = {}
+    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": resp, "run_time_id": unique_run_time_id})
     temp.save()
 
     status, outcome, no_of_passed_fields, no_of_failed_fields = validate_expected_outcome(
@@ -470,7 +486,7 @@ def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
     return {
         "status": "passed" if status == "passed" else "failed",
         "outcome": outcome,
-        "response": res.json(),
+        "response": resp,
         "no_of_passed_fields": no_of_passed_fields,
         "no_of_failed_fields": no_of_failed_fields
     }
@@ -484,7 +500,10 @@ def validate_expected_outcome(teststep, response):
     no_of_passed_fields = 0
     no_of_failed_fields = 0
     outcome = []
-    res = response.json()
+    try:
+        res = response.json()
+    except Exception as err:
+        res = {}
     for field in teststep['expected_outcome']:
         field_name = field.get('name')
         # field_type = field.get('type')

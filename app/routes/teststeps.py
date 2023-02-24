@@ -15,8 +15,8 @@ teststep_schema = TeststepSchema()
 @jwt_required()
 def get_teststeps(id=0):
     try:
-        project_id = get_project_id(request.args.get("project"))
         user = get_current_user()
+        project_id = get_project_id(request.args.get("project"), user.user_organization)
         logging.info(f"GET request to fetch teststep by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
         if not has_access_to_project(project_id, user.id):
             logging.info(f"GET request failed due to unauthorised access")
@@ -44,9 +44,9 @@ def create_teststep():
     """
     try:
         req_data = request.json
-        req_data['name'] = create_slug(req_data.get('name'))
-        req_data['project_id'] = get_project_id(req_data.get('project'))
         user = get_current_user()
+        req_data['name'] = create_slug(req_data.get('name'))
+        req_data['project_id'] = get_project_id(req_data.get('project'),user.user_organization)
         logging.info(f"POST request to create teststep by user:{user.id} with payload:{req_data}")
         req_data['created_by'] = user.id
         req_data['modified_by'] = user.id
@@ -127,11 +127,11 @@ def update_teststep():
         
         teststep.method  = req_data.get('method') if req_data.get('method') else teststep.method
 
-        teststep.endpoint_id = req_data.get('endpoint_id') if req_data.get('endpoint_id') else teststep.endpoint
+        teststep.endpoint_id = req_data.get('endpoint_id') if req_data.get('endpoint_id') else teststep.endpoint_id
 
-        teststep.header_id = req_data.get('header_id') if req_data.get('header_id') else teststep.header
+        teststep.header_id = req_data.get('header_id') if req_data.get('header_id') else teststep.header_id
         
-        teststep.payload_id = req_data.get('payload_id') if req_data.get('payload_id') else teststep.payload
+        teststep.payload_id = req_data.get('payload_id') if req_data.get('payload_id') else teststep.payload_id
 
         teststep.update({'modified_by': user.id})
         logging.info(f"teststep updated sucessfully")

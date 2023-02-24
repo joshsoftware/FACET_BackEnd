@@ -13,7 +13,7 @@ results_blueprint = Blueprint('results', __name__)
 def getresults(id=0):
     try:
         user = get_current_user()
-        project = get_project_id(request.args.get("project"))
+        project = get_project_id(request.args.get("project"),user.user_organization)
         page_no = request.args.get("page") or 1
         row_size = request.args.get("pageSize") or 20
         logging.info(f"GET request to fetch result by user:{user.id} with params:{dict(request.args)} and url:{request.url}")
@@ -44,8 +44,8 @@ def getresults(id=0):
 @jwt_required()
 def add_comment():
     req_data = request.json
-    user = get_current_user().id
-    logging.info(f"PUT request to update result by user:{user} with payload:{req_data}")
+    user = get_current_user()
+    logging.info(f"PUT request to update result by user:{user.id} with payload:{req_data}")
     try:
         reportId = req_data.get('reportId')
         teststep_name = req_data.get('teststep')
@@ -55,9 +55,9 @@ def add_comment():
         comment = req_data.get('comment')
         testcase =  req_data.get('testcase') if req_data.get('testcase') else None
         testsuite = req_data.get('testsuite') if req_data.get('testsuite') else None
-        project = get_project_id(slug=req_data.get('project'))
+        project = get_project_id(slug=req_data.get('project'),organization=user.user_organization)
         
-        if not has_access_to_project(project, user):
+        if not has_access_to_project(project, user.id):
             logging.info(f"PUT request failed due to unauthorised access")
             return jsonify({"error": "You do not have access to project,kindly connect with project admin to get access to project components"}), 401
 
@@ -70,7 +70,7 @@ def add_comment():
         if testsuite:
             for test_case in report['result']['testsuite_execution']:
                 if test_case['testcase']['name'] == testcase:
-                    is_able_to_update = teststep_modification(result=test_case,teststep_name=teststep_name,testdata_name=testdata_name,field_name=field_name,status=status,comment=comment, user=user)
+                    is_able_to_update = teststep_modification(result=test_case,teststep_name=teststep_name,testdata_name=testdata_name,field_name=field_name,status=status,comment=comment, user=user.id)
             updatedResult = ResultModel.query.get(reportId)
             updatedResult.update({
                 "result" : report['result']
@@ -78,7 +78,7 @@ def add_comment():
             return jsonify({"message": "Updated Successfully!"}), 200
         else:
             result = report['result']
-            is_able_to_update = teststep_modification(result=result,teststep_name=teststep_name,testdata_name=testdata_name,field_name=field_name,status=status,comment=comment, user=user)
+            is_able_to_update = teststep_modification(result=result,teststep_name=teststep_name,testdata_name=testdata_name,field_name=field_name,status=status,comment=comment, user=user.id)
             updatedResult = ResultModel.query.get(reportId)
             updatedResult.update({
                 "result" : result

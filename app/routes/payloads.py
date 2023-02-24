@@ -151,42 +151,24 @@ def create_payloads():
                 ),
                 400,
             )
-
+        is_input_expected_outcome_valid, message = is_expected_outcome_valid(
+            expected_outcome=expected_outcome
+        )
+        if not is_input_expected_outcome_valid:
+            logging.info(
+                "POST request to create payload failed due to the following error:%s",
+                message,
+            )
+            return jsonify({"error": message}), 400
         payload = PayloadModel(data)
         payload.save()
         try:
             for exp_outcome in expected_outcome:
-                if not (
-                    exp_outcome["expected_outcome"] is not None
-                    and is_expected_outcome_valid(exp_outcome["expected_outcome"])
-                ):
-                    logging.info(
-                        "POST request to create payload failed as \
-                        empty expected outcome was provided in the payload"
-                    )
-                    return (
-                        jsonify(
-                            {
-                                "error": "You cannot pass empty expected outcome in the payload"
-                            }
-                        ),
-                        400,
-                    )
-                # expected outcome validations for duplicate entry
                 exp_outcome["payload"] = payload.id
                 exp_outcome["created_by"] = user.id
                 exp_outcome["modified_by"] = user.id
                 data = ExpectedOutcomeSchema().load(exp_outcome)
                 data["name"] = create_slug(data["name"])
-                if ExpectedOutcomeModel.is_exist(
-                    name=data["name"], payload_id=payload.id
-                ):
-                    logging.info(
-                        "Payload creation failed as duplicate expected outcomes"
-                    )
-                    raise Exception(
-                        f"Duplicate entry provided for expected outcome:{data['name']}"
-                    )
                 exp_outcome = ExpectedOutcomeModel(data)
                 exp_outcome.save()
         except Exception as err:
@@ -348,7 +330,7 @@ def update_payload():
                             400,
                         )
                     try:
-                        exp_outcome['name'] = create_slug(exp_outcome['name'])
+                        exp_outcome["name"] = create_slug(exp_outcome["name"])
                         data = ExpectedOutcomeSchema().dump(exp_outcome)
                         new_exp_outcome = ExpectedOutcomeModel(data)
                         new_exp_outcome.save()
@@ -376,10 +358,23 @@ def update_payload():
 def is_expected_outcome_valid(expected_outcome):
     """
     function to check if the provided expected outcome
-    is provided in proper format and is not null
+    is provided in proper format,
+    is not null and
+    does not contain duplicate entries
     """
     outcome = False
-    if isinstance(expected_outcome, list) and len(expected_outcome) > 0:
-        if isinstance(expected_outcome[0], dict) and len(expected_outcome[0]) > 0:
-            outcome = True
-    return outcome
+    print(isinstance(expected_outcome,list))
+    if not isinstance(expected_outcome,list):
+        return outcome, "Invalid expected outcome provided"
+    
+    set_of_expected_outcome = list(set(map(lambda d: d["name"], expected_outcome)))
+    print(len(set_of_expected_outcome),len(expected_outcome))
+    if len(set_of_expected_outcome) != len(expected_outcome):
+        return outcome, "Duplicate expected outcome provided"
+    
+    for exp_outcome in expected_outcome:
+        if isinstance(exp_outcome['expected_outcome'],list) and len(exp_outcome['expected_outcome']) > 0:
+            continue
+        else:
+            return outcome, "Invalid expected outcome provided"
+    return True, ""

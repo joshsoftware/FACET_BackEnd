@@ -19,7 +19,7 @@ scheduler.add_jobstore("sqlalchemy", url=os.getenv("DATABASE_URL"))
 scheduler.start()
 
 
-@projects_blueprint.route("/", methods=["GET"])
+@projects_blueprint.route("", methods=["GET"])
 @jwt_required()
 def getProjects():
     try:
@@ -114,7 +114,7 @@ def getMembers():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@projects_blueprint.route("/new", methods=["POST"])
+@projects_blueprint.route("", methods=["POST"])
 @jwt_required()
 def createProjects():
     """
@@ -133,6 +133,17 @@ def createProjects():
         logging.info(
             f"POST request to create project by user:{user.id} with payload:{req_data}"
         )
+        
+        req_data["project_admin"] = user.id
+        req_data["name"] = create_slug(req_data.get("name"))
+        req_data["project_organization"] = user.user_organization
+
+        try:
+            data = project_schema.load(req_data)
+        except ValidationError as err:
+            logging.error(f"project creation failed due to the following error {err}")
+            return jsonify({"error": str(err)}), 400
+
         if not user.is_admin:
             logging.info(f"POST request failed due to unauthorised access")
             return (
@@ -143,14 +154,6 @@ def createProjects():
                 ),
                 401,
             )
-        req_data["project_admin"] = user.id
-        req_data["name"] = create_slug(req_data.get("name"))
-        req_data["project_organization"] = user.user_organization
-        try:
-            data = project_schema.load(req_data)
-        except ValidationError as err:
-            logging.error(f"project creation failed due to the following error {err}")
-            return jsonify({"error": str(err)}), 400
 
         project_exist = ProjectModel.is_project_exist(
             data.get("name"), user.user_organization
@@ -175,7 +178,7 @@ def createProjects():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@projects_blueprint.route("/update-name", methods=["POST"])
+@projects_blueprint.route("", methods=["PUT"])
 @jwt_required()
 def updateName():
     try:
@@ -230,7 +233,7 @@ def updateName():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@projects_blueprint.route("/delete/", methods=["DELETE"])
+@projects_blueprint.route("", methods=["DELETE"])
 @jwt_required()
 def delete_project():
     try:
@@ -264,7 +267,7 @@ def delete_project():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@projects_blueprint.route("/members/add", methods=["POST"])
+@projects_blueprint.route("/members", methods=["POST"])
 @jwt_required()
 def add_members():
     try:
@@ -292,14 +295,14 @@ def add_members():
         members = req_data["members"]
         del req_data["members"]
         email_content_data = {
-            "project": project.name, 
-            "project_admin" : admin.name, 
-            "sender_email" : current_app.config['MAIL_USERNAME'], 
-            "password" : current_app.config['MAIL_PASSWORD']
+            "project": project.name,
+            "project_admin": admin.name,
+            "sender_email": current_app.config["MAIL_USERNAME"],
+            "password": current_app.config["MAIL_PASSWORD"],
         }
         for member in members:
             user = UserModel.query.get(member)
-            email_content_data['reciever_email'] = user.email
+            email_content_data["reciever_email"] = user.email
             email_job = scheduler.add_job(
                 func=project_notifications,
                 trigger="date",
@@ -314,7 +317,7 @@ def add_members():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@projects_blueprint.route("/members/remove", methods=["DELETE"])
+@projects_blueprint.route("/members", methods=["DELETE"])
 @jwt_required()
 def remove_members():
     try:
@@ -343,14 +346,14 @@ def remove_members():
         members = req_data["members"]
         del req_data["members"]
         email_content_data = {
-            "project": project.name, 
-            "project_admin" : admin.name, 
-            "sender_email" : current_app.config['MAIL_USERNAME'], 
-            "password" : current_app.config['MAIL_PASSWORD']
+            "project": project.name,
+            "project_admin": admin.name,
+            "sender_email": current_app.config["MAIL_USERNAME"],
+            "password": current_app.config["MAIL_PASSWORD"],
         }
         for member in members:
             user = UserModel.get_one_user(member)
-            email_content_data['reciever_email'] = user.email
+            email_content_data["reciever_email"] = user.email
             email_job = scheduler.add_job(
                 func=project_notifications,
                 trigger="date",

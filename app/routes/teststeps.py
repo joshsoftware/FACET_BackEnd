@@ -10,7 +10,7 @@ teststeps_blueprint = Blueprint('teststeps', __name__)
 teststep_schema = TeststepSchema()
 
 
-@teststeps_blueprint.route('/', methods=['GET'])
+@teststeps_blueprint.route('', methods=['GET'])
 @teststeps_blueprint.route('/<string:id>', methods=['GET'])
 @jwt_required()
 def get_teststeps(id=0):
@@ -35,7 +35,7 @@ def get_teststeps(id=0):
         return jsonify({"error": "something went wrong"}), 400
 
 
-@teststeps_blueprint.route('/new', methods=['POST'])
+@teststeps_blueprint.route('', methods=['POST'])
 @jwt_required()
 def create_teststep():
     """
@@ -77,7 +77,7 @@ def create_teststep():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@teststeps_blueprint.route('/delete/', methods=["DELETE"])
+@teststeps_blueprint.route('', methods=["DELETE"])
 @jwt_required()
 def delete_teststep():
     try:
@@ -106,7 +106,7 @@ def delete_teststep():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@teststeps_blueprint.route('/update', methods=["PUT"])
+@teststeps_blueprint.route('', methods=["PUT"])
 @jwt_required()
 def update_teststep():
     try:

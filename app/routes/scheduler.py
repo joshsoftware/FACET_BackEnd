@@ -42,7 +42,7 @@ def job_monitor():
 # monitor_scheduler.add_job(func=job_monitor,trigger="interval",minutes=1)
 
 
-@scheduler_blueprint.route('/', methods=["GET"])
+@scheduler_blueprint.route('', methods=["GET"])
 @scheduler_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
 def getScheduledJobs(id=0):
@@ -64,7 +64,7 @@ def getScheduledJobs(id=0):
         logging.exception(f"GET request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
-@scheduler_blueprint.route('/new',methods=['POST'])
+@scheduler_blueprint.route('',methods=['POST'])
 @jwt_required()
 def addScheduledJob():
     with app.app_context():

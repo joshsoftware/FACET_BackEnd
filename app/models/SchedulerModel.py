@@ -82,7 +82,10 @@ class SchedulerModel(db.Model):
         else:
             data = SchedulerModel.query.all()
         return data
-
+    
+    @staticmethod
+    def get_all_non_executed_scheduled_jobs():
+        return [job.__dict__ for job in SchedulerModel.query.filter_by(status="to be executed")]
 
 
 class ScheduleSchema(Schema):

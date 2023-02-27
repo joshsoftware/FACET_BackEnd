@@ -20,15 +20,16 @@ scheduler.start()
 
 
 def job_monitor():
-
-    scheduled_jobs = SchedulerModel.get_all_schedules()
+    scheduled_jobs = SchedulerModel.get_all_non_executed_scheduled_jobs()
     for job_iterator in range(len(scheduled_jobs)):
-        scheduled_jobs[job_iterator] = scheduled_jobs[job_iterator].id
+        scheduled_jobs[job_iterator] = scheduled_jobs[job_iterator]['id']
 
     apscheduler_jobs = scheduler.get_jobs()
     for job_iterator in range(len(apscheduler_jobs)):
         apscheduler_jobs[job_iterator] = int(apscheduler_jobs[job_iterator].id)
-
+    
+    print("to be monitored",scheduled_jobs)
+    print("monitoring",apscheduler_jobs)
     for job_iterator in scheduled_jobs:
         if job_iterator in apscheduler_jobs:
             continue
@@ -42,7 +43,7 @@ monitor_scheduler = BackgroundScheduler(
     {'apscheduler.timezone': 'Asia/Calcutta'})
 monitor_scheduler.start()
 
-monitor_scheduler.add_job(func=job_monitor, trigger="interval", minutes=1)
+monitor_scheduler.add_job(func=job_monitor, trigger="interval", seconds=10)
 
 
 @scheduler_blueprint.route('/', methods=["GET"])

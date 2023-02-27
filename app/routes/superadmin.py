@@ -12,7 +12,7 @@ from app.models.user_model import UserModel
 super_admin_blueprint = Blueprint("super_admin", __name__)
 
 
-@super_admin_blueprint.route("/organizations/all", methods=["GET"])
+@super_admin_blueprint.route("/organizations", methods=["GET"])
 @jwt_required()
 def get_all_organizations():
     """
@@ -43,7 +43,7 @@ def get_all_organizations():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@super_admin_blueprint.route("/members/all", methods=["GET"])
+@super_admin_blueprint.route("/members", methods=["GET"])
 @jwt_required()
 def get_all_members():
     """

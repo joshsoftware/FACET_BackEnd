@@ -182,7 +182,7 @@ def create_payloads():
         return jsonify({"message": "Payload created Successfully!!"}), 201
     except Exception as err:
         logging.exception("POST request failed due to the following error:%s", err)
-        return jsonify({"error": "something went wrong"})
+        return jsonify({"error": "something went wrong"}), 400
 
 
 @payloads_blueprint.route('', methods=["DELETE"])

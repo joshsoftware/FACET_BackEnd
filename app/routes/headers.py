@@ -10,7 +10,7 @@ headers_blueprint = Blueprint('headers', __name__)
 header_schema = HeaderSchema()
 
 
-@headers_blueprint.route('/', methods=["GET"])
+@headers_blueprint.route('', methods=["GET"])
 @headers_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
 def getHeaders(id=0):
@@ -35,7 +35,7 @@ def getHeaders(id=0):
         return jsonify({"error": "something went wrong"}), 400
 
 
-@headers_blueprint.route('/new', methods=["POST"])
+@headers_blueprint.route('', methods=["POST"])
 @jwt_required()
 def createHeaders():
     try:
@@ -71,7 +71,7 @@ def createHeaders():
         return jsonify({"error":"something went wrong"}),400
 
 
-@headers_blueprint.route('/delete/', methods=["DELETE"])
+@headers_blueprint.route('', methods=["DELETE"])
 @jwt_required()
 def delete_header():
     try:
@@ -99,7 +99,7 @@ def delete_header():
         logging.exception(f"DELETE request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
-@headers_blueprint.route('/update', methods=["PUT"])
+@headers_blueprint.route('', methods=["PUT"])
 @jwt_required()
 def update_header():
     try:

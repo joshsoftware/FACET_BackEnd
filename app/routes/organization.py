@@ -128,7 +128,7 @@ def get_org_members():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@organization_blueprint.route("/new", methods=["POST"])
+@organization_blueprint.route("", methods=["POST"])
 @jwt_required()
 def create_organization():
     """
@@ -211,7 +211,7 @@ def create_organization():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@organization_blueprint.route("/update", methods=["PUT"])
+@organization_blueprint.route("", methods=["PUT"])
 @jwt_required()
 def update_organization():
     """
@@ -306,7 +306,7 @@ def update_organization():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@organization_blueprint.route("/delete", methods=["DELETE"])
+@organization_blueprint.route("", methods=["DELETE"])
 @jwt_required()
 def delete_organization():
     """
@@ -448,7 +448,7 @@ def add_members_to_organization():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@organization_blueprint.route("/members/remove", methods=["DELETE"])
+@organization_blueprint.route("/members", methods=["DELETE"])
 @jwt_required()
 def remove_members():
     """
@@ -493,7 +493,7 @@ def remove_members():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@organization_blueprint.route("/members/update", methods=["PUT"])
+@organization_blueprint.route("/members", methods=["PUT"])
 @jwt_required()
 def update_member_role():
     """

@@ -35,7 +35,7 @@ def getEnvs(id=0):
         return jsonify({"error": "something went wrong"}), 400
 
 
-@env_blueprint.route('/new', methods=['POST'])
+@env_blueprint.route('', methods=['POST'])
 @jwt_required()
 def createEnv():
     try:
@@ -71,7 +71,7 @@ def createEnv():
         return jsonify({"error":"something went wrong"}),400
 
 
-@env_blueprint.route('/delete/', methods=["DELETE"])
+@env_blueprint.route('', methods=["DELETE"])
 @jwt_required()
 def delete_env():
     try:
@@ -99,7 +99,7 @@ def delete_env():
         return jsonify({"error":"something went wrong"}), 400
 
 
-@env_blueprint.route('/update', methods=["PUT"])
+@env_blueprint.route('', methods=["PUT"])
 @jwt_required()
 def update_env():
     try:

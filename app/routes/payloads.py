@@ -22,8 +22,8 @@ payloads_blueprint = Blueprint("payloads", __name__)
 payload_schema = PayloadSchema()
 
 
-@payloads_blueprint.route("/", methods=["GET"])
-@payloads_blueprint.route("/<string:payload_id>", methods=["GET"])
+@payloads_blueprint.route('', methods=['GET'])
+@payloads_blueprint.route('/<string:id>', methods=['GET'])
 @jwt_required()
 def get_payloads(payload_id=0):
     """
@@ -81,7 +81,7 @@ def get_payloads(payload_id=0):
         return jsonify({"error": "something went wrong"}), 400
 
 
-@payloads_blueprint.route("/new", methods=["POST"])
+@payloads_blueprint.route('', methods=['POST'])
 @jwt_required()
 def create_payloads():
     """
@@ -185,7 +185,7 @@ def create_payloads():
         return jsonify({"error": "something went wrong"})
 
 
-@payloads_blueprint.route("/delete/", methods=["DELETE"])
+@payloads_blueprint.route('', methods=["DELETE"])
 @jwt_required()
 def delete_payload():
     """
@@ -246,7 +246,7 @@ def delete_payload():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@payloads_blueprint.route("/update", methods=["PUT"])
+@payloads_blueprint.route('', methods=["PUT"])
 @jwt_required()
 def update_payload():
     """

@@ -10,7 +10,7 @@ endpoints_blueprint = Blueprint('endpoints', __name__)
 endpoint_schema = EndpointSchema()
 
 
-@endpoints_blueprint.route('/', methods=["GET"])
+@endpoints_blueprint.route("", methods=["GET"])
 @endpoints_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
 def getEndpoints(id=0):
@@ -34,7 +34,7 @@ def getEndpoints(id=0):
         return jsonify({"error": "something went wrong"}), 400
 
 
-@endpoints_blueprint.route('/new', methods=["POST"])
+@endpoints_blueprint.route('', methods=["POST"])
 @jwt_required()
 def createEndpoints():
     try:
@@ -69,7 +69,7 @@ def createEndpoints():
         return jsonify({"error":"something went wrong"}),400
 
 
-@endpoints_blueprint.route('/delete/', methods=["DELETE"])
+@endpoints_blueprint.route('', methods=["DELETE"])
 @jwt_required()
 def delete_endpoint():
     try:
@@ -97,7 +97,7 @@ def delete_endpoint():
         logging.exception(f"DELETE request failed due to the following error:{err}")
         return jsonify({"error":"something went wrong"}),400
 
-@endpoints_blueprint.route('/update', methods=["PUT"])
+@endpoints_blueprint.route('', methods=["PUT"])
 @jwt_required()
 def update_endpoint():
     try:

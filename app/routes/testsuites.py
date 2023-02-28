@@ -11,7 +11,7 @@ testsuite_blueprint = Blueprint('testsuites', __name__)
 testsuite_schema = TestsuiteSchema()
 
 
-@testsuite_blueprint.route('/', methods=["GET"])
+@testsuite_blueprint.route('', methods=["GET"])
 @testsuite_blueprint.route('/<string:id>', methods=["GET"])
 @jwt_required()
 def getTestsuites(id=0):
@@ -49,7 +49,7 @@ def getTestsuites(id=0):
         return jsonify({"error": "Something went wrong"}), 400
 
 
-@testsuite_blueprint.route('/new', methods=["POST"])
+@testsuite_blueprint.route('', methods=["POST"])
 @jwt_required()
 def createTestsuites():
     """"
@@ -111,7 +111,7 @@ def createTestsuites():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@testsuite_blueprint.route('/delete', methods=["DELETE"])
+@testsuite_blueprint.route('', methods=["DELETE"])
 @jwt_required()
 def deleteTestsuiets():
     """
@@ -154,7 +154,7 @@ def deleteTestsuiets():
         return jsonify({"error": "something went wrong"}), 400
 
 
-@testsuite_blueprint.route('/update', methods=["PUT"])
+@testsuite_blueprint.route('', methods=["PUT"])
 @jwt_required()
 def updateTestsuites():
     """
@@ -191,6 +191,8 @@ def updateTestsuites():
         if not req_data.get('array_of_testcases'):
             logging.info(f"PUT request failed as no testcases were provided")
             return jsonify({"error": "you cannot delete all the testcases from the testsuite, atleast 1 testcase is required to update the testsuite"}), 400
+
+        testsuite.name = create_slug(req_data.get('name')) if req_data.get('name') else testsuite.name
 
         testcases = req_data.get('array_of_testcases')
         testsuite.testcases.clear()

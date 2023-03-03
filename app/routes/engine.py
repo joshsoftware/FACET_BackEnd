@@ -1,7 +1,6 @@
 import re
 import logging
 from datetime import datetime
-import re
 import requests
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required

@@ -183,9 +183,11 @@ def engine():
         return jsonify({"error": "something went wrong"}), 400
 
 def scheduler_engine(job_data, user):
+    logging.info(f"Scheduled execution in progress for job_data:{job_data} by user:{user}")
     job_data['environment'] = EnvModel.get_one_env(job_data['environment'])
     job_data['user'] = user
     if job_data.get('testsuite'):
+        logging.info(f"Scheduled execution begins for testsuite:{job_data['testsuite']}")
         testsuite = TestsuiteModel.get_one_testsuite(id=int(job_data['testsuite']))
         no_of_passed_testcases = 0
         no_of_failed_testcases = 0
@@ -253,7 +255,9 @@ def scheduler_engine(job_data, user):
         }
         result = ResultModel(data_to_store)
         result.save()
+        logging.info(f"Scheduled execution ends for testsuite:{job_data['testsuite']}")
     else:
+        logging.info(f"Scheduled execution begins for testcase:{job_data['testcase']}")
         job_data['testcase'] = TestcaseModel.get_one_testcase(id=job_data['testcase'])
         response = tests(data=job_data)
 
@@ -294,6 +298,7 @@ def scheduler_engine(job_data, user):
             
         result = ResultModel(result_to_store)
         result.save()
+        logging.info(f"Scheduled execution ends for testcase:{job_data['testcase']}")
 
 def tests(data):
     try:

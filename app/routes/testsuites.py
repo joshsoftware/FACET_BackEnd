@@ -41,6 +41,13 @@ def getTestsuites(id=0):
             return jsonify(data), 200
 
         data = TestsuiteModel.get_all_testsuites(project=project)
+
+        # TODO: need to update, need to find optimize solution for this
+        for testsuite in data:
+            for testcase in testsuite.get("testcases"):
+                arranged_teststeps = TestcaseModel.rearrange_teststeps(testcase['execution_sequence'],testcase)
+                testcase['teststeps'] = arranged_teststeps['teststeps']
+
         logging.info(f"GET request successful, testsuites returned successfully for project id:{project}")
         return jsonify({"testsuites": data}), 200
 

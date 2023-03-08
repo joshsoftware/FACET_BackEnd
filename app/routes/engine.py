@@ -196,7 +196,7 @@ def scheduler_engine(job_data, user):
         execution_data = {'user': user}
         for testcase in testsuite['testcases']:
             execution_data['environment'] = job_data['environment']
-            execution_data['testcase'] = testcase
+            execution_data['testcase'] = TestcaseModel.get_one_testcase(id=testcase['id'])
             resp = tests(data=execution_data)
 
             del testcase['project']
@@ -313,6 +313,7 @@ def tests(data):
             is_testcase_passed = True
             unique_run_time_id = str(testcase['name']) + str(datetime.now())
             for teststep in testcase['teststeps']:
+                logging.info(f"In tests executing teststep:{teststep['name']} for testcase:{testcase['name']}")
                 teststep_resp = []
                 testdata_results_to_store = []
                 is_teststep_passed = True

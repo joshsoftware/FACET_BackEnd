@@ -88,7 +88,7 @@ mail_html_content = """
                                                                     margin-bottom: 0;
                                                                     margin-left: 0;
                                                                     ">
-                                                                    {{invite_sender_name}} with
+                                                                    {{invite_sender_name}} from
                                                                     {{invite_sender_organization}} has invited you to
                                                                     use FACET to collaborate with them. Use
                                                                     the button below to set up your account and get

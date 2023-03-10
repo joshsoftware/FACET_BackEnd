@@ -10,6 +10,7 @@ from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestcaseModel import TestcaseModel
 from app.models.TestsuiteModel import TestsuiteModel
+from app.models.SchedulerModel import SchedulerModel
 
 engine_blueprint = Blueprint('engine', __name__)
 
@@ -183,6 +184,9 @@ def engine():
 
 def scheduler_engine(job_data, user):
     logging.info(f"Scheduled execution in progress for job_data:{job_data} by user:{user}")
+    scheduled_job = SchedulerModel.query.get(job_data['job_id'])
+    scheduled_job.status = "ongoing"
+    scheduled_job.save()
     job_data['environment'] = EnvModel.get_one_env(job_data['environment'])
     job_data['user'] = user
     if job_data.get('testsuite'):

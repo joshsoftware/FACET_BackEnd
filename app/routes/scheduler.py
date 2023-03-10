@@ -171,6 +171,7 @@ def addScheduledJob():
             ).astimezone(ist_tz)
 
             job_data = {"environment": scheduled_job.environment}
+            job_data["job_id"] = scheduled_job.id
             if req_data["level"] == "testcase":
                 job_data["testcase"] = scheduled_job.testcase
             else:

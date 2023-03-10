@@ -61,6 +61,7 @@ def project_notifications(email_data, email_type):
         Dear User,
 
         You have been {project_status} by project admin: {email_data['project_admin']}
+        
         Thank you
         """
         logging.info("Mail request for project updates to email_id:%s and for project:%s",email_data['reciever_email'],project_name)

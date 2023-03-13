@@ -1,32 +1,323 @@
+import re
+import logging
 from datetime import datetime
 import requests
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.helpers.utils import is_fit_to_run,get_current_user
+from app.helpers.utils import is_fit_to_run, get_current_user
 from app.models.EnvModel import EnvModel
 from app.models.ResultModel import ResultModel
 from app.models.TempModel import TempModel
 from app.models.TestcaseModel import TestcaseModel
+from app.models.TestsuiteModel import TestsuiteModel
+from app.models.SchedulerModel import SchedulerModel
 
 engine_blueprint = Blueprint('engine', __name__)
 
+
 @engine_blueprint.route('/api/tests', methods=['POST'])
 @jwt_required()
-def tests():
+def engine():
+    """
+    POST Request API for executing testsuite or testcases
+    Requires:
+        - method: POST
+        - JWT Bearer token in Authorization header
+        - body data:
+            {
+                "testsuite" : testsuite_id (integer) [Optional, only if level is testsuite]
+                "environment" : environment_id (integer)
+                "level" : string -> either "testsuite" or "testcase"
+                "testcase" : testcase_id (integer) [Optional, only if level is testcase]
+            }
+        - Note either testcase or testsuite field is required to be sent, and that field should match the string
+          in level field.
+    Response:
+        - If success, then json response with status code 200, where json look like :
+            {
+                "result" :{
+                    "name" : name of testsuite or testcase depending upon execution level,
+                    "no_of_passed_fields" : integer,
+                    "no_of_failed_fields" : integer,
+                    "status" : "passed" or "failed"
+                },
+                "result_id" : integer
+            }
+        - Error message "something went wrong" with status code 400 if anything goes wrong due to data inconsistency or server issue.
+        - Error message "testcase_name : [missing_component_field] with status code 400 if any component is missing during testcase execution
+    """
     try:
-        data = request.json
+        req_data = request.json
         user = get_current_user().id
-        testcase = TestcaseModel.get_one_testcase(data.get('testcase'))
-        environment = EnvModel.get_one_env(data['environment'])
+        logging.info(f"POST request to execute by user:{user} with payload:{req_data}")
+        is_req_data_valid = ((req_data.get('testsuite') and req_data.get('level') == 'testsuite') or (req_data.get('testcase') and req_data.get('level') == 'testcase')) and req_data.get('environment')
 
+        if not is_req_data_valid:
+            logging.info(f"POST request to execute failed due to faulty input")
+            return jsonify({"error": "incomplete request, kindly send all required parameters"}), 400
+
+        execution_data = {'user': user}
+        environment = EnvModel.get_one_env(req_data['environment'])
+        if req_data.get('level') == "testsuite":
+            testsuite = TestsuiteModel.get_one_testsuite(id=req_data['testsuite'])
+            logging.debug(f"testsuite execute begins with testsuite={testsuite['id']} with environment:{environment['id']}")
+            no_of_passed_testcases = 0
+            no_of_failed_testcases = 0
+            testcase_result_to_store = []
+            data_to_send = []
+            status = "passed"
+            testcase_status = "passed"
+            for testcase in testsuite['testcases']:
+                execution_data['environment'] = environment
+                execution_data['testcase'] = TestcaseModel.get_one_testcase(id=testcase['id'])
+                resp = tests(data=execution_data)
+
+                del testcase['project']
+                del testcase['teststeps']
+                del testcase['execution_sequence']
+                del testcase['testdatas']
+
+                #Error handling condition for testcase, in case the testcase has missing components or the function blows up due to any other error
+                if resp.get('error'):
+                    no_of_failed_testcases += 1
+                    testcase_result_to_store.append({
+                        "status": "aborted",
+                        "no_of_passed_teststeps": 0,
+                        "no_of_failed_teststeps": 0,
+                        "testcase" : testcase,
+                        "teststeps" : {
+                            "error": resp['error']
+                        }
+                    })
+                    data_to_send.append({
+                        "status" : "failed",
+                        "no_of_passed_fields": 0,
+                        "no_of_failed_fields": 0,
+                        "name" : testcase['name'],
+                        "testcase_id" : testcase['id']
+                    })
+                else:
+                    if resp['result']['status'] == "failed":
+                        no_of_failed_testcases += 1
+                        status = "failed"
+                        testcase_status = "failed"
+                    else:
+                        no_of_passed_testcases += 1
+                        testcase_status = "passed"
+
+                    testcase_result_to_store.append({
+                        "status" : testcase_status,
+                        "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
+                        "no_of_failed_teststeps": resp['result']['no_of_failed_teststeps'],
+                        "testcase" : testcase,
+                        "teststeps": resp['result']['teststeps']
+                    })
+                    data_to_send.append({
+                        "status": testcase_status,
+                        "no_of_passed_fields": resp['result']['no_of_passed_teststeps'],
+                        "no_of_failed_fields": resp['result']['no_of_failed_teststeps'],
+                        "name": testcase['name'],
+                        "testcase_id": testcase['id']
+                    })
+
+            project = testsuite['project']
+            del testsuite['project']
+            del testsuite['testcases']
+
+            testsuite_execution_result = {
+                "no_of_passed_testcases" : no_of_passed_testcases,
+                "no_of_failed_testcases" : no_of_failed_testcases,
+                "testsuite" : testsuite,
+                "testsuite_execution" : testcase_result_to_store
+            }
+
+            data_to_store = {
+                "project" : project,
+                "environment" : environment,
+                "level" : "testsuite",
+                "result" : testsuite_execution_result,
+                "executed_by": user,
+                "status" : status
+            }
+            result = ResultModel(data_to_store)
+            result.save()
+            logging.info(f"testsuite execution successful")
+            if no_of_failed_testcases > 0:
+                status = "failed"
+
+            return jsonify({"result": data_to_send, "result_id": result.id}), 200
+        #Execution of a single testcase
+        elif req_data.get('level') == "testcase":
+            execution_data['environment'] = environment
+            execution_data['testcase'] = TestcaseModel.get_one_testcase(req_data['testcase'])
+            response = tests(data=execution_data)
+
+            if response.get('error'):
+                logging.info(f"POST request for testcase execution failed due to the following error:{response['error']}")
+                return jsonify({"error": response['error']}), 400
+            else:
+                result_to_store = {
+                    "project" : execution_data['testcase']['project'],
+                    "environment" : execution_data['environment'],
+                    "status" : response['result']['status'],
+                    "level" : "testcase",
+                    "executed_by" : user 
+                }
+                del response['result']['status']
+                result_to_store['result'] = response['result']
+                result_to_store['result']['testcase'] = execution_data['testcase']
+                del result_to_store['result']['testcase']['project']
+                del result_to_store['result']['testcase']['teststeps']
+                del result_to_store['result']['testcase']['execution_sequence']
+                del result_to_store['result']['testcase']['testdatas']
+                
+                result = ResultModel(result_to_store)
+                result.save()
+                logging.info(f"testcase execution successful")
+                return jsonify({"result": response['result_to_show'], "result_id": result.id}), 200
+        else:
+            logging.info(f"POST request for execution failed due to faulty payload")
+            return jsonify({"error" : "faulty request, kindly check the data you're sending"}), 400
+    except Exception as err:
+        logging.info(f"POST request for execution failed due to the following error:{err}")
+        return jsonify({"error": "something went wrong"}), 400
+
+def scheduler_engine(job_data, user):
+    logging.info(f"Scheduled execution in progress for job_data:{job_data} by user:{user}")
+    scheduled_job = SchedulerModel.query.get(job_data['job_id'])
+    scheduled_job.status = "ongoing"
+    scheduled_job.save()
+    job_data['environment'] = EnvModel.get_one_env(job_data['environment'])
+    job_data['user'] = user
+    if job_data.get('testsuite'):
+        logging.info(f"Scheduled execution begins for testsuite:{job_data['testsuite']}")
+        testsuite = TestsuiteModel.get_one_testsuite(id=int(job_data['testsuite']))
+        no_of_passed_testcases = 0
+        no_of_failed_testcases = 0
+        testcase_result_to_store = []
+        status = "passed"
+        testcase_status = "passed"
+        execution_data = {'user': user}
+        for testcase in testsuite['testcases']:
+            execution_data['environment'] = job_data['environment']
+            execution_data['testcase'] = TestcaseModel.get_one_testcase(id=testcase['id'])
+            resp = tests(data=execution_data)
+
+            del testcase['project']
+            del testcase['teststeps']
+            del testcase['execution_sequence']
+            del testcase['testdatas']
+
+            #Error handling condition for testcase, in case the testcase has missing components or the function blows up due to any other error
+            if resp.get('error'):
+                no_of_failed_testcases += 1
+                testcase_result_to_store.append({
+                    "status": "aborted",
+                    "no_of_passed_teststeps": 0,
+                    "no_of_failed_teststeps": 0,
+                    "testcase" : testcase,
+                    "teststeps" : {
+                        "error": resp['error']
+                    }
+                })
+            else:
+                if resp['result']['status'] == "failed":
+                    no_of_failed_testcases += 1
+                    status = "failed"
+                    testcase_status = "failed"
+                else:
+                    no_of_passed_testcases += 1
+                    testcase_status = "passed"
+                
+                testcase_result_to_store.append({
+                    "status" : testcase_status,
+                    "no_of_passed_teststeps": resp['result']['no_of_passed_teststeps'],
+                    "no_of_failed_teststeps": resp['result']['no_of_failed_teststeps'],
+                    "testcase" : testcase,
+                    "teststeps": resp['result']['teststeps']
+                })
+
+        project = testsuite['project']
+        del testsuite['project']
+        del testsuite['testcases']
+
+        testsuite_execution_result = {
+            "no_of_passed_testcases" : no_of_passed_testcases,
+            "no_of_failed_testcases" : no_of_failed_testcases,
+            "testsuite" : testsuite,
+            "testsuite_execution" : testcase_result_to_store
+        }
+
+        data_to_store = {
+            "project" : project,
+            "environment" : job_data['environment'],
+            "level" : "testsuite",
+            "result" : testsuite_execution_result,
+            "executed_by": user,
+            "status" : status
+        }
+        result = ResultModel(data_to_store)
+        result.save()
+        logging.info(f"Scheduled execution ends for testsuite:{job_data['testsuite']}")
+    else:
+        logging.info(f"Scheduled execution begins for testcase:{job_data['testcase']}")
+        job_data['testcase'] = TestcaseModel.get_one_testcase(id=job_data['testcase'])
+        response = tests(data=job_data)
+
+        if response.get('error'):
+            resp = {
+                "no_of_passed_teststeps" : 0,
+                "no_of_failed_teststeps" : 0,
+                "testcase": job_data['testcase'],
+                "teststeps": {"error": response['error']}
+            }
+            result_to_store = {
+                "project" : job_data['testcase']['project'],
+                "environment" : job_data['environment'],
+                "status" : "aborted",
+                "level" : "testcase",
+                "executed_by" : user 
+            }
+            result_to_store['result'] = resp
+            del result_to_store['result']['testcase']['project']
+            del result_to_store['result']['testcase']['teststeps']
+            del result_to_store['result']['testcase']['execution_sequence']
+            del result_to_store['result']['testcase']['testdatas']
+        else:
+            result_to_store = {
+                "project" : job_data['testcase']['project'],
+                "environment" : job_data['environment'],
+                "status" : response['result']['status'],
+                "level" : "testcase",
+                "executed_by" : user 
+            }
+            del response['result']['status']
+            result_to_store['result'] = response['result']
+            result_to_store['result']['testcase'] = job_data['testcase']
+            del result_to_store['result']['testcase']['project']
+            del result_to_store['result']['testcase']['teststeps']
+            del result_to_store['result']['testcase']['execution_sequence']
+            del result_to_store['result']['testcase']['testdatas']
+            
+        result = ResultModel(result_to_store)
+        result.save()
+        logging.info(f"Scheduled execution ends for testcase:{job_data['testcase']}")
+
+def tests(data):
+    try:
+        testcase = data['testcase']
+        environment = data['environment']
+        user = data['user']
         is_fit, missing_components = is_fit_to_run(testcase)
         if is_fit:
             res = []
             teststep_results_to_store = []
             no_of_passed_teststeps = 0
             no_of_failed_teststeps = 0
+            is_testcase_passed = True
             unique_run_time_id = str(testcase['name']) + str(datetime.now())
             for teststep in testcase['teststeps']:
+                logging.info(f"In tests executing teststep:{teststep['name']} for testcase:{testcase['name']}")
                 teststep_resp = []
                 testdata_results_to_store = []
                 is_teststep_passed = True
@@ -36,20 +327,28 @@ def tests():
 
                 teststep['endpoint'] = environment['url'] + endpoint
                 teststep['header'] = teststep['header']['header']
-                # testdata = teststep['testdata']
+                
                 testdata = [test_data for test_data in teststep['testdata'] if test_data in testcase['testdatas']]
-
+                del teststep['testdata']
                 for td in testdata:
+                    td['name'] = "[" + td['name'] + "]"
                     teststep['payload'] = td['payload']
                     teststep['expected_outcome'] = td['expected_outcome']
                     teststep['parameters'] = td['parameters']
-                    resp = perform_teststeps(teststep, testcase, user, environment,unique_run_time_id)
-                    if resp['status']=='failed':
+                    teststep['name'] = teststep['name'] + td['name']
+                    resp = perform_teststeps(teststep, testcase, user, environment, unique_run_time_id)
+                    
+                    ind = teststep['name'].find(td['name'])
+                    teststep['name'] = teststep['name'][:ind]
+
+                    td['name'] = td['name'].strip("[]")
+                    if resp['status'] == 'failed':
                         is_teststep_passed = False
+                        is_testcase_passed = False
                         no_of_failed_testdata_combinations += 1
                     else:
                         no_of_passed_testdata_combinations += 1
-                        
+
                     teststep_resp.append({
                         "name": td['name'],
                         **resp
@@ -61,22 +360,21 @@ def tests():
                         "payload": td['payload'],
                         **resp
                     })
-                
+
                 if is_teststep_passed:
                     status = "passed"
                     no_of_passed_teststeps += 1
                 else:
                     status = "failed"
                     no_of_failed_teststeps += 1
+
                 res.append({
                     "teststep_id": teststep['id'],
                     "name": teststep['name'],
                     "status": status,
-                    "response": teststep_resp,
-                    "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
-                    "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations
+                    "no_of_passed_fields": no_of_passed_testdata_combinations,
+                    "no_of_failed_fields": no_of_failed_testdata_combinations
                 })
-
                 teststep_results_to_store.append({
                     "name": teststep.get('name'),
                     "method": teststep.get('method'),
@@ -88,88 +386,133 @@ def tests():
                     "no_of_passed_testdata_combinations": no_of_passed_testdata_combinations,
                     "no_of_failed_testdata_combinations": no_of_failed_testdata_combinations,
                 })
-            
-            # store teststuite result into the result model
-            project = testcase.get('project')
-            del testcase['project']
-            del testcase['teststeps']
-            del testcase['execution_sequence']
-            del environment['project']
+            status = "passed" if is_testcase_passed else "failed"
             data_to_store = {
-                "project": project,
-                "testcase": testcase,
                 "teststeps": teststep_results_to_store,
-                "environment": environment,
                 "status": status,
                 "no_of_passed_teststeps": no_of_passed_teststeps,
                 "no_of_failed_teststeps": no_of_failed_teststeps,
-                "executed_by": user
             }
-            ResultModel(data_to_store).save()
-            TempModel.get_all_and_delete(testcase=testcase['id'],run_time_id=unique_run_time_id)
-            return jsonify({"result": res}), 200
+            TempModel.get_all_and_delete(testcase=testcase['id'], run_time_id=unique_run_time_id)
+            return {"result": data_to_store, "result_to_show": res}
         else:
-            return jsonify({"error" : missing_components}),400
-    except Exception as e:
-        return jsonify({"Error": str(e)}), 400
+            return {"error": missing_components}
+    except Exception as err:
+        return {"error": str(err)}
 
 
 def fetch_from_api(teststep):
-    # r = Request(teststep['method'], teststep['endpoint'], json=teststep['payload'], headers=teststep['header'])
+    try:
+        if teststep['method'].lower() == 'get':
+            r = requests.get(url=teststep['endpoint'], json=teststep['payload'],
+                             headers=teststep['header'], params=teststep['parameters'])
+        elif teststep['method'].lower() == 'post':
+            r = requests.post(url=teststep['endpoint'], json=teststep['payload'],
+                              headers=teststep['header'], params=teststep['parameters'])
+        elif teststep['method'].lower() == 'put':
+            r = requests.put(url=teststep['endpoint'], json=teststep['payload'],
+                             headers=teststep['header'], params=teststep['parameters'])
+        elif teststep['method'].lower() == 'patch':
+            r = requests.patch(url=teststep['endpoint'], json=teststep['payload'],
+                               headers=teststep['header'], params=teststep['parameters'])
+        elif teststep['method'].lower() == 'delete':
+            r = requests.delete(url=teststep['endpoint'], json=teststep['payload'],
+                                headers=teststep['header'], params=teststep['parameters'])
+        return r
+    except Exception as err:
+        return str(err)
 
-    # prepped = s.prepare_request(r)
-    # resp = s.send(prepped)
-    # return resp
-    if teststep['method'].lower()=='get':
-        r = requests.get(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    elif teststep['method'].lower()=='post':
-        r = requests.post(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    elif teststep['method'].lower()=='put':
-        r = requests.put(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    elif teststep['method'].lower()=='patch':
-        r = requests.patch(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    elif teststep['method'].lower()=='delete':
-        r = requests.delete(url=teststep['endpoint'], json=teststep['payload'], headers=teststep['header'], params=teststep['parameters'])
-    return r
 
-def perform_teststeps(teststep, testcase, user, environment,unique_run_time_id):
-    
+def perform_teststeps(teststep, testcase, user, environment, unique_run_time_id):
+    """
+    validates testdata and perform execution of teststeps
+    """
     if "$var=" in str(teststep):
-        pattern =  "\$var\=(.*?)\'"
-        import re
-        variable = re.search(pattern, str(teststep)).group(1)
-        tmp = variable.split('.')
-
-        var_value = TempModel.get_one(testcase=testcase['id'], teststeps=tmp[0],run_time_id=unique_run_time_id)
-
-        for i in tmp[1:len(tmp)]:
-            var_value = var_value.get(i)
+        pattern = r"\$var=(\S+)\'"
+        # get all variables present in the teststep
+        variables = [var.rstrip("'").rstrip('"') for var in re.findall(pattern, str(teststep))]
+        for variable in variables:
+            tmp = variable.split('.')
+            # get the response of the previous executed testcase with given testcase
+            var_value = TempModel.get_one(
+                testcase=testcase['id'], teststeps=tmp[0], run_time_id=unique_run_time_id)
             
-        teststep = eval(str(teststep).replace(f"$var={variable}", var_value))
-            
-    res = fetch_from_api(teststep)
-    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": res.json(), "run_time_id" : unique_run_time_id})
-    temp.save()
+            if var_value is None:
+                outcome = [
+                    {
+                        "res_value": "Not found",
+                        "executed_status": "failed",
+                        "status": "failed",
+                        "error": "Incorrect Testdata, Testdata does not exist, hence execution failed",
+                        "is_status_manually_updated" : False
+                    }
+                ]
+                return {
+                    "status": "failed",
+                    "outcome": outcome,
+                    "response": {"error": "Testdata does not exist hence execution aborted"},
+                    "no_of_passed_fields": 0,
+                    "no_of_failed_fields": 0
+                }
+
+            for i in tmp[1:len(tmp)]:
+                if not var_value:
+                    break
+                var_value = var_value.get(i)
+            # if variable value is None then set it as "None" in string format
+            var_value = var_value if var_value else "None"
+            teststep = eval(str(teststep).replace(f"$var={variable}", str(var_value)))
     
-    status, outcome, no_of_passed_fields, no_of_failed_fields = validate_expected_outcome(teststep, res)
+    res = fetch_from_api(teststep)
+    if type(res) is str:
+        outcome = []
+        for field in teststep['expected_outcome']:
+            outcome.append({
+                    **field,
+                    "res_value": "Not found",
+                    "executed_status": "failed",
+                    "status": "failed",
+                    "error": res,
+                    "is_status_manually_updated" : False
+                })
+        return {
+            "status": "failed",
+            "outcome": outcome,
+            "response": {"error": res},
+            "no_of_passed_fields": 0,
+            "no_of_failed_fields": 0
+        }
+    try:
+        resp = res.json()
+    except Exception as err:
+        resp = {}
+    temp = TempModel({"testcase": testcase['id'], "teststep": teststep['name'], "resp": resp, "run_time_id": unique_run_time_id})
+    temp.save()
+
+    status, outcome, no_of_passed_fields, no_of_failed_fields = validate_expected_outcome(
+        teststep, res)
 
     return {
-        "status": "passed" if status=="passed" else "failed",
+        "status": "passed" if status == "passed" else "failed",
         "outcome": outcome,
-        "response": res.json(),
+        "response": resp,
         "no_of_passed_fields": no_of_passed_fields,
         "no_of_failed_fields": no_of_failed_fields
     }
 
+
 def validate_expected_outcome(teststep, response):
     """
-    
+
     """
 
     no_of_passed_fields = 0
     no_of_failed_fields = 0
     outcome = []
-    res = response.json()
+    try:
+        res = response.json()
+    except Exception as err:
+        res = {}
     for field in teststep['expected_outcome']:
         field_name = field.get('name')
         # field_type = field.get('type')
@@ -185,16 +528,16 @@ def validate_expected_outcome(teststep, response):
         else:
             res_value = res.get(field_name)
             if not res_value:
-                is_failed =  True
+                is_failed = True
                 error = f"Expected Field not found in response."
             else:
                 if field['isExact']:
-                    if field.get('value')!=res_value:
+                    if field.get('value') != res_value:
                         is_failed = True
                         error = f"Response value is not matched with Expected value."
                 elif field.get('validations'):
                     validations = field.get('validations')
-                    
+
                     max_length = validations.get('maxLength')
                     min_length = validations.get('minLength')
                     max_value = validations.get('maxValue')
@@ -202,13 +545,13 @@ def validate_expected_outcome(teststep, response):
                     regex_pattern = validations.get('regex')
 
                     err = []
-                    if max_length and len(res_value)>int(max_length):
+                    if max_length and len(res_value) > int(max_length):
                         err.append('maxLength')
-                    if min_length and len(res_value)<int(min_length):
+                    if min_length and len(res_value) < int(min_length):
                         err.append('minLength')
-                    if min_value and int(res_value)<int(min_value):
+                    if min_value and int(res_value) < int(min_value):
                         err.append('minValue')
-                    if max_value and int(res_value)>int(max_value):
+                    if max_value and int(res_value) > int(max_value):
                         err.append('maxValue')
                     if regex_pattern:
                         pass
@@ -216,20 +559,21 @@ def validate_expected_outcome(teststep, response):
                     if len(err):
                         is_failed = True
                         error = f"Validations not matched: {err}"
-        
+
         outcome.append({
-            **field, 
+            **field,
             "res_value": res_value,
             "executed_status": "failed" if is_failed else "passed",
             "status": "failed" if is_failed else "passed",
             "error": error,
+            "is_status_manually_updated" : False
         })
 
         if is_failed:
             no_of_failed_fields += 1
         else:
             no_of_passed_fields += 1
-    
-    if no_of_failed_fields==0:
+
+    if no_of_failed_fields == 0:
         return "passed", outcome, no_of_passed_fields, no_of_failed_fields
     return "failed", outcome, no_of_passed_fields, no_of_failed_fields

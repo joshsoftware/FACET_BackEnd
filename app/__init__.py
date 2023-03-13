@@ -1,14 +1,17 @@
 import os
 from flask import Flask
-from config import app_config
+from config import app_config, logger_config
 from flask_migrate import Migrate
 from flask_cors import CORS
 from .models import db, bcrypt
 from .routes import *
 from dotenv import load_dotenv
+import logging.config
+import logging
 load_dotenv()
 
 migrate = Migrate()
+
 
 def create_app():
     """
@@ -23,6 +26,10 @@ def create_app():
     db.init_app(app)
     db.app = app
     migrate.init_app(app, db)
+    logging.config.dictConfig(logger_config)
+    logging.getLogger('apscheduler').setLevel(logging.DEBUG)
+    logging.getLogger("werkzeug").setLevel('WARNING')
+    app.register_blueprint(organization_blueprint, url_prefix='/api/organization')
     app.register_blueprint(auth_blueprint, url_prefix='/api/auth')
     app.register_blueprint(projects_blueprint, url_prefix='/api/projects')
     app.register_blueprint(endpoints_blueprint, url_prefix='/api/endpoints')
@@ -33,8 +40,10 @@ def create_app():
     app.register_blueprint(testcase_blueprint, url_prefix='/api/testcases')
     app.register_blueprint(env_blueprint, url_prefix='/api/environments')
     app.register_blueprint(engine_blueprint, url_prefix='')
-    app.register_blueprint(results_blueprint,url_prefix='/api/results')
-    app.register_blueprint(scheduler_blueprint,url_prefix='/api/schedule')
+    app.register_blueprint(results_blueprint, url_prefix='/api/results')
+    app.register_blueprint(scheduler_blueprint, url_prefix='/api/schedule')
+    app.register_blueprint(user_blueprint, url_prefix='/api/user')
+    app.register_blueprint(testsuite_blueprint, url_prefix='/api/testsuites')
+    app.register_blueprint(super_admin_blueprint, url_prefix='/api/superadmin/')
 
     return app
-

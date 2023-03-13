@@ -4,8 +4,8 @@ from slugify import slugify
 from flask_jwt_extended import get_current_user
 from marshmallow import ValidationError
 from app.models.ResultModel import ResultModel,ResultSchema
-from app.models.ProjectModel import ProjectModel
-from app.models.UserModel import UserModel
+from app.models.project_model import ProjectModel
+from app.models.user_model import UserModel
 
 result_schema = ResultSchema()
 
@@ -17,8 +17,11 @@ def create_id():
     return str(uuid.uuid4())
 
 
-def get_project_id(slug):
-    return ProjectModel.query.filter_by(name=slug).first().id
+def get_project_id(slug,organization):
+    project = ProjectModel.query.filter_by(name=slug,project_organization=organization).first() or None
+    if project:
+        return project.id
+    return None
 
 def store_results(data):
     try:
@@ -30,24 +33,18 @@ def store_results(data):
     result.save()
 
 def has_access_to_project(project_id,user_id):
+    if project_id is None or user_id is None:
+        return False
     return ProjectModel.is_a_member_of_project(project_id,user_id)
 
-def is_super_admin(user):
-    return UserModel.is_super_user(user)
-
-def is_user_admin(user):
-    return UserModel.is_user_admin(user)
-
+def has_access_to_organization(organization_id, user):
+    """
+    Util function to check if the user currently belongs to the organization or not
+    """
+    return user.user_organization == organization_id
 
 def get_user_name(id):
     return UserModel.get_user_name(id)
-
-def get_project_members_id(project):
-    project = get_project_id(project)
-    members = ProjectModel.get_project_members(project)
-
-    members_id = [i['id'] for i in members]
-    return members_id
 
 def is_fit_to_run(testcase):
     is_fit = True
@@ -68,4 +65,6 @@ def is_fit_to_run(testcase):
         if testdata is None or len(testdata) == 0:
             missing_components[teststep['name']].append('testdata missing')
             is_fit = False
+        if len(missing_components[teststep['name']]) == 0:
+            del missing_components[teststep['name']]
     return is_fit,missing_components

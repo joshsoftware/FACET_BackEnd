@@ -1,166 +1,368 @@
-from flask import Blueprint, jsonify, request
+import os
+import logging
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import get_current_user, jwt_required
-from app.helpers.utils import get_project_id, is_user_admin
-from app.models.UserModel import UserModel
+from app.helpers.utils import get_project_id
+from app.helpers.emails import project_notifications
+from app.models.user_model import UserModel
 from app.helpers import create_slug
 from marshmallow import ValidationError
-from app.models.ProjectModel import ProjectModel, ProjectSchema
+from app.models.project_model import ProjectModel, ProjectSchema
+from app.models.organization_model import OrganizationModel
 
-projects_blueprint = Blueprint('projects', __name__)
+projects_blueprint = Blueprint("projects", __name__)
 project_schema = ProjectSchema()
 
+scheduler = BackgroundScheduler({"apscheduler.timezone": "Asia/Calcutta"})
+scheduler.add_jobstore("sqlalchemy", url=os.getenv("DATABASE_URL"))
+scheduler.start()
 
-@projects_blueprint.route('/', methods=["GET"])
+
+@projects_blueprint.route("", methods=["GET"])
 @jwt_required()
 def getProjects():
-    project = request.args.get('project')
-    if project:
-        project = get_project_id(project)
-    user = get_current_user().id
-    if project:
-        data = ProjectModel.get_one_project(project, user)
-        if not data:
-            return jsonify({'error': 'Project Not Found'}), 404
-        data['is_project_admin'] = data['project_admin']==user
-        return jsonify(data), 200
-    data = ProjectModel.get_all_projects(get_current_user().id)
-    return jsonify({"projects": data}),200
+    try:
+        project = request.args.get("project")
+        user = get_current_user()
+        logging.info(
+            f"GET request to fetch project by user:{user.id} with params:{dict(request.args)} and url:{request.url}"
+        )
+        if project:
+            project = get_project_id(project, user.user_organization)
+        if project:
+            data = ProjectModel.get_one_project(project, user.id)
+            if not data:
+                return jsonify({"error": "Project Not Found"}), 404
+            data["is_project_admin"] = data["project_admin"] == user.id
+            logging.info(
+                f"GET request successful, project returned successfully for project id:{project}"
+            )
+            return jsonify(data), 200
+        data = ProjectModel.get_all_projects(get_current_user().id)
+        logging.info(
+            f"GET request successful, projects returned successfully for user:{user.id}"
+        )
+        return jsonify({"projects": data}), 200
+    except Exception as err:
+        logging.exception(f"GET request failed due to the following error:{err}")
+        return jsonify({"error": "something went wrong"}), 400
 
-@projects_blueprint.route('/members', methods=["GET"])
+
+@projects_blueprint.route("/members", methods=["GET"])
 @jwt_required()
 def getMembers():
-    project = request.args.get('project')
-    user = get_current_user().id
-    data = ProjectModel.get_one_project(get_project_id(project), user)
-    project_admin_id = data['project_admin']
-    data = data['project_members']
-    
-    # add field is_project_admin if user is project admin in the data
-    data = [{**mem, 'is_project_admin':True} if mem['id']==project_admin_id else mem for mem in data]
-    
-    return jsonify({"project": project, "members": data, "project_admin": project_admin_id }),200
+    """
+    GET request route to fetch members of the project
+    Request Requirements:
+        -method GET
+        -JWT bearer token
+        -Params:
+        {
+            project: project name
+            exclude : "members" [optional field]
+        }
+    Response:
+        -200 status code with a list of all project members
+            when exclude field is not provided
+        -200 status code with a list of all the members who are not
+            in the project
+    """
+    try:
+        project = request.args.get("project")
+        user = get_current_user()
+        logging.info(
+            "GET request to fetch all members of the project:%s by user:%s with params:%s",
+            project,
+            user.id,
+            request.args,
+        )
+        data = ProjectModel.get_one_project(
+            get_project_id(project, user.user_organization), user.id
+        )
+        # Instance where the data is None
+        # as the user may have had its access revoked but is still trying
+        # to access the project
+        if not data:
+            return jsonify({"error": "unauthorized access"}), 401
+        project_admin_id = data["project_admin"]
+        data = data["project_members"]
+        if request.args.get("exclude") == "members":
+            all_users = OrganizationModel.get_org_members(
+                organization_id=user.user_organization
+            )
+            data = [user for user in all_users if user not in data]
+        # add field is_project_admin if user is project admin in the data
+        else:
+            data = [
+                {**mem, "is_project_admin": True}
+                if mem["id"] == project_admin_id
+                else mem
+                for mem in data
+            ]
+            logging.info(
+                f"GET request successful, all member list returned successfully for project:{project}"
+            )
+        return (
+            jsonify(
+                {"project": project, "members": data, "project_admin": project_admin_id}
+            ),
+            200,
+        )
+    except Exception as err:
+        logging.exception(f"GET request failed due to the following error:{err}")
+        return jsonify({"error": "something went wrong"}), 400
 
-@projects_blueprint.route('/new', methods=["POST"])
+
+@projects_blueprint.route("", methods=["POST"])
 @jwt_required()
 def createProjects():
-    req_data = request.json
-    user = get_current_user()
-    if is_user_admin(user.id):
-        req_data['project_admin'] = user.id
-        req_data['name'] = create_slug(req_data.get('name'))
+    """
+    POST request API to create projects
+    Reqeust Requires:
+        - method POST
+        - JWT bearer token
+        - JSON data body:{
+            "name" : string,
+            "description" : string
+        }
+    """
+    try:
+        req_data = request.json
+        user = get_current_user()
+        logging.info(
+            f"POST request to create project by user:{user.id} with payload:{req_data}"
+        )
         
+        req_data["project_admin"] = user.id
+        req_data["name"] = create_slug(req_data.get("name"))
+        req_data["project_organization"] = user.user_organization
+
         try:
             data = project_schema.load(req_data)
         except ValidationError as err:
-            return jsonify(err), 400
+            logging.error(f"project creation failed due to the following error {err}")
+            return jsonify({"error": str(err)}), 400
 
-        project_exist = ProjectModel.is_project_exist(data.get('name'))
+        if not user.is_admin:
+            logging.info(f"POST request failed due to unauthorised access")
+            return (
+                jsonify(
+                    {
+                        "error": "You do not possess the admin rights to create a project, kindly contact the super admin for recieving admin privileges"
+                    }
+                ),
+                401,
+            )
+
+        project_exist = ProjectModel.is_project_exist(
+            data.get("name"), user.user_organization
+        )
 
         if project_exist:
+            logging.info(f"project creation failed due to duplicate entry")
             return jsonify({"error": "A project of the same name already exists"}), 400
 
-        super_admin = UserModel.query.filter_by(is_super_admin=True).first()
+        super_admin = UserModel.query.filter_by(
+            is_super_admin=True, user_organization=user.user_organization
+        ).first()
         project = ProjectModel(data)
         project.project_members.append(user)
         if user.id != super_admin.id:
             project.project_members.append(super_admin)
         project.save()
-        return jsonify({"success": "project created successfully"}),200
-    else:
-        return jsonify({"Error" : "You do not possess the admin rights to create a project, kindly contact the super admin for recieving admin privileges"}),401
+        logging.info(f"project created successfully")
+        return jsonify({"message": "project created successfully"}), 200
+    except Exception as err:
+        logging.exception(f"POST request failed due to the following error:{err}")
+        return jsonify({"error": "something went wrong"}), 400
 
 
-@projects_blueprint.route('/update-name', methods=['POST'])
+@projects_blueprint.route("", methods=["PUT"])
 @jwt_required()
 def updateName():
-    req_data = request.json
-    user = get_current_user().id
-    project_name = req_data.get('project')
-    new_project_name = req_data.get('newProjName')
-    if project_name and new_project_name:
-        project = ProjectModel.query.get(get_project_id(project_name))
-        if project:
-            if project_name!=new_project_name:
-                if project.project_admin==user:
-                    #backend stores data only in slug format, hence converting new name to slug for proper verification
-                    new_project_name = create_slug(new_project_name)
-                    if not ProjectModel.is_project_exist(new_project_name):
-                        project.name = new_project_name
-                        project.update()
-                    else:
-                        return jsonify({'error': 'Project name already exist!'}), 400
-                else:
-                    return jsonify({'error': 'You do not have access to update the project name.'}), 401
-            else:
-                return jsonify({'error': 'New project name must be different from previous name.'}), 400
-        else:
-            return jsonify({'error': 'Project not found with given name!'}), 404
-    else:
-        return jsonify({'error': 'Something Went Wrong!'}), 400
-    return jsonify({'message': 'Project name updated successfully!'}), 200
+    try:
+        req_data = request.json
+        user = get_current_user()
+        logging.info(
+            f"POST request to update project name by user:{user.id} with payload:{req_data}"
+        )
+        project_name = req_data.get("project")
+        new_project_name = create_slug(req_data.get("newProjName"))
+        if not (project_name and new_project_name):
+            return jsonify({"error": "Something Went Wrong!"}), 400
 
-@projects_blueprint.route('/delete/',methods=["DELETE"])
+        project = ProjectModel.query.get(
+            get_project_id(project_name, user.user_organization)
+        )
+        if not project:
+            logging.info(
+                f"POST request to update project name failed as project does not exist"
+            )
+            return jsonify({"error": "Project not found with given name!"}), 404
+
+        if not (project_name != new_project_name):
+            logging.info(
+                f"POST request to update project name failed as same name is provided for change"
+            )
+            return (
+                jsonify(
+                    {"error": "New project name must be different from previous name"}
+                ),
+                400,
+            )
+
+        if not (project.project_admin == user.id):
+            logging.info(f"POST request failed due to unauthorised access")
+            return (
+                jsonify({"error": "You do not have access to update the project name"}),
+                401,
+            )
+        if ProjectModel.is_project_exist(new_project_name, user.user_organization):
+            logging.info(
+                f"POST request failed to update project name as another project exists with the newly suggested name"
+            )
+            return jsonify({"error": "Project name already exist!"}), 400
+
+        project.name = new_project_name
+        project.save()
+        logging.info(f"project name updated successfully")
+        return jsonify({"message": "Project name updated successfully!"}), 200
+    except Exception as err:
+        logging.exception(f"POST request failed due to the following error:{err}")
+        return jsonify({"error": "something went wrong"}), 400
+
+
+@projects_blueprint.route("", methods=["DELETE"])
 @jwt_required()
 def delete_project():
     try:
-        print(request.headers)
         req_data = request.json
         user = get_current_user()
-        project_id = get_project_id(req_data.get('project'))
+        logging.info(
+            f"DELETE request to delete project by user:{user.id} with payload:{req_data}"
+        )
+        project_id = get_project_id(req_data.get("project"), user.user_organization)
         project = ProjectModel.query.get(project_id)
-        if project:
-            if user.id == project.project_admin:
-                project.delete()
-            else:
-                return jsonify({"error" : "You do not possess the admin rights to delete the project"}),401, {"content-type": "application/json; charset=UTF-8"}
-        else:
-            return jsonify({"error" : "No such project exists"}),404, {"content-type": "application/json; charset=UTF-8"}
-        return jsonify({"message" : "project deleted successfully"}),200, {"content-type": "application/json; charset=UTF-8"}
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400, {"content-type": "application/json; charset=UTF-8"}
+        if not project:
+            logging.info(f"DELETE request failed as no such project")
+            return jsonify({"error": "No such project exists"}), 404
 
-@projects_blueprint.route('/members/add',methods=["POST"])
+        if not (user.id == project.project_admin):
+            logging.info(f"DELETE request failed due to unauthorised access")
+            return (
+                jsonify(
+                    {
+                        "error": "You do not possess the admin rights to delete the project"
+                    }
+                ),
+                401,
+            )
+
+        project.delete()
+        logging.info(f"project deleted sucessfully")
+        return jsonify({"message": "project deleted successfully"}), 200
+    except Exception as err:
+        logging.exception(f"DELETE request failed due to the following error:{err}")
+        return jsonify({"error": "something went wrong"}), 400
+
+
+@projects_blueprint.route("/members", methods=["POST"])
 @jwt_required()
 def add_members():
-    req_data = request.json
-    req_data['project'] = create_slug(req_data.get('project'))
-    admin = get_current_user().id
-    project = ProjectModel.is_project_exist(req_data['project'])
     try:
-        if project:
-            if admin == project.project_admin:
-                members = req_data['members']
-                del req_data['members']
-                for member in members:
-                    id = UserModel.get_one_user(member)
-                    project.project_members.append(id)
-                project.update({'modified_by': admin})
-                return jsonify({"Success" : "New members added successfully"}),200
-            else:
-                return jsonify({"error" : "You do not have the admin rights to add members"}),401
-    except Exception as e:
-        return jsonify(str(e)),400
-    return jsonify({"error" : "No such project exists!!!!"}),404
+        req_data = request.json
+        req_data["project"] = create_slug(req_data.get("project"))
+        admin = get_current_user()
+        logging.info(
+            f"POST request to add members to project by user:{admin.id} with payload:{req_data}"
+        )
+        project = ProjectModel.is_project_exist(
+            req_data["project"], admin.user_organization
+        )
 
-@projects_blueprint.route('/members/remove',methods=["DELETE"])
+        if not project:
+            logging.info(f"POST request failed as no such project exists")
+            return jsonify({"error": "No such project exists!!!!"}), 404
+
+        if not (admin.id == project.project_admin):
+            logging.info(f"POST request failed due to unauthorized access")
+            return (
+                jsonify({"error": "You do not have the admin rights to add members"}),
+                401,
+            )
+
+        members = req_data["members"]
+        del req_data["members"]
+        email_content_data = {
+            "project": project.name,
+            "project_admin": admin.name,
+            "sender_email": current_app.config["MAIL_USERNAME"],
+            "password": current_app.config["MAIL_PASSWORD"],
+        }
+        for member in members:
+            user = UserModel.query.get(member)
+            email_content_data["reciever_email"] = user.email
+            email_job = scheduler.add_job(
+                func=project_notifications,
+                trigger="date",
+                args=[email_content_data, 1],
+            )
+            project.project_members.append(user)
+        project.update({"modified_by": admin.id})
+        logging.info(f"new members added successfully to the project")
+        return jsonify({"message": "New members added successfully"}), 200
+    except Exception as err:
+        logging.exception(f"POST request failed due to the following error:{err}")
+        return jsonify({"error": "something went wrong"}), 400
+
+
+@projects_blueprint.route("/members", methods=["DELETE"])
 @jwt_required()
 def remove_members():
-    req_data = request.json
-    req_data['project'] = create_slug(req_data['project'])
-    admin = get_current_user().id
-    project = ProjectModel.is_project_exist(req_data['project'])
     try:
-        if project:
-            if admin == project.project_admin:
-                members = req_data['members']
-                del req_data['members']
-                for member in members:
-                    id = UserModel.get_one_user(member)
-                    project.project_members.remove(id)
-                project.update({'modified_by':admin})
-                return jsonify({"Success":"Members removed successfully"}),200
-            else:
-                return jsonify({"Error": "You do not have the admin rights to delete members"}),401
-    except Exception as e:
-        return jsonify(str(e)),400
-    return jsonify({"Error" : "No such project exists"}),404
+        req_data = request.json
+        req_data["project"] = create_slug(req_data["project"])
+        admin = get_current_user()
+        logging.info(
+            f"DELETE request to remove project members by user:{admin.id} with payload:{req_data}"
+        )
+        project = ProjectModel.is_project_exist(
+            req_data["project"], admin.user_organization
+        )
+        if not project:
+            logging.info(f"DELETE request failed as no such project exists")
+            return jsonify({"error": "No such project exists"}), 404
+
+        if not (admin.id == project.project_admin):
+            logging.info(f"DELETE request failed due to unauthorised access")
+            return (
+                jsonify(
+                    {"error": "You do not have the admin rights to delete members"}
+                ),
+                401,
+            )
+
+        members = req_data["members"]
+        del req_data["members"]
+        email_content_data = {
+            "project": project.name,
+            "project_admin": admin.name,
+            "sender_email": current_app.config["MAIL_USERNAME"],
+            "password": current_app.config["MAIL_PASSWORD"],
+        }
+        for member in members:
+            user = UserModel.get_one_user(member)
+            email_content_data["reciever_email"] = user.email
+            email_job = scheduler.add_job(
+                func=project_notifications,
+                trigger="date",
+                args=[email_content_data, 0],
+            )
+            project.project_members.remove(user)
+        project.update({"modified_by": admin.id})
+        logging.info(f"project members removed sucessfully")
+        return jsonify({"message": "Members removed successfully"}), 200
+    except Exception as err:
+        logging.exception(f"DELETE request failed due to the following error:{err}")
+        return jsonify({"error": "something went wrong"}), 400

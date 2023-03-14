@@ -135,7 +135,7 @@ def forgot_password():
                 trigger="date",
                 args=[email_data],
             )
-        return jsonify({"message": "email sent to the provided email id"}), 400
+        return jsonify({"message": "email sent to the provided email id"}), 200
     except Exception as err:
         logging.exception(f"POST request for forgot password failed due to the following error:{err}")
         return jsonify({"error": "something went wrong"}), 400

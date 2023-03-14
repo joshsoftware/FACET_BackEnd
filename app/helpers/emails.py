@@ -5,10 +5,12 @@ for different purposes
 import smtplib
 import ssl
 from email.message import EmailMessage
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
+from jinja2 import Environment
 import logging
-
-# username, email, sender_email, password, reciever_email, organization
-
+from .email_contents import forgot_password_mail_content
 
 def signup_notification_email(email_data):
     """
@@ -77,3 +79,42 @@ def project_notifications(email_data, email_type):
             logging.info("Mail sent successfully for project updates to email_id:%s and for project:%s",email_data['reciever_email'],project_name)
     except Exception as err:
         logging.exception("Failed to send email for project updates due to the following error:%s",err)
+
+def forgot_password_mail(email_data):
+    """
+    Email function for sending url to user in case of
+    forgot password
+    """
+    try:
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Forgot Password"
+        message["From"] = email_data['sender_email']
+        message["To"] = email_data['reciever_email']
+        # html content recieved
+        html_content = forgot_password_mail_content
+        part1 = MIMEText(
+            Environment()
+            .from_string(html_content)
+            .render(
+                reset_password_url = email_data['reset_password_url']
+            ),
+            "html",
+        )
+        message.attach(part1)
+        fp = open('media/images/logo.png', 'rb')
+        msgImage = MIMEImage(fp.read())
+        fp.close()
+        msgImage.add_header('Content-ID', '<image1>')
+        message.attach(msgImage)
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(email_data["sender_email"], email_data["password"])
+            server.sendmail(
+                        email_data["sender_email"],
+                        email_data['reciever_email'],
+                        message.as_string(),
+                    )
+            logging.info("Mail sent successfully for forgot password to email_id:%s",email_data['reciever_email'])
+    except Exception as err:
+        logging.exception("Failed to send email for forgot password due to the following error:%s",err)
+    

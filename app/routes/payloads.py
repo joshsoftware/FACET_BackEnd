@@ -40,7 +40,7 @@ def get_payloads(payload_id=0):
         - Error message with status code 401 if anybody without project access
             tries hit the API
         - If success, then json response with status code 200, where json look like :
-            {"payloads": list of dicitonaries}
+            "payloads": list of dicitonaries
     """
     try:
         user = get_current_user()
